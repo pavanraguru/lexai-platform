@@ -60,7 +60,8 @@ async function extractTextWithLlamaParse(buffer: Buffer, mimeType: string): Prom
     throw new Error(`LlamaParse upload failed: ${uploadRes.status} ${await uploadRes.text()}`);
   }
 
-  const { id: jobId } = await uploadRes.json();
+  const uploadData = await uploadRes.json() as { id: string };
+  const jobId = uploadData.id;
 
   // Poll for result (max 120 seconds)
   for (let i = 0; i < 60; i++) {
@@ -68,13 +69,13 @@ async function extractTextWithLlamaParse(buffer: Buffer, mimeType: string): Prom
     const statusRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}`, {
       headers: { Authorization: `Bearer ${process.env.LLAMA_CLOUD_API_KEY}` },
     });
-    const status = await statusRes.json();
+    const status = await statusRes.json() as { status: string; error?: string };
 
     if (status.status === 'SUCCESS') {
       const resultRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/text`, {
         headers: { Authorization: `Bearer ${process.env.LLAMA_CLOUD_API_KEY}` },
       });
-      const result = await resultRes.json();
+      const result = await resultRes.json() as { text?: string };
       return result.text || '';
     }
 
@@ -113,7 +114,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
     throw new Error(`Voyage AI error: ${res.status} ${await res.text()}`);
   }
 
-  const data = await res.json();
+  const data = await res.json() as { data: Array<{ embedding: number[] }> };
   return data.data[0].embedding; // 1536-dimensional vector
 }
 
