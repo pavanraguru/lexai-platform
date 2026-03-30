@@ -101,7 +101,7 @@ async function bootstrap() {
     });
   });
 
-  const port = parseInt(process.env.API_PORT || '3001');
+  const port = parseInt(process.env.PORT || process.env.API_PORT || '3001');
   const host = process.env.API_HOST || '0.0.0.0';
   await server.listen({ port, host });
   console.log(`\n  ⚖  LexAI India API v1.1.0 running on ${host}:${port}\n`);
