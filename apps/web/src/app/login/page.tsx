@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 // ============================================================
 // LexAI India — Login Page
 // PRD v1.1 Section 6.1 — Authentication (OTP + Email)
