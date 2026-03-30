@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import {
   Scale, LayoutDashboard, FolderOpen, Calendar,
   Bot, FileText, Users, Receipt, Bell, Settings,
-  ChevronDown, LogOut, Menu, X, Search
+  LogOut, Menu, X, Search
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';

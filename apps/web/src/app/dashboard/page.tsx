@@ -3,8 +3,8 @@
 // PRD v1.1 CM-02 — Case Dashboard
 // ============================================================
 
-import { Suspense } from 'react';
-import { Scale, FolderOpen, Calendar, Bot, Users, FileText, TrendingUp, AlertCircle } from 'lucide-react';
+
+import { FolderOpen, Calendar, Bot, AlertCircle } from 'lucide-react';
 import { CASE_STATUS_LABELS } from '@lexai/core';
 
 // Stat card component

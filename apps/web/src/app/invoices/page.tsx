@@ -4,11 +4,11 @@
 // PRD v1.1 INV-01 to INV-05
 // ============================================================
 
-import { useState } from 'react';
+
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import { invoicesApi } from '@/lib/api';
-import { Receipt, Plus, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { Receipt, Plus, AlertCircle, Loader2 } from 'lucide-react';
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   draft:          { bg: 'bg-gray-100',   text: 'text-gray-500',  label: 'Draft' },

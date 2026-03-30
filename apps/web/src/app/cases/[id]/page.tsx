@@ -9,12 +9,12 @@ import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
-import { casesApi, documentsApi, agentsApi, uploadDocument } from '@/lib/api';
+import { casesApi, agentsApi, uploadDocument } from '@/lib/api';
 import { CASE_STATUS_LABELS } from '@lexai/core';
 import {
   FolderOpen, Upload, Bot, FileText, Calendar, Clock,
   ChevronRight, Play, CheckCircle2, AlertCircle, Loader2,
-  Eye, Download, Share2, X, Plus, ArrowRight
+  Eye, Download, ArrowRight
 } from 'lucide-react';
 
 const TABS = ['overview', 'documents', 'hearings', 'agents', 'drafts'] as const;
