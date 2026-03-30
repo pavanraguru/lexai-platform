@@ -1,0 +1,39 @@
+{
+  "id": "case_001",
+  "tenant_id": "mehta-associates",
+  "title": "State vs Ramesh Kumar",
+  "cnr_number": "DLST01-004521-2024",
+  "case_type": "criminal_sessions",
+  "court": "Delhi Sessions Court",
+  "court_level": "district_court",
+  "judge_name": "Sh. Suresh Verma, Additional Sessions Judge",
+  "status": "pending_hearing",
+  "priority": "high",
+  "perspective": "defence",
+  "filed_date": "2024-01-10",
+  "next_hearing_date": "2024-02-15",
+  "assigned_advocates": ["advocate-001"],
+  "documents": [
+    {
+      "id": "doc_001",
+      "name": "FIR No. 456/2024",
+      "category": "fir",
+      "text_file": "docs/case_001_fir.txt"
+    },
+    {
+      "id": "doc_002",
+      "name": "Chargesheet",
+      "category": "chargesheet",
+      "text_file": "docs/case_001_chargesheet.txt"
+    }
+  ],
+  "metadata": {
+    "fir_number": "FIR No. 456/2024, PS Connaught Place",
+    "police_station": "Connaught Place Police Station, New Delhi",
+    "complainant_name": "Sita Devi w/o Ram Prasad",
+    "accused_names": ["Ramesh Kumar s/o Mohan Kumar"],
+    "sections_charged": ["BNS 103", "BNS 316"],
+    "opposing_counsel": "APP Suresh Kumar Tiwari",
+    "tags": ["bail-pending", "sessions-trial"]
+  }
+}

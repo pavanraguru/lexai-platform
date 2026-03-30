@@ -1,0 +1,117 @@
+{
+  "witness_name": "Sita Devi",
+  "witness_type": "PW",
+  "witness_number": "PW-1",
+  "credibility_score": 4,
+  "credibility_reasoning": "The complainant's account is undermined by multiple significant inconsistencies across the FIR, chargesheet, and MLC report. The most critical concern is the unexplained 4-5 hour gap between the alleged offence (10:00-10:30 hrs) and her arrival at RML Hospital (14:30 hrs), which itself contradicts her FIR statement that she was 'treated at RML Hospital Emergency' (implying immediate treatment post-assault). Additionally, the FIR delay of approximately 12 hours 15 minutes exceeds the legally significant threshold and is only partially explained by her claim that her daughter 'insisted' she file a complaint. The chargesheet records the arrest time as 14:00 hrs on 15.01.2024 while the FIR records it as 16:30 hrs — a discrepancy in police records that reflects poorly on investigative reliability and indirectly on the complainant's version which forms the foundation of that investigation. The section invoked in the FIR (BNS 103 for attempted murder based solely on a verbal threat with a resulting simple hurt injury) appears legally disproportionate and suggests possible embellishment. The injury (3 cm laceration, right forearm, classified as 'simple hurt') is inconsistent with a murderous attack. These cumulative factors significantly reduce the testimonial credibility of this witness.",
+  "inconsistencies": [
+    {
+      "description": "Hospital arrival time vs. alleged offence time: 4-5 hour unexplained gap",
+      "stmt1_location": "FIR (doc_001): Offence alleged at approximately 10:00-10:30 hrs on 14.01.2024",
+      "stmt2_location": "Chargesheet/MLC (doc_002): Complainant arrived at RML Hospital Emergency at 14:30 hrs on 14.01.2024",
+      "significance": "HIGH — If the complainant was injured by a knife at 10:00-10:30 hrs, a delay of over 4 hours before seeking emergency medical treatment for a bleeding laceration is medically implausible without explanation. This unexplained gap raises serious doubts about the truthfulness of the stated time of occurrence and may indicate the incident occurred at a different time or in different circumstances."
+    },
+    {
+      "description": "FIR states complainant returned home at 9:30 PM but MLC shows discharge from hospital without overnight stay",
+      "stmt1_location": "FIR (doc_001): Complainant stated 'After returning home at 9:30 PM, my daughter insisted I file a police complaint'",
+      "stmt2_location": "Chargesheet/MLC (doc_002): MLC Entry — 'Treated and discharged' — arrived at 14:30 hrs on 14.01.2024",
+      "significance": "MEDIUM-HIGH — Complainant arrived at hospital at 14:30 hrs and was treated and discharged (simple hurt). Yet she claims to have returned home only at 9:30 PM — nearly 7 hours after hospital arrival. The reason for this 7-hour gap between hospital discharge and reaching home is not explained. This gap also forms the basis for the FIR delay explanation, which is therefore suspect."
+    },
+    {
+      "description": "Accused arrest time: FIR records 16:30 hrs; Chargesheet records 14:00 hrs on 15.01.2024",
+      "stmt1_location": "FIR (doc_001): 'Accused arrested on 15.01.2024 at 16:30 hrs from his residence at Ajmeri Gate'",
+      "stmt2_location": "Chargesheet (doc_002): 'The accused was arrested on 15.01.2024 at approximately 14:00 hours from Ajmeri Gate area based on informer's tip'",
+      "significance": "HIGH — A 2.5-hour discrepancy in the recorded arrest time between two official police documents (FIR and chargesheet) is a serious inconsistency. Furthermore, the FIR states arrest was from 'his residence' whereas the chargesheet states it was from 'Ajmeri Gate area based on informer's tip' — the mode and precise location of arrest also differ. This undermines the reliability of the entire investigation."
+    },
+    {
+      "description": "Sections invoked in FIR differ from sections in chargesheet",
+      "stmt1_location": "FIR (doc_001): Sections invoked — BNS 103, BNS 316 (Cheating and Extortion), BNS 115",
+      "stmt2_location": "Chargesheet (doc_002): Sections — BNS 103, BNS 115, BNS 308 (Extortion)",
+      "significance": "MEDIUM — BNS 316 (Cheating) was dropped and replaced with BNS 308 (Extortion) in the chargesheet. While this may reflect legal correction by the IO, it demonstrates that the initial FIR categorisation was either incorrect or inflated, and the case heading in the present proceedings (BNS 316) as stated in the system prompt differs from both the FIR and chargesheet, creating further jurisdictional and framing confusion."
+    },
+    {
+      "description": "Nature of offence disproportionate to injury: BNS 103 (attempted culpable homicide) invoked for 3 cm laceration classified as 'simple hurt'",
+      "stmt1_location": "FIR (doc_001): BNS 103 invoked — 'as there was threat to kill'; description of attack with 'sharp weapon'",
+      "stmt2_location": "Chargesheet/MLC (doc_002): Injury described as '3 cm laceration on right forearm — Simple hurt. Treated and discharged'",
+      "significance": "HIGH — A verbal threat to kill, without any overt act directed at causing death, accompanied by a single 3 cm superficial laceration classified as 'simple hurt' by treating doctor, is legally insufficient to attract BNS 103 (attempted culpable homicide amounting to murder). This disproportion between the section invoked and the medical evidence suggests exaggeration in the complainant's version and has direct bearing on her credibility."
+    },
+    {
+      "description": "Complainant states accused demanded Rs. 50,000 as 'hafta' — characterised as extortion in chargesheet but as 'cheating and extortion' (BNS 316) in FIR",
+      "stmt1_location": "FIR (doc_001): Section 316 BNS (Cheating and Extortion) invoked",
+      "stmt2_location": "Chargesheet (doc_002): Section 308 BNS (Extortion alone) invoked",
+      "significance": "LOW-MEDIUM — While this is primarily an IO/legal error, the inconsistency in characterisation of the same demand across documents may be used to challenge the completeness and accuracy of the original FIR recording, and to suggest that the FIR was not recorded verbatim from the complainant but was framed by the recording officer."
+    }
+  ],
+  "suggested_cross_questions": [
+    {
+      "question": "Sita Deviji, you stated in your FIR that after the accused attacked you at 10:00 AM, you were treated at RML Hospital Emergency. However, the MLC shows you arrived at RML Hospital at 14:30 hrs — that is more than 4 hours after the alleged attack. Can you explain where you were during these 4 hours and why you did not go to the hospital immediately after being injured by a knife?",
+      "based_on": "Critical inconsistency between FIR alleged offence time (10:00-10:30 hrs) and MLC hospital arrival time (14:30 hrs) — doc_001 vs doc_002"
+    },
+    {
+      "question": "You state you returned home at 9:30 PM and then went to the police station. The hospital records show you were treated and discharged at RML Hospital — a simple treatment for a 3 cm cut. If you were discharged sometime after 14:30 hrs, what were you doing between your hospital discharge and 9:30 PM when you say you reached home?",
+      "based_on": "Unexplained 7-hour gap between hospital discharge and return home as stated in FIR (doc_001) vs MLC discharge time (doc_002)"
+    },
+    {
+      "question": "You stated in the FIR that the accused threatened to kill you if you reported to police. Despite this threat, your daughter convinced you within the same evening to go and file a complaint. If you genuinely feared for your life from this threat, would it not be natural to wait longer or seek protection first? Or does this suggest that the threat was not as serious as described in the FIR?",
+      "based_on": "Internal inconsistency in FIR (doc_001) — serious death threat alleged yet complainant files FIR same night at daughter's mere insistence; challenges veracity of threat allegation and BNS 103 invocation"
+    },
+    {
+      "question": "The medical report from RML Hospital classifies your injury as 'simple hurt' — a 3 cm laceration on the right forearm. You have stated in the FIR that the accused attacked you with a sharp weapon in a threatening and violent manner. If an accused attempts to commit murder with a knife, is it not surprising that the resulting injury is only a 3 cm surface cut classified as simple hurt by the doctor?",
+      "based_on": "Disproportion between BNS 103 (attempted murder) invocation and medical classification of injury as simple hurt (doc_001 vs doc_002 MLC)"
+    },
+    {
+      "question": "Sita Deviji, at the time of the alleged incident at 10:00 AM, were any other persons present in Palika Bazaar? Palika Bazaar is a busy commercial market in Connaught Place — can you tell this court why no other shopkeeper or customer came to your aid or witnessed this incident, except Rajendra Prasad from the adjacent shop?",
+      "based_on": "Palika Bazaar is a densely populated commercial area; only one eyewitness (PW-3) listed in chargesheet (doc_002) — challenges probability of the narrated sequence of events"
+    },
+    {
+      "question": "You are the owner of Shop No. 23 at Palika Bazaar. Do you have any CCTV cameras installed in or around your shop or in the Palika Bazaar complex? If yes, was the CCTV footage examined by the IO and if so, does it corroborate your version of events?",
+      "based_on": "Palika Bazaar is a covered commercial complex known to have CCTV surveillance; absence of CCTV evidence reference in chargesheet (doc_002) is a significant investigative gap"
+    },
+    {
+      "question": "Have you ever had any prior dispute — commercial, personal, or financial — with the accused Ramesh Kumar before 14.01.2024? Did you know him prior to the alleged incident?",
+      "based_on": "Establishing prior animus or motive for false implication; relevant to defence case; the accused is described as a labourer from Ajmeri Gate with no apparent nexus to Connaught Place extortion rings"
+    },
+    {
+      "question": "The FIR records the accused's arrest at 16:30 hrs on 15.01.2024 from his residence, but the chargesheet states the arrest was at 14:00 hrs from Ajmeri Gate area based on an informer's tip. Which version is correct, and were you present at or informed about the time of arrest? Does this discrepancy not show that official records in this case have been incorrectly maintained?",
+      "based_on": "Arrest time discrepancy between FIR (16:30 hrs) and chargesheet (14:00 hrs) — doc_001 vs doc_002 — challenges overall reliability of the investigation"
+    },
+    {
+      "question": "You state the accused demanded Rs. 50,000 as 'hafta'. Is this the first time he had come to your shop for such a demand, or had he come before? If this was not the first time, why was no complaint filed earlier? If this was the first time, on what basis did the accused approach your particular shop for extortion?",
+      "based_on": "FIR (doc_001) does not mention any prior incidents of extortion demand — challenges the extortion narrative under BNS 308 which typically involves repeated coercive demands"
+    },
+    {
+      "question": "You stated the FIR was lodged at 22:45 hrs — more than 12 hours after the alleged offence at 10:00 AM. The Hon'ble Supreme Court has repeatedly held that delayed FIRs raise suspicion of fabrication or embellishment. Can you give this court a precise account of every hour between 10:00 AM and 10:30 PM on 14.01.2024, including specifically where you were between the alleged attack and your arrival at RML Hospital at 14:30 hrs?",
+      "based_on": "FIR delay of 12 hours 15 minutes — legally significant per Supreme Court precedents; combined with unexplained gap before hospital arrival (doc_001, doc_002)"
+    }
+  ],
+  "objectionable_questions": [
+    {
+      "quote": "Is it not true that you are a woman of loose character and hence fabricated this story?",
+      "reason": "Grossly inadmissible and impermissible under BSA 2023 Section 53 (formerly Section 155(4) Indian Evidence Act, which was deleted by Criminal Law Amendment Act 2002). Character of a female complainant in a case involving assault cannot be used to impeach her credibility. Such a question is also violative of dignity and constitutional protections under Article 21."
+    },
+    {
+      "quote": "You are a shopkeeper in Palika Bazaar — is it not true that all shopkeepers there are involved in illegal activities and black money transactions?",
+      "reason": "Inadmissible as it is a sweeping generalisation with no factual basis, amounts to character assassination by association, and is irrelevant to the facts in issue. Such a question would be disallowed by the court as it does not relate to any specific fact in issue or relevant fact under BSA 2023."
+    },
+    {
+      "quote": "Did your daughter ask you to file this false case because she has a personal grudge against the accused?",
+      "reason": "Speculative, assumes facts not in evidence, and introduces the character and motive of a third party (the daughter) who is not a witness in these proceedings. Any answer would be hearsay. Such a question is objectionable unless the daughter is examined as a witness and prior foundation is laid for this suggestion."
+    },
+    {
+      "quote": "Is it not true that you filed this FIR only because you wanted to extort money from the accused and his family?",
+      "reason": "While the defence may suggest false implication, this specific formulation amounts to directly accusing the complainant of extortion without any evidentiary foundation on the record. Such questions must be based on specific facts and cannot be put as bald suggestions of criminal conduct without a reasonable basis per established cross-examination principles."
+    },
+    {
+      "quote": "As a woman running a shop alone, were you not inviting trouble by staying there without a male family member?",
+      "reason": "Irrelevant, gender-discriminatory and violative of constitutional dignity. A woman's right to conduct business independently cannot be used to suggest contributory negligence or provocation in a criminal assault matter. Such a question would be rightly disallowed by any court."
+    }
+  ],
+  "case_id": "case_001",
+  "agent_type": "deposition",
+  "run_at": "2026-03-26T10:37:06.412Z",
+  "tokens": {
+    "input": 2255,
+    "output": 3859
+  },
+  "cost_inr": 5.4
+}

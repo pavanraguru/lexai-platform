@@ -1,0 +1,35 @@
+{
+  "name": "lexai-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LexAI India - AI-Powered Legal SaaS Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:api": "turbo run dev --filter=@lexai/api",
+    "dev:web": "turbo run dev --filter=@lexai/web",
+    "dev:cli": "turbo run dev --filter=@lexai/cli",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "db:generate": "turbo run db:generate --filter=@lexai/db",
+    "db:migrate": "turbo run db:migrate --filter=@lexai/db",
+    "db:studio": "turbo run db:studio --filter=@lexai/db",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "typescript": "^5.4.0",
+    "prettier": "^3.2.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@10.9.4"
+}

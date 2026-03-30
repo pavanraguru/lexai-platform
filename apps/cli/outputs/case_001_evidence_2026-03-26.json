@@ -1,0 +1,258 @@
+{
+  "exhibits": [
+    {
+      "number": "MO-1",
+      "description": "Knife recovered from accused Ramesh Kumar at time of arrest on 15.01.2024",
+      "doc_id": "doc_002",
+      "page": "chargesheet"
+    },
+    {
+      "number": "MO-2",
+      "description": "Blood-stained kurta of complainant Sita Devi",
+      "doc_id": "doc_002",
+      "page": "chargesheet"
+    },
+    {
+      "number": "E-1",
+      "description": "MLC Report from RML Hospital (MLC No. RML/2024/1234) - 3cm laceration right forearm, simple hurt",
+      "doc_id": "doc_002",
+      "page": "chargesheet"
+    },
+    {
+      "number": "E-2",
+      "description": "Recovery memo of knife dated 15.01.2024",
+      "doc_id": "doc_002",
+      "page": "chargesheet"
+    }
+  ],
+  "key_facts": [
+    {
+      "fact": "FIR registered at 22:45 hrs on 14.01.2024; alleged offence at approximately 10:00-10:30 hrs on same date — gap of approximately 12 hours 15 minutes, which crosses the legally significant 12-hour threshold per Supreme Court precedents and is acknowledged in FIR itself",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "high"
+    },
+    {
+      "fact": "Complainant Sita Devi arrived at RML Hospital Emergency at 14:30 hrs (per MLC in chargesheet), which is 4-5 hours after the alleged offence time of 10:00-10:30 hrs — unexplained delay in seeking medical treatment",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "high"
+    },
+    {
+      "fact": "FIR states complainant returned home at 9:30 PM and only then filed complaint at PS at 22:45 hrs after daughter's insistence — approximately 7 hours after hospital discharge, no explanation for this further delay",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "high"
+    },
+    {
+      "fact": "FIR states accused arrested on 15.01.2024 at 16:30 hrs; chargesheet states arrest at approximately 14:00 hrs — direct contradiction of 2.5 hours in arrest time",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "high"
+    },
+    {
+      "fact": "FIR invokes BNS Section 103 citing 'threat to kill'; chargesheet invokes BNS Section 103 for attempted culpable homicide amounting to murder — injury noted is only 3cm laceration classified as 'simple hurt', making Section 103 application legally tenuous",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "high"
+    },
+    {
+      "fact": "FIR charges BNS Section 316 (Cheating and Extortion); chargesheet charges BNS Section 308 (Extortion) — section changed without explanation; BNS 316 does not exist as 'cheating and extortion' — possible error in FIR section citation",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "high"
+    },
+    {
+      "fact": "Chargesheet filed in Saket District Courts before Additional Sessions Judge Suresh Verma, but FIR registered at PS Connaught Place under Central Delhi District — jurisdictional discrepancy between court mentioned and PS jurisdiction",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "high"
+    },
+    {
+      "fact": "Knife (MO-1) recovered at arrest on 15.01.2024, approximately 28 hours after alleged offence — no independent witness to recovery; raises questions about chain of custody and whether weapon was planted",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "high"
+    },
+    {
+      "fact": "MLC classifies injury as 'simple hurt' — 3cm laceration on right forearm treated and discharged — inconsistent with prosecution's invocation of BNS Section 103 (attempted murder) and Section 115 (hurt by dangerous weapon)",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "high"
+    },
+    {
+      "fact": "FIR states accused attacked complainant with 'sharp weapon'; chargesheet identifies weapon as knife (MO-1) — weapon not described or identified at FIR stage, identity of weapon introduced only post-arrest",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "medium"
+    },
+    {
+      "fact": "FIR states accused arrested at Ajmeri Gate from 'his residence'; chargesheet states arrest based on 'informer's tip' from Ajmeri Gate area — discrepancy in how accused was located for arrest",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "medium"
+    },
+    {
+      "fact": "Accused produced before Metropolitan Magistrate, Patiala House Courts on 16.01.2024 per FIR; chargesheet states remanded to 14-day judicial custody — Patiala House Courts is inconsistent with PS Connaught Place which typically falls under Tis Hazari/Patiala House jurisdiction; requires verification",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "medium"
+    },
+    {
+      "fact": "FIR states injury was on complainant's 'right arm'; MLC and chargesheet specify 'right forearm' — minor inconsistency in body part description",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "medium"
+    },
+    {
+      "fact": "Eyewitness PW-3 Rajendra Prasad (shopkeeper at adjacent Shop No. 22) listed in chargesheet but not mentioned anywhere in FIR — his existence and presence not disclosed at FIR stage",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "medium"
+    },
+    {
+      "fact": "FIR states alleged offence time as '10:00-10:30 hrs'; chargesheet narrows it to '10:15 hours' — precision introduced in chargesheet without basis in FIR",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "medium"
+    },
+    {
+      "fact": "Accused's occupation stated as 'labourer' in chargesheet — relevant to credibility of extortion demand of Rs. 50,000 and whether accused had means or criminal network to demand hafta",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "medium"
+    },
+    {
+      "fact": "Chargesheet submitted on 25.01.2024 — 11 days after FIR; within statutory period but timeline of investigation should be verified against BNSS 2023 requirements",
+      "doc_id": "doc_002",
+      "page": "chargesheet",
+      "importance": "low"
+    },
+    {
+      "fact": "Medical examination of accused Ramesh Kumar conducted at LNJP Hospital post-arrest — report not exhibited or referenced in chargesheet exhibits list",
+      "doc_id": "doc_001",
+      "page": "FIR",
+      "importance": "low"
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "Sita Devi w/o Ram Prasad",
+      "type": "PW",
+      "number": "PW-1",
+      "doc_id": "doc_002"
+    },
+    {
+      "name": "Dr. Priya Mehta, RML Hospital (Medical Officer who treated complainant)",
+      "type": "PW",
+      "number": "PW-2",
+      "doc_id": "doc_002"
+    },
+    {
+      "name": "Rajendra Prasad (Eyewitness, shopkeeper at adjacent Shop No. 22)",
+      "type": "PW",
+      "number": "PW-3",
+      "doc_id": "doc_002"
+    },
+    {
+      "name": "S.I. Rajesh Sharma (No. 12345/D) (Investigating Officer)",
+      "type": "PW",
+      "number": "PW-4",
+      "doc_id": "doc_002"
+    },
+    {
+      "name": "Constable Sunil Kumar (Accompanied IO during arrest)",
+      "type": "PW",
+      "number": "PW-5",
+      "doc_id": "doc_002"
+    }
+  ],
+  "contradictions": [
+    {
+      "description": "CRITICAL — Arrest time conflict: FIR states accused arrested at 16:30 hrs on 15.01.2024; chargesheet states arrest at approximately 14:00 hrs on 15.01.2024 — a 2.5-hour discrepancy which may affect legality of arrest, remand computation and custody period calculation under BNSS 2023",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "high"
+    },
+    {
+      "description": "CRITICAL — Sections charged: FIR invokes BNS Section 316 (described as 'Cheating and Extortion'); chargesheet charges BNS Section 308 (Extortion) — unexplained change in section without amendment to FIR; BNS 316 cited in FIR appears to be a non-existent or incorrectly cited provision for the alleged act",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "high"
+    },
+    {
+      "description": "CRITICAL — BNS Section 103 application vs. medical evidence: Prosecution invokes BNS 103 (attempted murder/culpable homicide) but MLC conclusively classifies injury as 'simple hurt' with only 3cm laceration — MLC evidence directly contradicts the gravest charge; no dangerous weapon injury consistent with attempted murder documented",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "high"
+    },
+    {
+      "description": "SIGNIFICANT — Eyewitness PW-3 Rajendra Prasad not mentioned in FIR at all despite being shopkeeper at adjacent Shop No. 22 who would have been immediately accessible — his introduction only at chargesheet stage raises credibility concerns about his claimed presence and testimony",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "high"
+    },
+    {
+      "description": "SIGNIFICANT — Hospital arrival time: FIR states complainant returned home at 9:30 PM implying she was at hospital most of the day; MLC shows she arrived at RML at 14:30 hrs — this means complainant was at hospital only briefly (treated and discharged) but did not report to police for another ~8 hours after discharge, unexplained in both documents",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "high"
+    },
+    {
+      "description": "MODERATE — Manner of arrest: FIR states accused arrested from 'his residence' at Ajmeri Gate; chargesheet states arrest was based on 'informer's tip' from Ajmeri Gate area — discrepancy in how accused was located raises questions about pre-arrest surveillance, whether arrest was pre-planned, and whether proper arrest procedure under BNSS 2023 was followed",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "medium"
+    },
+    {
+      "description": "MODERATE — Court jurisdiction: Chargesheet filed before Additional Sessions Judge at Saket District Courts; FIR registered at PS Connaught Place (Central District) — Connaught Place PS does not fall under Saket courts jurisdiction; this raises a jurisdictional issue regarding the proper court for trial",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "medium"
+    },
+    {
+      "description": "MODERATE — Offence time precision: FIR states offence occurred at 'approximately 10:00-10:30 hrs'; chargesheet states 'approximately 10:15 hours' — artificial precision introduced in chargesheet without factual basis disclosed in FIR or investigation documents",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "medium"
+    },
+    {
+      "description": "MINOR — Body part description: FIR states injury on 'right arm'; MLC and chargesheet specify 'right forearm' — while forearm is part of the arm, inconsistency in anatomical description could affect credibility of complainant's account in FIR",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "low"
+    },
+    {
+      "description": "MINOR — Weapon description: FIR describes 'sharp weapon' generically; chargesheet specifically identifies knife (MO-1) recovered from accused 28 hours post-offence — identification of specific weapon introduced only post-arrest, not by complainant or eyewitness in FIR",
+      "doc1_id": "doc_001",
+      "doc2_id": "doc_002",
+      "significance": "low"
+    }
+  ],
+  "missing_docs": [
+    "Arrest memo of accused Ramesh Kumar (mentioned in FIR but not exhibited in chargesheet — mandatory under BNSS 2023 Section 35)",
+    "Medical examination report of accused Ramesh Kumar from LNJP Hospital post-arrest (mentioned in FIR but absent from chargesheet exhibits — critical to establish accused's condition and rule out false implication)",
+    "Recovery memo / seizure memo for MO-2 (blood-stained kurta of complainant) — not exhibited separately; chain of custody document missing",
+    "Forensic Science Laboratory (FSL) report for MO-1 (knife) — blood group matching, fingerprint analysis not referenced",
+    "FSL report for MO-2 (blood-stained kurta) — blood group and DNA analysis absent",
+    "Section 27 Indian Evidence Act / BSA 2023 disclosure statement of accused leading to recovery of knife (MO-1) — essential for admissibility of recovery",
+    "CCTV footage from Palika Bazaar Shop No. 23 or surrounding area — not referenced in either document despite Connaught Place being a CCTV-dense area",
+    "Scene of crime panchnama / spot inspection report for Shop No. 22-23, Palika Bazaar",
+    "Statement of Rajendra Prasad (PW-3 eyewitness) recorded under BNSS Section 180 during investigation — not referenced in chargesheet",
+    "Call detail records (CDR) of accused and complainant around time of alleged offence",
+    "Remand application and remand order from Metropolitan Magistrate, Patiala House Courts dated 16.01.2024",
+    "Section 164 BNSS 2023 statement of complainant Sita Devi recorded before Magistrate",
+    "IO's case diary entries from 14.01.2024 to 25.01.2024 covering the entire investigation period",
+    "MLC of accused Ramesh Kumar from LNJP Hospital (mentioned in FIR but not exhibited in chargesheet)",
+    "Shop ownership or tenancy documents for Shop No. 23, Palika Bazaar to establish complainant's presence and business",
+    "Identification parade proceedings if any, for accused identification by PW-3 (eyewitness who was not present at FIR stage)"
+  ],
+  "case_id": "case_001",
+  "agent_type": "evidence",
+  "run_at": "2026-03-26T10:33:15.501Z",
+  "tokens": {
+    "input": 2291,
+    "output": 4150
+  },
+  "cost_inr": 5.77
+}

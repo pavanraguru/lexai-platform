@@ -1,0 +1,178 @@
+{
+  "events": [
+    {
+      "date": "2024-01-14",
+      "time": "10:00",
+      "description": "Alleged offence commences: Accused Ramesh Kumar allegedly entered Shop No. 23, Palika Bazaar, Connaught Place and demanded Rs. 50,000 extortion money from complainant Sita Devi. On refusal, allegedly attacked her with a sharp weapon causing injury to right forearm.",
+      "source_doc_id": "doc_001",
+      "source_page": "FIR",
+      "event_type": "offence_start",
+      "importance_score": 10,
+      "gap_after_minutes": 30
+    },
+    {
+      "date": "2024-01-14",
+      "time": "10:30",
+      "description": "Alleged offence window closes per complainant's statement. Accused allegedly departed scene. No eyewitness account of departure recorded in FIR.",
+      "source_doc_id": "doc_001",
+      "source_page": "FIR",
+      "event_type": "offence_end",
+      "importance_score": 9,
+      "gap_after_minutes": 240
+    },
+    {
+      "date": "2024-01-14",
+      "time": "14:30",
+      "description": "Complainant Sita Devi arrives at RML Hospital Emergency Department. MLC No. RML/2024/1234 raised. Injury noted as 3 cm laceration on right forearm, classified as 'simple hurt'. Treated and discharged. CRITICAL GAP: Complainant arrived at hospital approximately 4 to 5 hours after alleged offence — no explanation provided for this delay in seeking medical treatment.",
+      "source_doc_id": "doc_002",
+      "source_page": "chargesheet",
+      "event_type": "medical_examination",
+      "importance_score": 9,
+      "gap_after_minutes": 420
+    },
+    {
+      "date": "2024-01-14",
+      "time": "21:30",
+      "description": "Complainant states she returned home at approximately 9:30 PM after hospital discharge. Daughter allegedly insisted she file police complaint. CRITICAL GAP: Approximately 7 hours elapsed between hospital arrival (14:30 hrs) and return home (21:30 hrs) — discharge time not recorded in chargesheet, creating an unaccounted period. Further, no explanation for remaining at or travelling from hospital for approximately 7 hours.",
+      "source_doc_id": "doc_001",
+      "source_page": "FIR",
+      "event_type": "complainant_movement",
+      "importance_score": 8,
+      "gap_after_minutes": 75
+    },
+    {
+      "date": "2024-01-14",
+      "time": "22:45",
+      "description": "FIR No. 456/2024 registered at Police Station Connaught Place by S.I. Rajesh Sharma (No. 12345/D) on complaint of Sita Devi. FIR GAP FLAGGED: 12 hours 15 minutes elapsed from alleged offence time (10:00 hrs) to FIR registration — exceeds the legally significant 12-hour threshold recognised by Supreme Court precedents. Gap acknowledged in FIR itself by Investigating Officer.",
+      "source_doc_id": "doc_001",
+      "source_page": "FIR",
+      "event_type": "fir_registration",
+      "importance_score": 10,
+      "gap_after_minutes": 1155
+    },
+    {
+      "date": "2024-01-15",
+      "time": "14:00",
+      "description": "Arrest of accused Ramesh Kumar as stated in chargesheet: approximately 14:00 hrs from Ajmeri Gate area based on informer's tip. CONTRADICTION: Chargesheet states 14:00 hrs; FIR states 16:30 hrs — direct discrepancy of approximately 2 hours 30 minutes in recorded arrest time between two official documents.",
+      "source_doc_id": "doc_002",
+      "source_page": "chargesheet",
+      "event_type": "arrest",
+      "importance_score": 10,
+      "gap_after_minutes": null
+    },
+    {
+      "date": "2024-01-15",
+      "time": "16:30",
+      "description": "Arrest time as stated in FIR: accused Ramesh Kumar arrested at 16:30 hrs from his residence at Ajmeri Gate. Arrest memo prepared. Medical examination conducted at LNJP Hospital. CONTRADICTION: FIR states 16:30 hrs; chargesheet states 14:00 hrs — 2 hour 30 minute discrepancy raises question of undocumented custody period between 14:00 hrs and 16:30 hrs if chargesheet time is correct.",
+      "source_doc_id": "doc_001",
+      "source_page": "FIR",
+      "event_type": "arrest_alternate_record",
+      "importance_score": 10,
+      "gap_after_minutes": 810
+    },
+    {
+      "date": "2024-01-15",
+      "time": null,
+      "description": "Knife (MO-1) allegedly recovered from accused at time of arrest. Recovery memo (E-2) prepared dated 15.01.2024. No specific time of recovery recorded in available documents.",
+      "source_doc_id": "doc_002",
+      "source_page": "chargesheet",
+      "event_type": "evidence_recovery",
+      "importance_score": 7,
+      "gap_after_minutes": null
+    },
+    {
+      "date": "2024-01-16",
+      "time": null,
+      "description": "Accused Ramesh Kumar produced before Metropolitan Magistrate, Patiala House Courts. Remanded to 14-day judicial custody.",
+      "source_doc_id": "doc_001",
+      "source_page": "FIR",
+      "event_type": "court_production",
+      "importance_score": 6,
+      "gap_after_minutes": null
+    },
+    {
+      "date": "2024-01-25",
+      "time": null,
+      "description": "Chargesheet filed by Inspector Mahesh Chand, SHO PS Connaught Place under Section 193 BNSS 2023 before Additional Sessions Judge (Fast Track), Saket District Courts. Sections invoked: BNS 103, BNS 115, BNS 308.",
+      "source_doc_id": "doc_002",
+      "source_page": "chargesheet",
+      "event_type": "chargesheet_filed",
+      "importance_score": 8,
+      "gap_after_minutes": null
+    }
+  ],
+  "prosecution_gaps": [
+    {
+      "description": "FIR registered 12 hours 15 minutes after alleged offence time — crosses legally significant 12-hour threshold acknowledged in the FIR itself. Complainant's explanation (hospital treatment followed by daughter's insistence) is legally insufficient without corroborating timestamps. Per Supreme Court precedents, unexplained FIR delay raises adverse inference regarding genuineness of complaint and possibility of deliberation or fabrication of version.",
+      "start_date": "2024-01-14T10:30",
+      "end_date": "2024-01-14T22:45",
+      "significance": "CRITICAL — Defence can invoke FIR delay doctrine to challenge first version of events. Complainant's narrative may have been embellished or tailored during the 12+ hour gap."
+    },
+    {
+      "description": "Complainant arrived at RML Hospital at 14:30 hrs — approximately 4 to 5 hours after alleged offence at 10:00-10:30 hrs. No explanation recorded for delay in seeking emergency medical treatment for a sharp weapon injury. If the injury was genuinely inflicted with a knife at 10:00-10:30 hrs, immediate medical attention would ordinarily be expected.",
+      "start_date": "2024-01-14T10:30",
+      "end_date": "2024-01-14T14:30",
+      "significance": "HIGH — Casts doubt on veracity of offence time. Raises possibility that the incident occurred at a different time, or that the injury was not as serious or immediate as alleged. Inconsistent with prosecution narrative of violent knife attack."
+    },
+    {
+      "description": "Complainant states she returned home at 21:30 hrs after hospital treatment but MLC records only show arrival at 14:30 hrs with treatment for simple hurt (3 cm laceration). Approximately 7 hours are unaccounted between hospital visit and return home. Hospital discharge time not documented in chargesheet.",
+      "start_date": "2024-01-14T14:30",
+      "end_date": "2024-01-14T21:30",
+      "significance": "MODERATE-HIGH — 7-hour gap in complainant's movements after alleged offence and before FIR. Absence of discharge time creates unexplained window. Prosecution has not addressed where complainant was during this period."
+    },
+    {
+      "description": "Direct contradiction between FIR and chargesheet on arrest time: FIR records arrest at 16:30 hrs on 15.01.2024; chargesheet records arrest at approximately 14:00 hrs on 15.01.2024 — a discrepancy of 2 hours 30 minutes. If chargesheet time is correct, accused may have been in informal/unlawful custody between 14:00 hrs and 16:30 hrs without documentation, violating rights under Articles 21 and 22 of the Constitution and BNSS provisions on arrest.",
+      "start_date": "2024-01-15T14:00",
+      "end_date": "2024-01-15T16:30",
+      "significance": "CRITICAL — Contradictory arrest times between primary documents undermine investigation credibility. Potential unlawful detention of 2.5 hours. Knife recovery (MO-1) timing becomes suspect — if recovered at 14:00 hrs, but arrest memo shows 16:30 hrs, chain of custody of MO-1 is compromised."
+    },
+    {
+      "description": "Section 103 BNS 2023 (Culpable Homicide amounting to Murder) invoked on the basis of a verbal threat to kill and a 3 cm laceration on the right forearm classified as 'simple hurt' by the treating medical officer. No life-threatening injury documented. No medical evidence of attempt to cause death or such bodily injury as likely to cause death.",
+      "start_date": "2024-01-14",
+      "end_date": "2024-01-25",
+      "significance": "CRITICAL — Legal tenability of BNS Section 103 charge is doubtful. A 3 cm forearm laceration constituting simple hurt cannot ordinarily sustain a charge of attempt to commit culpable homicide amounting to murder. Defence can file application for discharge under Section 227 BNSS. The mere threat to kill, without an overt act proximate to causing death, does not satisfy the ingredients of Section 103."
+    },
+    {
+      "description": "FIR originally mentions BNS Section 103 citing 'threat to kill'; chargesheet recharacterises the same as attempt at culpable homicide amounting to murder — neither document explains how a 3 cm forearm laceration evidences intent to cause murder. No weapon analysis, no forensic report on wound characteristics, no medical opinion on life-threatening potential.",
+      "start_date": "2024-01-14",
+      "end_date": "2024-01-25",
+      "significance": "HIGH — Absence of forensic linkage between recovered knife (MO-1) and complainant's injury. No blood group matching between MO-2 (blood-stained kurta) and victim or accused documented in chargesheet. Chain of custody incomplete."
+    },
+    {
+      "description": "PW-3 Rajendra Prasad described as eyewitness shopkeeper at adjacent Shop No. 22 — however, his statement content is not reproduced in the chargesheet and the precise time of observation is not stated. It is unknown whether PW-3 witnessed the alleged assault itself or only a part of the events.",
+      "start_date": "2024-01-14T10:00",
+      "end_date": "2024-01-14T10:30",
+      "significance": "MODERATE — Failure to reproduce or summarise PW-3 statement in chargesheet leaves scope for defence to challenge whether independent eyewitness corroboration actually exists for the assault."
+    }
+  ],
+  "alibi_windows": [
+    {
+      "start": "2024-01-14T10:00",
+      "end": "2024-01-14T10:30",
+      "description": "PRIMARY ALIBI WINDOW — Core alleged offence period. Accused Ramesh Kumar's whereabouts between 10:00 and 10:30 hrs on 14.01.2024 at or near Shop No. 23, Palika Bazaar, Connaught Place. Defence should investigate and establish accused's presence at an alternate location during this window. Relevant evidence: mobile tower location data (CDR), CCTV footage from Palika Bazaar or Ajmeri Gate area, employer/co-worker testimony, public transport records, electronic payment records."
+    },
+    {
+      "start": "2024-01-14T10:30",
+      "end": "2024-01-14T14:30",
+      "description": "SECONDARY ALIBI WINDOW — Gap between alleged offence end (10:30 hrs) and complainant's hospital arrival (14:30 hrs). Prosecution has not placed accused at any specific location during this period. Defence can use this window to establish alternate narrative — if complainant did not seek medical treatment for 4 hours, the urgency and nature of the injury is in question. Accused's alibi during this period would further undermine identification claim."
+    },
+    {
+      "start": "2024-01-15T14:00",
+      "end": "2024-01-15T16:30",
+      "description": "ARREST DISCREPANCY WINDOW — 2.5 hour gap between chargesheet arrest time (14:00 hrs) and FIR arrest time (16:30 hrs). If accused was taken into custody at 14:00 hrs but arrest memo prepared at 16:30 hrs, this constitutes potential illegal detention. Defence should examine: whether accused was interrogated without safeguards during this period; whether knife recovery (MO-1) was planted or obtained under duress during this undocumented window; and whether any statement was obtained in violation of Section 47 BNSS 2023."
+    },
+    {
+      "start": "2024-01-14T22:45",
+      "end": "2024-01-15T14:00",
+      "description": "POST-FIR PRE-ARREST WINDOW — Approximately 15 hours 15 minutes (or 15 minutes more if arrest was at 14:00 hrs per chargesheet) elapsed between FIR registration and arrest. FIR named and addressed the accused specifically. No explanation in chargesheet for delay in effecting arrest despite known address at Ajmeri Gate. This raises question of why accused was not arrested overnight and whether the accused continued normal activities at his residence, which could support defence claim of no consciousness of guilt and no attempt to abscond."
+    }
+  ],
+  "case_id": "case_001",
+  "agent_type": "timeline",
+  "run_at": "2026-03-26T10:34:15.920Z",
+  "tokens": {
+    "input": 2681,
+    "output": 3824
+  },
+  "cost_inr": 5.46
+}

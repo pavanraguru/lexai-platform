@@ -1,0 +1,220 @@
+{
+  "applicable_statutes": [
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023",
+      "section": "Section 103",
+      "description": "Culpable Homicide amounting to Murder. Requires proof of intention or knowledge that act is imminently dangerous that it must, in all probability, cause death.",
+      "relevance": "PRIMARY CHARGE - Defence must challenge: (a) absence of intention to cause death; (b) injuries being described as a 3cm laceration on forearm is inconsistent with any murderous intent; (c) no vital organs targeted; (d) Section 103 BNS is equivalent to Section 302 IPC read with attempt provisions - prosecution must establish the act fell under clauses (1)-(4) of Section 103 with unambiguous intent. The MLC describing 'simple hurt' with a 3cm laceration severely undermines this charge."
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023",
+      "section": "Section 115",
+      "description": "Voluntarily causing hurt by dangerous weapons or means. Equivalent to Section 324 IPC. Requires proof that hurt was caused voluntarily using a dangerous weapon.",
+      "relevance": "MLC corroborates only a 3cm laceration classified as 'simple hurt'. Defence can argue charge should rest only under Section 115 BNS at most, and even then identity of weapon (MO-1 knife recovered 28 hours after incident from accused's possession) is contestable as plant."
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023",
+      "section": "Section 308",
+      "description": "Extortion. Equivalent to Section 383/384 IPC. Requires proof of intentional putting a person in fear of injury and thereby dishonestly inducing that person to deliver any property.",
+      "relevance": "Prosecution must prove both: (a) putting Sita Devi in fear of injury AND (b) actual or attempted delivery of property. If no money was paid, charge may be limited to attempt to extort. Defence can argue no independent corroboration exists for the demand of Rs. 50,000 beyond the complainant's statement."
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023",
+      "section": "Section 109",
+      "description": "Attempt to commit murder. Equivalent to Section 307 IPC. A lesser but potentially applicable charge - prosecution appears to have overcharged under Section 103 when the facts may not even sustain Section 109.",
+      "relevance": "Defence can argue that even accepting prosecution case at its highest, the charge can be no more than Section 109 BNS (attempt), not Section 103 itself, and that the nature of injury (3cm forearm laceration, simple hurt) is wholly inconsistent with attempt to murder."
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023",
+      "section": "Section 193",
+      "description": "Police report / Chargesheet filing. Equivalent to Section 173 CrPC.",
+      "relevance": "Chargesheet was filed. Defence to examine whether all mandatory documents under Section 193 BNSS were annexed including statements of all witnesses examined."
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023",
+      "section": "Section 41",
+      "description": "Arrest without warrant conditions and mandatory procedure. Equivalent to Section 41 CrPC.",
+      "relevance": "Chargesheet records arrest at 14:00 hrs on 15.01.2024 while FIR records arrest at 16:30 hrs on 15.01.2024 - a discrepancy of 2.5 hours that raises serious questions about lawfulness of arrest and possible illegal detention in that gap."
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023",
+      "section": "Section 47",
+      "description": "Mandatory preparation of arrest memo. Equivalent to Section 41B CrPC.",
+      "relevance": "Defence must verify if arrest memo was prepared at actual time of arrest and signed by a witness independent of police, given the conflicting arrest times in FIR vs chargesheet."
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam, 2023",
+      "section": "Section 57",
+      "description": "Relevancy of FIR as evidence. Equivalent to Section 157 Indian Evidence Act. FIR can be used to corroborate or contradict the maker.",
+      "relevance": "The FIR delayed by 12 hours 15 minutes and 4-5 hour gap in reaching hospital after the alleged incident are material contradictions. Defence can use FIR to contradict PW-1's testimony regarding timeline."
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam, 2023",
+      "section": "Section 117",
+      "description": "Burden of proof in criminal cases. Equivalent to Section 101-103 Indian Evidence Act.",
+      "relevance": "Entire burden rests on prosecution to prove each ingredient of each offence beyond reasonable doubt. Multiple timeline inconsistencies create reasonable doubt."
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam, 2023",
+      "section": "Section 23",
+      "description": "Admissions. Equivalent to Section 21 Indian Evidence Act.",
+      "relevance": "Relevant to assess weight of complainant's statements to hospital staff vs statements in FIR. Any variation constitutes material contradiction."
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam, 2023",
+      "section": "Section 136",
+      "description": "Examination of witnesses. Equivalent to Section 137 Indian Evidence Act.",
+      "relevance": "Right of defence to cross-examine PW-1 through PW-5 extensively on timeline discrepancies, injury description, delay in FIR, and recovery of MO-1."
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam, 2023",
+      "section": "Section 53",
+      "description": "Relevancy of previous bad character of accused. Character evidence restrictions. Equivalent to Section 54 Indian Evidence Act.",
+      "relevance": "Prosecution should not be permitted to introduce accused's alleged antecedents as 'hafta' collector without proper evidence."
+    }
+  ],
+  "favorable_precedents": [
+    {
+      "citation": "Ombir Singh vs State of Uttarakhand (2020) 9 SCC 684",
+      "court": "Supreme Court of India",
+      "year": "2020",
+      "held": "Nature and location of injury is a crucial factor to determine the intention of the accused. A single injury on a non-vital part of the body is wholly inconsistent with an intent to commit murder. Courts must not mechanically apply Section 307 IPC merely because a weapon was used.",
+      "relevance_score": 9.5,
+      "distinguishing_factors": "Directly applicable - here the injury is a 3cm laceration on right forearm (non-vital part), MLC categorises it as 'simple hurt', no vital organ targeted, and the accused did not repeat the blow. This makes Section 103 BNS (murder/attempt) wholly unsustainable."
+    },
+    {
+      "citation": "State of M.P. vs Kashiram (2009) 4 SCC 26",
+      "court": "Supreme Court of India",
+      "year": "2009",
+      "held": "To establish an offence under Section 307 IPC (attempt to murder), the court must examine the nature of the weapon, the manner of assault, the part of body targeted, and the severity of injuries together. Superficial injuries on limbs not targeting vital organs do not support Section 307.",
+      "relevance_score": 9,
+      "distinguishing_factors": "Principle fully applicable to Section 103/109 BNS charges here. A 3cm forearm laceration classified as simple hurt strongly militates against any murderous intent or attempt."
+    },
+    {
+      "citation": "Gurmail Singh vs State of Punjab (2022) 12 SCC 420",
+      "court": "Supreme Court of India",
+      "year": "2022",
+      "held": "Unexplained delay in lodging FIR creates a reasonable doubt and adversely affects the credibility of the prosecution case. Where FIR is delayed by several hours without satisfactory explanation, the prosecution narrative must be scrutinised with greater care.",
+      "relevance_score": 9.2,
+      "distinguishing_factors": "FIR in this case is delayed by 12 hours 15 minutes. Furthermore, the complainant took 4-5 hours to reach the hospital after the alleged incident. Both delays are unexplained and compound each other, directly attracting this principle."
+    },
+    {
+      "citation": "Thulia Kali vs State of Tamil Nadu (1972) 3 SCC 393",
+      "court": "Supreme Court of India",
+      "year": "1972",
+      "held": "Prompt lodging of FIR is of utmost importance as it excludes the possibility of concoction. Delay throws a cloud of suspicion on the prosecution version and every circumstance of delay must be satisfactorily explained.",
+      "relevance_score": 8.5,
+      "distinguishing_factors": "Foundational precedent consistently followed. Still good law and directly applicable. The explanation given (daughter's insistence at 9:30 PM) is weak and insufficient for a 12-hour delay involving a serious offence."
+    },
+    {
+      "citation": "Ramnaresh vs State of Chhattisgarh (2012) 4 SCC 257",
+      "court": "Supreme Court of India",
+      "year": "2012",
+      "held": "Solitary interested witness testimony without reliable corroboration must be scrutinised carefully. Courts should look for independent corroboration particularly on material particulars.",
+      "relevance_score": 8,
+      "distinguishing_factors": "PW-3 Rajendra Prasad is a shopkeeper at adjacent premises - his relationship with the complainant must be examined. If they are business acquaintances, his testimony is that of an interested/partisan witness requiring independent corroboration."
+    },
+    {
+      "citation": "Krishan vs State of Haryana (2022) 5 SCC 533",
+      "court": "Supreme Court of India",
+      "year": "2022",
+      "held": "Discrepancies between the FIR and chargesheet on material particulars such as time of arrest, sequence of events, or manner of recovery of weapon raise serious doubts about the integrity of the investigation and can create reasonable doubt.",
+      "relevance_score": 9,
+      "distinguishing_factors": "Directly applicable. FIR states arrest at 16:30 hrs on 15.01.2024; chargesheet records arrest at 14:00 hrs - a 2.5 hour discrepancy. This is a glaring inconsistency on a material particular (time of arrest) that goes to the root of the prosecution case."
+    },
+    {
+      "citation": "Mohd. Aslam vs State of Uttar Pradesh (2022) SCC OnLine SC 1636",
+      "court": "Supreme Court of India",
+      "year": "2022",
+      "held": "Recovery of weapon from accused several hours or days after the alleged incident, without independent witness to recovery, must be viewed with suspicion. Mere seizure memo signed only by police personnel is insufficient to establish recovery under Section 27 Evidence Act.",
+      "relevance_score": 8.8,
+      "distinguishing_factors": "MO-1 (knife) was recovered approximately 28 hours after the alleged incident. E-2 recovery memo dated 15.01.2024 must be scrutinised for independent witnesses. If recovery witnesses are police personnel only, this precedent creates strong doubt about the weapon being planted."
+    },
+    {
+      "citation": "Bhagwan Singh vs State of M.P. (2022) 6 SCC 165",
+      "court": "Supreme Court of India",
+      "year": "2022",
+      "held": "Overcharging by prosecution - charging Section 302/307 IPC when facts only disclose Section 324 IPC - is an error that courts must correct at the framing of charge stage itself. The court is not bound by the sections cited in the chargesheet.",
+      "relevance_score": 9.3,
+      "distinguishing_factors": "Directly applicable at the charge framing stage. Defence should move to have Section 103 BNS charge dropped and restrict charges to Section 115 BNS (simple hurt by dangerous weapon) based on the MLC evidence."
+    },
+    {
+      "citation": "Sunil Kumar Sambhudayal Gupta vs State of Maharashtra (2010) 13 SCC 657",
+      "court": "Supreme Court of India",
+      "year": "2010",
+      "held": "To sustain a charge of extortion under Section 384 IPC, the prosecution must prove: (1) putting person in fear of injury AND (2) dishonest inducement to deliver property. Without proof of actual demand and victim's response driven by fear, the offence is not made out.",
+      "relevance_score": 8.2,
+      "distinguishing_factors": "Applicable to Section 308 BNS charge. No money was paid (no delivery of property). The demand of Rs.50,000 rests solely on PW-1's testimony without corroboration. The charge must be limited to attempt to extort at best."
+    },
+    {
+      "citation": "Arnesh Kumar vs State of Bihar (2014) 8 SCC 273",
+      "court": "Supreme Court of India",
+      "year": "2014",
+      "held": "Arrest must be necessary and not a matter of course. Magistrate must apply mind before granting remand. Grounds of arrest must be communicated to accused. These are mandatory requirements and violation makes arrest illegal.",
+      "relevance_score": 7.8,
+      "distinguishing_factors": "Though pre-2015, this is a foundational constitutional precedent consistently applied. Relevant here to challenge the arrest made 28 hours after offence based on 'informer's tip' without any prior notice to appear - especially given the discrepancy in arrest timing between FIR and chargesheet."
+    },
+    {
+      "citation": "Mano Dutt vs State of U.P. 2024 SCC OnLine SC 292",
+      "court": "Supreme Court of India",
+      "year": "2024",
+      "held": "Inconsistencies in prosecution witnesses' statements on material particulars regarding time, place, and manner of incident, particularly when such inconsistencies are not satisfactorily explained, create reasonable doubt entitling accused to benefit of doubt.",
+      "relevance_score": 9,
+      "distinguishing_factors": "Recent 2024 precedent - highly relevant. Multiple timeline inconsistencies exist: (1) 4-5 hours between offence and hospital arrival; (2) 12+ hours FIR delay; (3) 2.5 hour discrepancy in arrest timing between FIR and chargesheet. These are material, not minor, inconsistencies."
+    },
+    {
+      "citation": "Rajendra Pralhadrao Wasnik vs State of Maharashtra (2019) 12 SCC 460",
+      "court": "Supreme Court of India",
+      "year": "2019",
+      "held": "Medical evidence plays a crucial role in corroborating prosecution version. Where medical evidence is at variance with oral testimony on material particulars, oral testimony must yield to medical evidence as it is scientific and objective.",
+      "relevance_score": 8.7,
+      "distinguishing_factors": "MLC records hospital arrival at 14:30 hrs - 4-5 hours after the alleged 10:00-10:30 hrs incident. Prosecution has offered no explanation for this gap. Medical evidence directly contradicts the urgency and gravity suggested by the FIR narrative."
+    }
+  ],
+  "adverse_precedents": [
+    {
+      "citation": "State of Rajasthan vs Narayan (1992) 2 SCC 454",
+      "court": "Supreme Court of India",
+      "year": "1992",
+      "held": "Delay in FIR is not ipso facto fatal to prosecution if satisfactorily explained. Where complainant was receiving medical treatment and was traumatised, delay is natural and explainable.",
+      "how_to_distinguish": "Distinguishable on facts: (a) MLC shows complainant was 'treated and discharged' - not admitted or incapacitated; (b) There is a 4-5 hour unexplained gap between the alleged offence (10:00-10:30 hrs) and even reaching the hospital (14:30 hrs); (c) The explanation in FIR is merely 'daughter insisted' at 9:30 PM, which is a 7-hour post-discharge gap with no explanation; (d) Threats of death allegedly made at the shop should have impelled immediate reporting not 12+ hour delay."
+    },
+    {
+      "citation": "Dhari Devi vs State of U.P. (2022) 3 SCC 762",
+      "court": "Supreme Court of India",
+      "year": "2022",
+      "held": "Eyewitness testimony of a natural witness present at the spot must be given due weight even if there are minor contradictions. Presence of adjacent shopkeeper as eyewitness is natural and credible.",
+      "how_to_distinguish": "Distinguishable: (a) PW-3 Rajendra Prasad's relationship with PW-1 must be thoroughly cross-examined - if they are business acquaintances or friends, he is an interested witness not a chance witness; (b) Chargesheet does not disclose his statement under Section 161 BNSS being recorded in detail; (c) He must be cross-examined on why he did not summon police immediately if he witnessed an armed attack; (d) His non-intervention during a knife attack in a crowded market requires explanation."
+    },
+    {
+      "citation": "State of U.P. vs Naresh (2011) 4 SCC 324",
+      "court": "Supreme Court of India",
+      "year": "2011",
+      "held": "Use of a sharp-edged weapon like a knife on any part of the body can sustain a charge under Section 307 IPC as the manner of use indicates intention to cause harm that may result in death in ordinary course of nature.",
+      "how_to_distinguish": "Distinguishable on three grounds: (a) In Naresh, injuries were multiple and on vital areas; here it is a single 3cm laceration on forearm - a non-vital part; (b) The MLC itself categorises the injury as 'simple hurt' and the complainant was treated and discharged from emergency - not admitted; (c) Supreme Court in subsequent decisions including Ombir Singh (2020) 9 SCC 684 has clarified that weapon alone does not determine charge - combined assessment of injury location, severity, repetition of blows and circumstances must be considered; (d) Accused did not repeat the attack despite having opportunity."
+    },
+    {
+      "citation": "Shankar Lal vs State of Rajasthan (2004) 13 SCC 182",
+      "court": "Supreme Court of India",
+      "year": "2004",
+      "held": "Recovery of incriminating material from accused's possession shortly after the incident is strong circumstantial evidence of guilt, particularly when recovery is pursuant to disclosure statement.",
+      "how_to_distinguish": "Distinguishable: (a) Recovery was 28 hours after the alleged incident - not shortly after; (b) The FIR and chargesheet show conflicting arrest times (14:00 vs 16:30 hrs on 15.01.2024), raising serious doubt about the integrity of the recovery; (c) There is no mention of a disclosure statement under Section 27 BSA 2023 in the chargesheet; (d) Recovery witnesses must be examined - if only police personnel, recovery is suspect; (e) The knife could have been a tool regularly carried by the accused as a labourer."
+    },
+    {
+      "citation": "State of Maharashtra vs Suresh (2000) 1 SCC 471",
+      "court": "Supreme Court of India",
+      "year": "2000",
+      "held": "Demand of money accompanied by threats and actual violence constitutes extortion under Section 383/384 IPC even if money was not ultimately paid. Putting in fear by use of force is the essence of the offence.",
+      "how_to_distinguish": "Distinguishable: (a) In Suresh, there was independent corroboration of both the demand and the violence; here the extortion demand rests exclusively on PW-1's testimony - no independent witness corroborates the demand of Rs.50,000; (b) PW-3 (adjacent shopkeeper) - it must be shown through cross-examination what exactly he witnessed: the assault or also the extortion demand; (c) A verbal demand of Rs.50,000 made in a busy market would have independent witnesses; absence of such witnesses weakens prosecution; (d) Amount demanded (Rs.50,000) is suspiciously round and uncorroborated."
+    }
+  ],
+  "disclaimer": "AI-generated research. Verify all citations on SCC Online or Manupatra before relying in court. This research is prepared for the assistance of the defence advocate and does not constitute legal advice. Citation accuracy must be independently verified. Precedents must be checked for subsequent overruling or modification. The BNS/BNSS/BSA 2023 are relatively recent enactments and section-wise judicial interpretation under the new codes may be limited; precedents under corresponding IPC/CrPC/Evidence Act sections remain persuasive unless inconsistent with the new statutory text.",
+  "case_id": "case_001",
+  "agent_type": "research",
+  "run_at": "2026-03-26T10:35:53.839Z",
+  "tokens": {
+    "input": 2252,
+    "output": 5410
+  },
+  "cost_inr": 7.34
+}
