@@ -13,15 +13,15 @@
     "@lexai/core": "*",
     "@supabase/supabase-js": "^2.42.0",
     "@tanstack/react-query": "^5.28.0",
-    "next": "14.2.0",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.6.0",
+    "lucide-react": "^0.363.0",
+    "next": "14.2.35",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "zustand": "^4.5.0",
-    "zod": "^3.22.0",
-    "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.0",
-    "lucide-react": "^0.363.0",
-    "date-fns": "^3.6.0"
+    "zod": "^3.22.0",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
