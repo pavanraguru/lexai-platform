@@ -14,7 +14,9 @@ export const redisPlugin: FastifyPluginAsync = fp(async (fastify) => {
     enableReadyCheck: false,
   });
 
-  redis.on('error', (err) => fastify.log.error('Redis error:', err));
+  redis.on('error', (err: Error) => {
+    fastify.log.error({ err }, 'Redis error');
+  });
   redis.on('connect', () => fastify.log.info('✅ Redis connected'));
 
   fastify.decorate('redis', redis);

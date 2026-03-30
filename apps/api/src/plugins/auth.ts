@@ -1,31 +1,37 @@
 // ============================================================
-// LexAI India — Auth Plugin
-// Validates JWT, extracts tenant_id, sets RLS context
-// PRD v1.1 Section 6 — Authentication
+// LexAI India — Auth Plugin (Fixed)
 // ============================================================
 
-import { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
 
+interface LexAIUser {
+  id: string;
+  tenant_id: string;
+  role: string;
+  email: string;
+}
+
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: LexAIUser;
+    user: LexAIUser;
+  }
+}
+
 declare module 'fastify' {
-  interface FastifyRequest {
-    user: {
-      id: string;
-      tenant_id: string;
-      role: string;
-      email: string;
-    };
+  interface FastifyInstance {
+    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    requireRole: (roles: string[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
 
 export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
 
-  // Decorator: require valid JWT on any route that uses preHandler: [fastify.authenticate]
-  fastify.decorate('authenticate', async (request: FastifyRequest, reply: any) => {
+  fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       await request.jwtVerify();
-      const payload = request.user as any;
-
+      const payload = request.user as LexAIUser;
       if (!payload.tenant_id || !payload.role) {
         return reply.status(401).send({
           error: { code: 'INVALID_TOKEN', message: 'Token missing required claims' }
@@ -38,11 +44,10 @@ export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
     }
   });
 
-  // Decorator: require specific roles
   fastify.decorate('requireRole', (allowedRoles: string[]) => {
-    return async (request: FastifyRequest, reply: any) => {
-      const { role } = request.user;
-      if (!allowedRoles.includes(role)) {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      const user = request.user as LexAIUser;
+      if (!allowedRoles.includes(user.role)) {
         return reply.status(403).send({
           error: {
             code: 'ERR_INSUFFICIENT_ROLE',

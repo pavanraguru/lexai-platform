@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
     "module": "commonjs",
     "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -11,7 +13,18 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true
   },
-  "exclude": ["node_modules", "dist", ".next", "coverage"]
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "../../apps/web",
+    "../../apps/cli",
+    "../web",
+    "../cli",
+    "../../packages/ui"
+  ]
 }
