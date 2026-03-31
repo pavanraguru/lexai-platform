@@ -339,7 +339,6 @@ model User {
   uploaded_docs     Document[]
   annotations       Annotation[]
   created_drafts    Draft[]   @relation("DraftCreatedBy")
-  agent_jobs        AgentJob[]
   notifications     Notification[]
   client_profile    Client?   @relation("ClientPortalUser")
   created_invoices  Invoice[]
