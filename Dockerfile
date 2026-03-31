@@ -1,8 +1,10 @@
-FROM node:20-alpine
+FROM node:20-slim
+
+# Install OpenSSL - required by Prisma
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
 COPY turbo.json ./
 COPY tsconfig.json ./
@@ -12,18 +14,15 @@ COPY apps/api/package*.json ./apps/api/
 
 RUN npm install
 
-# Copy all source
 COPY packages/core ./packages/core
 COPY packages/db ./packages/db
 COPY apps/api ./apps/api
 
-# Step 1: Generate Prisma client
+# Generate Prisma client
 RUN npx prisma generate --schema=packages/db/prisma/schema.prisma
 
-# Step 2: Compile core package
+# Build core then API
 RUN cd packages/core && npx tsc --skipLibCheck
-
-# Step 3: Compile API
 RUN cd apps/api && npx tsc --skipLibCheck
 
 EXPOSE 3001
