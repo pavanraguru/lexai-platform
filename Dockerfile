@@ -15,6 +15,9 @@ COPY packages/core ./packages/core
 COPY packages/db ./packages/db
 COPY apps/api ./apps/api
 
+# Generate Prisma client
+RUN npx prisma generate --schema=packages/db/prisma/schema.prisma
+
 # Build core first, then API
 RUN cd packages/core && npx tsc --skipLibCheck
 RUN cd apps/api && npx tsc --skipLibCheck
