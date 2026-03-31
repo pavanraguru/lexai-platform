@@ -60,8 +60,12 @@ async function bootstrap() {
   await server.register(authPlugin);
   await server.register(redisPlugin);
 
-  server.get('/health', { logLevel: 'silent' }, async (_req, reply) => {
-  return reply.status(200).send({ status: 'ok' });
+  server.get('/health', async () => ({
+  status: 'ok',
+  service: 'LexAI India API',
+  version: '1.1.0',
+  timestamp: new Date().toISOString(),
+  environment: process.env.NODE_ENV,
   }));
 
   await server.register(async (app) => {
