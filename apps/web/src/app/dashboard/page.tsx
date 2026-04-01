@@ -5,7 +5,7 @@
 
 
 import { FolderOpen, Calendar, Bot, AlertCircle } from 'lucide-react';
-import { CASE_STATUS_LABELS } from '@lexai/core';
+import { CASE_STATUS_LABELS } from '@/lib/constants';
 
 // Stat card component
 function StatCard({ icon: Icon, label, value, sub, color = 'navy' }: {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import { casesApi } from '@/lib/api';
-import { INDIAN_COURTS } from '@lexai/core';
+import { INDIAN_COURTS } from '@/lib/constants';
 import { ChevronRight, ChevronLeft, Check, Scale, AlertCircle, Loader2 } from 'lucide-react';
 
 const CASE_TYPES = [

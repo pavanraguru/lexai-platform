@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import { casesApi } from '@/lib/api';
-import { CASE_STATUS_LABELS } from '@lexai/core';
+import { CASE_STATUS_LABELS } from '@/lib/constants';
 import {
   Plus, Search, Filter, FolderOpen, Calendar,
   Bot, Clock, ChevronRight, AlertCircle, Loader2
