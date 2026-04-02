@@ -1,5 +1,23 @@
+// ============================================================
+// LexAI India — Auth Plugin (Fixed)
+// ============================================================
+
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
+
+interface LexAIUser {
+  id: string;
+  tenant_id: string;
+  role: string;
+  email: string;
+}
+
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: LexAIUser;
+    user: LexAIUser;
+  }
+}
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -8,83 +26,33 @@ declare module 'fastify' {
   }
 }
 
-function decodeJWT(token: string): any {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    // Fix base64url to base64 before decoding
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64 + '=='.slice(0, (4 - base64.length % 4) % 4);
-    const payload = Buffer.from(padded, 'base64').toString('utf8');
-    return JSON.parse(payload);
-  } catch {
-    return null;
-  }
-}
-
 export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
 
   fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const authHeader = request.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      await request.jwtVerify();
+      const payload = request.user as LexAIUser;
+      if (!payload.tenant_id || !payload.role) {
         return reply.status(401).send({
-          error: { code: 'UNAUTHORIZED', message: 'Missing authorization header' }
+          error: { code: 'INVALID_TOKEN', message: 'Token missing required claims' }
         });
       }
-
-      const token = authHeader.replace('Bearer ', '');
-      const payload = decodeJWT(token);
-
-      if (!payload || !payload.sub) {
-        return reply.status(401).send({
-          error: { code: 'UNAUTHORIZED', message: 'Invalid token format' }
-        });
-      }
-
-      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        return reply.status(401).send({
-          error: { code: 'UNAUTHORIZED', message: 'Token expired' }
-        });
-      }
-
-      if (payload.role !== 'authenticated') {
-        return reply.status(401).send({
-          error: { code: 'UNAUTHORIZED', message: 'Not authenticated' }
-        });
-      }
-
-      const dbUser = await fastify.prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: { id: true, tenant_id: true, role: true, email: true },
-      });
-
-      if (!dbUser) {
-        return reply.status(401).send({
-          error: { code: 'USER_NOT_FOUND', message: 'User not found in database' }
-        });
-      }
-
-      (request as any).user = {
-        id: dbUser.id,
-        tenant_id: dbUser.tenant_id,
-        role: dbUser.role,
-        email: dbUser.email,
-      };
-
-    } catch (err: any) {
+    } catch (err) {
       return reply.status(401).send({
-        error: { code: 'UNAUTHORIZED', message: 'Authentication failed' }
+        error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' }
       });
     }
   });
 
   fastify.decorate('requireRole', (allowedRoles: string[]) => {
     return async (request: FastifyRequest, reply: FastifyReply) => {
-      const user = (request as any).user;
-      if (!allowedRoles.includes(user?.role)) {
+      const user = request.user as LexAIUser;
+      if (!allowedRoles.includes(user.role)) {
         return reply.status(403).send({
-          error: { code: 'ERR_INSUFFICIENT_ROLE', message: `Requires: ${allowedRoles.join(', ')}` }
+          error: {
+            code: 'ERR_INSUFFICIENT_ROLE',
+            message: `This action requires one of: ${allowedRoles.join(', ')}`
+          }
         });
       }
     };
