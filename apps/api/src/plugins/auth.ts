@@ -1,6 +1,5 @@
 // ============================================================
-// LexAI India — Auth Plugin (Fixed for Supabase JWT)
-// Verifies Supabase JWT and looks up user from database
+// LexAI India — Auth Plugin with Debug
 // ============================================================
 
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
@@ -12,13 +11,6 @@ interface LexAIUser {
   tenant_id: string;
   role: string;
   email: string;
-}
-
-declare module '@fastify/jwt' {
-  interface FastifyJWT {
-    payload: LexAIUser;
-    user: LexAIUser;
-  }
 }
 
 declare module 'fastify' {
@@ -33,10 +25,38 @@ declare module 'fastify' {
 
 export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  fastify.log.info(`Auth plugin: SUPABASE_URL=${supabaseUrl ? 'set' : 'MISSING'}, SERVICE_ROLE_KEY=${supabaseKey ? 'set (' + supabaseKey.length + ' chars)' : 'MISSING'}`);
+
+  const supabase = createClient(supabaseUrl!, supabaseKey!);
+
+  // Debug endpoint - remove after fixing
+  fastify.get('/auth-debug', async (request, reply) => {
+    const authHeader = request.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '') || '';
+
+    const result = {
+      supabase_url_set: !!supabaseUrl,
+      service_role_key_set: !!supabaseKey,
+      service_role_key_length: supabaseKey?.length || 0,
+      token_received: !!token,
+      token_length: token.length,
+      token_starts_with: token.substring(0, 10),
+    };
+
+    try {
+      const { data, error } = await supabase.auth.getUser(token);
+      return reply.send({
+        ...result,
+        supabase_call: error ? `ERROR: ${error.message}` : 'SUCCESS',
+        user_id: data?.user?.id || null,
+      });
+    } catch (err: any) {
+      return reply.send({ ...result, supabase_call: `EXCEPTION: ${err.message}` });
+    }
+  });
 
   fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -48,17 +68,15 @@ export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
       }
 
       const token = authHeader.replace('Bearer ', '');
-
-      // Verify the Supabase JWT
       const { data: { user: supaUser }, error } = await supabase.auth.getUser(token);
 
       if (error || !supaUser) {
+        fastify.log.error(`Auth failed: ${error?.message || 'no user returned'}`);
         return reply.status(401).send({
           error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' }
         });
       }
 
-      // Look up user in our database
       const dbUser = await fastify.prisma.user.findUnique({
         where: { id: supaUser.id },
         select: { id: true, tenant_id: true, role: true, email: true },
@@ -66,11 +84,10 @@ export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
 
       if (!dbUser) {
         return reply.status(401).send({
-          error: { code: 'USER_NOT_FOUND', message: 'User not found in database. Please contact your administrator.' }
+          error: { code: 'USER_NOT_FOUND', message: 'User not found in database' }
         });
       }
 
-      // Set user on request
       (request as any).user = {
         id: dbUser.id,
         tenant_id: dbUser.tenant_id,
@@ -78,7 +95,8 @@ export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
         email: dbUser.email,
       };
 
-    } catch (err) {
+    } catch (err: any) {
+      fastify.log.error(`Auth exception: ${err.message}`);
       return reply.status(401).send({
         error: { code: 'UNAUTHORIZED', message: 'Authentication failed' }
       });
@@ -90,10 +108,7 @@ export const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
       const user = (request as any).user as LexAIUser;
       if (!allowedRoles.includes(user.role)) {
         return reply.status(403).send({
-          error: {
-            code: 'ERR_INSUFFICIENT_ROLE',
-            message: `This action requires one of: ${allowedRoles.join(', ')}`
-          }
+          error: { code: 'ERR_INSUFFICIENT_ROLE', message: `Requires: ${allowedRoles.join(', ')}` }
         });
       }
     };
