@@ -10,21 +10,10 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitAny": false,
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "sourceMap": true
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "../../apps/web",
-    "../../apps/cli",
-    "../web",
-    "../cli",
-    "../../packages/ui"
-  ]
+  "exclude": ["node_modules", "dist"]
 }
