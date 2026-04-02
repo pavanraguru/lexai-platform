@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   // Exchange Supabase token for LexAI JWT
   const exchangeToken = async (supabaseToken: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lexai-platform-production.up.railway.app';
     const res = await fetch(`${apiUrl}/v1/auth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
