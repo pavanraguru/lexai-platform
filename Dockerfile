@@ -27,4 +27,4 @@ RUN cd apps/api && npx tsc --skipLibCheck
 
 EXPOSE 3001
 HEALTHCHECK NONE
-CMD ["node", "apps/api/dist/server.js"]
+CMD ["/bin/bash", "start.sh"]
