@@ -67,7 +67,6 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: s3Key,
       ContentType: body.mime_type,
-      ContentLength: body.file_size_bytes,
       Metadata: {
         tenant_id,
         case_id: body.case_id,
