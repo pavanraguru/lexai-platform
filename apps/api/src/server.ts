@@ -36,6 +36,11 @@ const server = Fastify({
   },
 });
 
+// Fix BigInt JSON serialization — file_size_bytes is BigInt in schema
+(BigInt.prototype as any).toJSON = function() {
+  return Number(this);
+};
+
 async function bootstrap() {
   await server.register(cors, {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
