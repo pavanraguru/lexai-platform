@@ -15,7 +15,7 @@ const CreateCaseSchema = z.object({
   court: z.string().min(2).max(200),
   court_level: z.enum(['supreme_court','high_court','district_court','tribunal','magistrate']),
   perspective: z.enum(['defence','prosecution','petitioner','respondent','appellant','claimant']).default('defence'),
-  cnr_number: z.string().regex(/^[A-Z]{2}[A-Z0-9]{2}\d{2}-\d{6}-\d{4}$/).optional().nullable(),
+  cnr_number: z.string().min(1).max(30).optional().nullable(),
   judge_name: z.string().optional().nullable(),
   priority: z.enum(['low','normal','high','urgent']).default('normal'),
   filed_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
