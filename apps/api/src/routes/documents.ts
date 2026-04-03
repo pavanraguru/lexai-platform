@@ -68,7 +68,6 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       Key: s3Key,
       ContentType: body.mime_type,
       ContentLength: body.file_size_bytes,
-      ServerSideEncryption: 'AES256',
       Metadata: {
         tenant_id,
         case_id: body.case_id,
