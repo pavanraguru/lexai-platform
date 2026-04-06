@@ -9,12 +9,12 @@ import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
-import { casesApi, agentsApi, uploadDocument } from '@/lib/api';
-import { CASE_STATUS_LABELS } from '@/lib/constants';
+import { casesApi, documentsApi, agentsApi, uploadDocument } from '@/lib/api';
+import { CASE_STATUS_LABELS } from '@lexai/core';
 import {
   FolderOpen, Upload, Bot, FileText, Calendar, Clock,
   ChevronRight, Play, CheckCircle2, AlertCircle, Loader2,
-  Eye, Download, ArrowRight
+  Eye, Download, Share2, X, Plus, ArrowRight
 } from 'lucide-react';
 
 const TABS = ['overview', 'documents', 'hearings', 'agents', 'drafts'] as const;
@@ -375,10 +375,27 @@ export default function CasePage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                          <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="View">
+                          <button
+                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="View"
+                            onClick={async () => {
+                              const res = await documentsApi.download(token!, doc.id);
+                              window.open(res.data.download_url, '_blank');
+                            }}
+                          >
                             <Eye size={14} className="text-gray-400" />
                           </button>
-                          <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Download">
+                          <button
+                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Download"
+                            onClick={async () => {
+                              const res = await documentsApi.download(token!, doc.id);
+                              const a = document.createElement('a');
+                              a.href = res.data.download_url;
+                              a.download = doc.filename;
+                              a.click();
+                            }}
+                          >
                             <Download size={14} className="text-gray-400" />
                           </button>
                         </div>
