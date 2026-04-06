@@ -10,7 +10,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import { casesApi, documentsApi, agentsApi, uploadDocument } from '@/lib/api';
-import { CASE_STATUS_LABELS } from '@lexai/core';
+import { CASE_STATUS_LABELS } from '@/lib/constants';
 import {
   FolderOpen, Upload, Bot, FileText, Calendar, Clock,
   ChevronRight, Play, CheckCircle2, AlertCircle, Loader2,
