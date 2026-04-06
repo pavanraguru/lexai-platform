@@ -17,6 +17,7 @@ RUN npm install
 COPY packages/core ./packages/core
 COPY packages/db ./packages/db
 COPY apps/api ./apps/api
+COPY start.sh ./start.sh
 
 # Generate Prisma client
 RUN npx prisma generate --schema=packages/db/prisma/schema.prisma
