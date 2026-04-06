@@ -1,7 +1,7 @@
 #!/bin/bash
-# Start both the API server and OCR worker together
+# Start OCR worker in background
 node apps/api/dist/jobs/ocr.worker.js &
-OCR_PID=$!
-echo "OCR Worker started with PID $OCR_PID"
+echo "OCR Worker started"
 
+# Start API server in foreground
 node apps/api/dist/server.js
