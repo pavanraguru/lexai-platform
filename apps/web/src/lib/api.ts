@@ -20,10 +20,40 @@ class ApiError extends Error {
   }
 }
 
+// Refresh the LexAI token using Supabase session
+async function refreshToken(): Promise<string | null> {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data: { session } } = await supabase.auth.refreshSession();
+    if (!session) return null;
+
+    const res = await fetch(`${BASE}/v1/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supabase_token: session.access_token }),
+    });
+    const json = await res.json();
+    if (!json.data?.token) return null;
+
+    // Update the auth store with the new token
+    const { useAuthStore } = await import('../hooks/useAuth');
+    const store = useAuthStore.getState();
+    store.setUser(store.user!, json.data.token);
+    return json.data.token;
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
-  token?: string
+  token?: string,
+  isRetry = false
 ): Promise<ApiResponse<T>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -33,6 +63,18 @@ async function request<T>(
 
   const res = await fetch(`${BASE}/v1${path}`, { ...options, headers });
   const json = await res.json();
+
+  // Auto-refresh on 401 — token expired
+  if (res.status === 401 && !isRetry) {
+    const newToken = await refreshToken();
+    if (newToken) {
+      return request<T>(path, options, newToken, true);
+    }
+    // Refresh failed — redirect to login
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  }
 
   if (!res.ok) {
     throw new ApiError(
