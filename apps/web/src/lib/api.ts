@@ -227,7 +227,7 @@ export const agentsApi = {
     request<AgentJob>(`/agents/jobs/${jobId}`, {}, token),
 
   promote: (token: string, jobId: string) =>
-    request<Draft>(`/agents/jobs/${jobId}/promote`, { method: 'POST' }, token),
+    request<Draft>(`/agents/jobs/${jobId}/promote`, { method: 'POST', body: '{}' }, token),
 };
 
 // ── Calendar ──────────────────────────────────────────────────
