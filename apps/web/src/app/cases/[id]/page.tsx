@@ -379,7 +379,7 @@ export default function CasePage() {
                             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                             title="View"
                             onClick={async () => {
-                              const res = await documentsApi.download(token!, doc.id);
+                              const res = await documentsApi.getDownloadUrl(token!, doc.id);
                               window.open(res.data.download_url, '_blank');
                             }}
                           >
@@ -389,7 +389,7 @@ export default function CasePage() {
                             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                             title="Download"
                             onClick={async () => {
-                              const res = await documentsApi.download(token!, doc.id);
+                              const res = await documentsApi.getDownloadUrl(token!, doc.id);
                               const a = document.createElement('a');
                               a.href = res.data.download_url;
                               a.download = doc.filename;
