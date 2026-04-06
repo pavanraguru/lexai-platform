@@ -257,100 +257,56 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Completed agent job not found' } });
     }
 
+
     const output = job.output as any;
     let title = '';
-    let docType: string = 'other';
+    let docType = 'other';
     let draftContent: any = {};
     let wordCount = 0;
+    let text = '';
 
     // Build draft content based on agent type — PRD DW-03
-    switch (job.agent_type) {
-      case 'evidence': {
-        title = 'Evidence Analysis Report';
-        const exhibits = (output.exhibits || []).map((e: any) =>
-          `Exhibit ${e.number}: ${e.description} (${e.category || 'general'})`).join('
-');
-        const contradictions = (output.contradictions || []).map((c: any) =>
-          `• ${c.description}`).join('
-');
-        const witnesses = (output.witnesses || []).map((w: any) =>
-          `${w.name} (${w.type}): ${w.significance}`).join('
-');
-        const text = [
-          '# Evidence Analysis
-',
-          exhibits ? `## Exhibits
-${exhibits}
-` : '',
-          contradictions ? `## Contradictions
-${contradictions}
-` : '',
-          witnesses ? `## Witnesses
-${witnesses}
-` : '',
-          output.key_facts ? `## Key Facts
-${(output.key_facts || []).join('
-')}
-` : '',
-        ].filter(Boolean).join('
-');
-        draftContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
-        wordCount = text.split(' ').length;
-        break;
-      }
-      case 'timeline': {
-        title = 'Case Timeline';
-        const events = (output.events || []).map((e: any) =>
-          `${e.date} ${e.time || ''}: ${e.description}`).join('
-');
-        const text = ['# Case Timeline
-', events || 'No events found'].join('
-');
-        draftContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
-        wordCount = text.split(' ').length;
-        break;
-      }
-      case 'deposition': {
-        title = 'Deposition Analysis';
-        const text = output.analysis || output.summary || 'Deposition analysis completed.';
-        draftContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
-        wordCount = text.split(' ').length;
-        break;
-      }
-      case 'research': {
-        title = 'Legal Research Memo';
-        const statutes = (output.applicable_statutes || []).join(', ');
-        const precedents = (output.favorable_precedents || []).map((p: any) =>
-          `• ${p.citation}: ${p.relevance}`).join('
-');
-        const text = [
-          '# Legal Research
-',
-          statutes ? `## Applicable Statutes
-${statutes}
-` : '',
-          precedents ? `## Favourable Precedents
-${precedents}
-` : '',
-        ].filter(Boolean).join('
-');
-        draftContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
-        wordCount = text.split(' ').length;
-        break;
-      }
-      case 'strategy': {
-        title = output.opening_statement ? 'Opening Statement' : 'Case Strategy';
-        docType = output.opening_statement ? 'opening_statement' : 'other';
-        const text = output.opening_statement || output.strategy_summary || 'Strategy analysis completed.';
-        draftContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
-        wordCount = text.split(' ').length;
-        break;
-      }
-      default: {
-        title = `${job.agent_type} Analysis`;
-        draftContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: JSON.stringify(output, null, 2) }] }] };
-      }
+    if (job.agent_type === 'evidence') {
+      title = 'Evidence Analysis Report';
+      const exhibitLines = (output.exhibits || []).map((e: any) =>
+        'Exhibit ' + (e.number || '') + ': ' + (e.description || '') + ' (' + (e.category || 'general') + ')');
+      const contradictionLines = (output.contradictions || []).map((c: any) => '- ' + (c.description || ''));
+      const witnessLines = (output.witnesses || []).map((w: any) =>
+        (w.name || '') + ' (' + (w.type || '') + '): ' + (w.significance || ''));
+      const parts = ['Evidence Analysis'];
+      if (exhibitLines.length) parts.push('Exhibits', exhibitLines.join(', '));
+      if (contradictionLines.length) parts.push('Contradictions', contradictionLines.join(', '));
+      if (witnessLines.length) parts.push('Witnesses', witnessLines.join(', '));
+      if (output.key_facts?.length) parts.push('Key Facts', (output.key_facts || []).join(', '));
+      text = parts.join(' | ');
+    } else if (job.agent_type === 'timeline') {
+      title = 'Case Timeline';
+      const eventLines = (output.events || []).map((e: any) =>
+        (e.date || '') + ' ' + (e.time || '') + ': ' + (e.description || ''));
+      text = 'Case Timeline | ' + (eventLines.join(' | ') || 'No events found');
+    } else if (job.agent_type === 'deposition') {
+      title = 'Deposition Analysis';
+      text = output.analysis || output.summary || 'Deposition analysis completed.';
+    } else if (job.agent_type === 'research') {
+      title = 'Legal Research Memo';
+      const statutes = (output.applicable_statutes || []).join(', ');
+      const precedentLines = (output.favorable_precedents || []).map((p: any) =>
+        (p.citation || '') + ': ' + (p.relevance || ''));
+      const parts = ['Legal Research'];
+      if (statutes) parts.push('Applicable Statutes: ' + statutes);
+      if (precedentLines.length) parts.push('Favourable Precedents: ' + precedentLines.join(' | '));
+      text = parts.join(' | ');
+    } else if (job.agent_type === 'strategy') {
+      title = output.opening_statement ? 'Opening Statement' : 'Case Strategy';
+      docType = output.opening_statement ? 'opening_statement' : 'other';
+      text = output.opening_statement || output.strategy_summary || 'Strategy analysis completed.';
+    } else {
+      title = job.agent_type + ' Analysis';
+      text = JSON.stringify(output, null, 2);
     }
+
+    draftContent = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
+    wordCount = text.split(' ').length;
 
     const draft = await fastify.prisma.draft.create({
       data: {
