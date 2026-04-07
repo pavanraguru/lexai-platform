@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import {
   Scale, LayoutDashboard, FolderOpen, Calendar,
   Bot, FileText, Users, Receipt, Bell, Settings,
-  ChevronDown, LogOut, Menu, X, Search
+  ChevronDown, LogOut, Menu, X, Search, ChevronLeft
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -172,6 +172,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100">
             <Menu size={20} className="text-gray-600" />
           </button>
+
+          {/* Back button — show on all pages except dashboard */}
+          {pathname !== '/dashboard' && (
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800">
+              <ChevronLeft size={16} />
+              <span className="text-sm hidden sm:inline">Dashboard</span>
+            </button>
+          )}
 
           <div className="flex-1" />
 
