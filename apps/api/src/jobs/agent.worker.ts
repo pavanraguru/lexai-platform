@@ -276,11 +276,24 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
       throw new Error('No ready documents found for this agent job');
     }
 
-    // Build document context string
+    // Build document context string — cap per-doc and total to stay within rate limits
+    const MAX_CHARS_PER_DOC = 8000;  // ~2000 tokens per doc
+    const MAX_TOTAL_CHARS = 20000;   // ~5000 tokens total for docs
+    let totalChars = 0;
     const docContext = documents
       .filter(d => d.extracted_text)
-      .map(d => `--- DOCUMENT: ${d.filename} (${d.doc_category || 'unknown'}) [ID: ${d.id}] ---\n${d.extracted_text}`)
+      .map(d => {
+        const text = (d.extracted_text || '').substring(0, MAX_CHARS_PER_DOC);
+        return `--- DOCUMENT: ${d.filename} (${d.doc_category || 'unknown'}) [ID: ${d.id}] ---\n${text}`;
+      })
+      .filter(chunk => {
+        if (totalChars >= MAX_TOTAL_CHARS) return false;
+        totalChars += chunk.length;
+        return true;
+      })
       .join('\n\n');
+
+    console.log(`[Agent Worker] Document context: ${totalChars} chars from ${documents.length} docs`);
 
     // Build prior outputs context
     const priorOutputs: Record<string, any> = {};
@@ -327,13 +340,30 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
         throw new Error(`Unknown agent type: ${agent_type}`);
     }
 
-    // Call Claude claude-sonnet-4-6
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: agent_type === 'strategy' ? 8000 : 4000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    });
+    // Call Claude with retry on 429 rate limit
+    let response: any;
+    let retries = 0;
+    const MAX_RETRIES = 3;
+    while (true) {
+      try {
+        response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: agent_type === 'strategy' ? 6000 : 3000,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userMessage }],
+        });
+        break; // success
+      } catch (err: any) {
+        if (err.status === 429 && retries < MAX_RETRIES) {
+          retries++;
+          const waitMs = retries * 30000; // 30s, 60s, 90s
+          console.warn(`[Agent Worker] Rate limited. Retry ${retries}/${MAX_RETRIES} in ${waitMs/1000}s...`);
+          await new Promise(r => setTimeout(r, waitMs));
+        } else {
+          throw err;
+        }
+      }
+    }
 
     const rawOutput = response.content[0].type === 'text' ? response.content[0].text : '';
     const inputTokens = response.usage.input_tokens;
@@ -468,10 +498,10 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
   }
 }, {
   connection: redis,
-  concurrency: 3, // max 3 agent jobs running simultaneously
+  concurrency: 1, // single job at a time to avoid rate limits
   limiter: {
-    max: 10,       // max 10 jobs per 30 seconds (Anthropic rate limits)
-    duration: 30000,
+    max: 2,        // max 2 jobs per 60 seconds (rate limit protection)
+    duration: 60000,
   },
 });
 
