@@ -32,6 +32,9 @@ import { prismaPlugin } from './plugins/prisma.js';
 import { authPlugin } from './plugins/auth.js';
 import { redisPlugin } from './plugins/redis.js';
 
+// Fix BigInt serialization (Prisma returns BigInt for paise fields)
+(BigInt.prototype as any).toJSON = function() { return Number(this); };
+
 const server = Fastify({
   logger: {
     level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',

@@ -65,8 +65,8 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
     if (['junior_associate', 'clerk', 'client'].includes(role)) {
       where.assigned_advocates = { has: user_id };
     }
-    if (status) where.status = status;
-    if (case_type) where.case_type = case_type;
+    if (status && status !== 'undefined') where.status = status;
+    if (case_type && case_type !== 'undefined') where.case_type = case_type;
     if (assigned_to) where.assigned_advocates = { has: assigned_to };
     if (cursor) where.id = { gt: cursor };
 
