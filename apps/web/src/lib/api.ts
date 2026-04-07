@@ -9,7 +9,7 @@ import type {
   Client, Invoice, Notification, User, Tenant,
   ApiResponse, CaseType, CourtLevel, CasePerspective,
   CasePriority, HearingPurpose, AgentType
-} from '@lexai/core';
+} from '@/lib/constants';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -207,6 +207,15 @@ export const tasksApi = {
     const q = params ? '?' + new URLSearchParams(params as any).toString() : '';
     return request<Task[]>(`/tasks${q}`, {}, token);
   },
+  create: (token: string, data: {
+    case_id: string; title: string; description?: string;
+    priority?: string; assigned_to?: string[]; due_date?: string;
+  }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }, token),
+
+  update: (token: string, id: string, data: {
+    status?: string; title?: string; priority?: string;
+    due_date?: string | null; assigned_to?: string[];
+  }) => request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }, token),
 };
 
 // ── Agents ────────────────────────────────────────────────────

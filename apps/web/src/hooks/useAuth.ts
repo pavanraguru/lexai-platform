@@ -7,7 +7,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserRole } from '@lexai/core';
+import type { UserRole } from '@/lib/constants';
 
 interface AuthUser {
   id: string;
