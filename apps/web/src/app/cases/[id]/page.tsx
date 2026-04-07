@@ -152,7 +152,7 @@ export default function CasePage() {
               <button
                 onClick={() => { setActiveTab('agents'); }}
                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg text-white transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#1E3A5F' }}>
+                style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
                 <Bot size={14} />
                 Run Agent
               </button>
@@ -602,7 +602,7 @@ function HearingsTab({ caseId, token, hearings, onRefresh }: {
         <button
           onClick={() => setShowAdd(!showAdd)}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-white"
-          style={{ backgroundColor: '#1E3A5F' }}>
+          style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
           <Plus size={14} /> Add Hearing
         </button>
       </div>
@@ -648,7 +648,7 @@ function HearingsTab({ caseId, token, hearings, onRefresh }: {
             <div className="sm:col-span-2 flex gap-2">
               <button type="submit" disabled={saving}
                 className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-60"
-                style={{ backgroundColor: '#1E3A5F' }}>
+                style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
                 {saving ? 'Saving...' : 'Add Hearing'}
               </button>
               <button type="button" onClick={() => setShowAdd(false)}
@@ -693,7 +693,7 @@ function HearingsTab({ caseId, token, hearings, onRefresh }: {
                   <button
                     onClick={() => { setShowOutcome(h.id); setOutcomeForm({ outcome: '', order_summary: '', next_hearing_date: '' }); }}
                     className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-white rounded-lg"
-                    style={{ backgroundColor: '#1E3A5F' }}>
+                    style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
                     Record Outcome
                   </button>
                 </div>
@@ -724,7 +724,7 @@ function HearingsTab({ caseId, token, hearings, onRefresh }: {
                     <div className="flex gap-2">
                       <button type="submit" disabled={saving}
                         className="px-3 py-1.5 text-xs font-medium text-white rounded-lg disabled:opacity-60"
-                        style={{ backgroundColor: '#1E3A5F' }}>
+                        style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
                         {saving ? 'Saving...' : 'Save Outcome'}
                       </button>
                       <button type="button" onClick={() => setShowOutcome(null)}
@@ -832,7 +832,7 @@ function TasksTab({ caseId, token, tasks, onRefresh }: {
         <p className="text-sm text-gray-500">{activeTasks.length} active · {doneTasks.length} done</p>
         <button onClick={() => setShowAdd(!showAdd)}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-white"
-          style={{ backgroundColor: '#1E3A5F' }}>
+          style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
           <Plus size={14} /> Add Task
         </button>
       </div>
@@ -872,7 +872,7 @@ function TasksTab({ caseId, token, tasks, onRefresh }: {
             <div className="flex gap-2">
               <button type="submit" disabled={saving}
                 className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-60"
-                style={{ backgroundColor: '#1E3A5F' }}>
+                style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
                 {saving ? 'Saving...' : 'Add Task'}
               </button>
               <button type="button" onClick={() => setShowAdd(false)}

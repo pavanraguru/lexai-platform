@@ -188,7 +188,7 @@ export default function CalendarPage() {
                   {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
                 {selectedDate === today && (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full text-white mt-1 inline-block" style={{ backgroundColor: '#1E3A5F' }}>
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full text-white mt-1 inline-block" style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
                     Today
                   </span>
                 )}

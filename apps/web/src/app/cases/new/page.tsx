@@ -115,7 +115,7 @@ export default function NewCasePage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#1E3A5F' }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
           <Scale size={20} color="white" />
         </div>
         <div>
@@ -136,7 +136,7 @@ export default function NewCasePage() {
             <span className={`text-xs hidden sm:block ${i === step ? 'font-semibold text-gray-900' : 'text-gray-400'}`}>
               {s}
             </span>
-            {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 ${i < step ? 'bg-[#1E3A5F]' : 'bg-gray-200'}`} />}
+            {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 ${i < step ? 'bg-[#1E3A5F] text-white' : 'bg-gray-200'}`} />}
           </div>
         ))}
       </div>
@@ -364,7 +364,7 @@ export default function NewCasePage() {
             onClick={() => setStep(s => s + 1)}
             disabled={!canNext}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
-            style={{ backgroundColor: '#1E3A5F' }}>
+            style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
             Next
             <ChevronRight size={16} />
           </button>

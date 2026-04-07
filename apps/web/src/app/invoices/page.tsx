@@ -4,11 +4,11 @@
 // PRD v1.1 INV-01 to INV-05
 // ============================================================
 
-
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import { invoicesApi } from '@/lib/api';
-import { Receipt, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { Receipt, Plus, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   draft:          { bg: 'bg-gray-100',   text: 'text-gray-500',  label: 'Draft' },
@@ -63,7 +63,7 @@ export default function InvoicesPage() {
         </div>
         <a href="/invoices/new"
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold"
-          style={{ backgroundColor: '#1E3A5F' }}>
+          style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
           <Plus size={16} />
           New Invoice
         </a>
@@ -100,7 +100,7 @@ export default function InvoicesPage() {
           <p className="text-gray-400 text-sm mt-1">Create your first invoice from any case or client profile</p>
           <a href="/invoices/new"
             className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg text-white text-sm font-medium"
-            style={{ backgroundColor: '#1E3A5F' }}>
+            style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
             <Plus size={14} /> Create Invoice
           </a>
         </div>

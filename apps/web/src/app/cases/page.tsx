@@ -110,7 +110,7 @@ export default function CasesPage() {
         {canManageCases() && (
           <Link href="/cases/new"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#1E3A5F' }}>
+            style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
             <Plus size={16} />
             New Case
           </Link>
@@ -182,7 +182,7 @@ export default function CasesPage() {
           {canManageCases() && !search && (
             <Link href="/cases/new"
               className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg text-white text-sm font-medium"
-              style={{ backgroundColor: '#1E3A5F' }}>
+              style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
               <Plus size={14} /> Add First Case
             </Link>
           )}
