@@ -50,17 +50,17 @@ export const invoiceRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Use raw query since time_entries table needs to be created separately
-    const entries = await fastify.prisma.$queryRaw`
-      SELECT te.*, c.title as case_title, c.client_id,
-             u.full_name as user_name
-      FROM time_entries te
-      LEFT JOIN cases c ON te.case_id = c.id
-      LEFT JOIN users u ON te.user_id = u.id
-      WHERE te.tenant_id = ${tenant_id}::uuid
-      ${case_id ? fastify.prisma.$queryRaw`AND te.case_id = ${case_id}::uuid` : fastify.prisma.$queryRaw``}
-      ORDER BY te.date DESC, te.created_at DESC
-      LIMIT 100
-    `.catch(() => []); // Graceful fallback if table doesn't exist yet
+    let entries: any[] = [];
+    try {
+      entries = await fastify.prisma.$queryRaw<any[]>`
+        SELECT te.*, c.title as case_title, c.client_id, u.full_name as user_name
+        FROM time_entries te
+        LEFT JOIN cases c ON te.case_id = c.id
+        LEFT JOIN users u ON te.user_id = u.id
+        WHERE te.tenant_id = ${tenant_id}::uuid
+        ORDER BY te.date DESC, te.created_at DESC LIMIT 100
+      `;
+    } catch { /* table may not exist yet */ }
 
     return reply.send({ data: entries });
   });
@@ -188,14 +188,17 @@ export const invoiceRoutes: FastifyPluginAsync = async (fastify) => {
     let lineItems = body.line_items || [];
 
     if (body.time_entry_ids && body.time_entry_ids.length > 0) {
-      const entries: any[] = await fastify.prisma.$queryRaw`
-        SELECT te.*, c.title as case_title
-        FROM time_entries te
-        LEFT JOIN cases c ON te.case_id = c.id
-        WHERE te.id = ANY(${body.time_entry_ids}::uuid[])
-        AND te.tenant_id = ${tenant_id}::uuid
-        AND te.billable = true
-      `.catch(() => []);
+      let entries: any[] = [];
+      try {
+        entries = await fastify.prisma.$queryRaw<any[]>`
+          SELECT te.*, c.title as case_title
+          FROM time_entries te
+          LEFT JOIN cases c ON te.case_id = c.id
+          WHERE te.id = ANY(${body.time_entry_ids}::uuid[])
+          AND te.tenant_id = ${tenant_id}::uuid
+          AND te.billable = true
+        `;
+      } catch { /* table may not exist yet */ }
 
       const timeLineItems = entries.map((e: any) => ({
         description: `${e.description} — ${e.case_title || 'Case'} (${e.hours}h @ ₹${Number(e.hourly_rate_paise) / 100}/hr)`,
