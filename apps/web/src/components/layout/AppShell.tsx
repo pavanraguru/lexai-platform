@@ -9,9 +9,10 @@ import { usePathname } from 'next/navigation';
 import {
   Scale, LayoutDashboard, FolderOpen, Calendar,
   Bot, FileText, Users, Receipt, Bell, Settings,
-  LogOut, Menu, X, Search
+  ChevronDown, LogOut, Menu, X, Search
 } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import { getSupabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -47,9 +48,23 @@ function NavItem({ href, icon: Icon, label, active }: {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, clearUser } = useAuthStore();
+  const { user, token, clearUser } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [notifCount] = useState(3); // TODO: real count from API
+  const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const { data: notifData } = useQuery({
+    queryKey: ['notif-count', user?.id],
+    queryFn: async () => {
+      if (!token) return { count: 0 };
+      const res = await fetch(`${BASE}/v1/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      return { count: (json.data || []).filter((n: any) => !n.read).length };
+    },
+    enabled: !!token,
+    refetchInterval: 30000,
+  });
+  const notifCount = notifData?.count || 0;
 
   const handleLogout = async () => {
     await getSupabase().auth.signOut();
