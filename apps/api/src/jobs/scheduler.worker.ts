@@ -91,8 +91,24 @@ async function processHearingReminders() {
           },
         });
 
-        // TODO Phase 2c: Queue email via Resend
-        // TODO Phase 2c: Queue WhatsApp (if advocate has WA configured)
+        // Phase 2b: Send email via Resend
+        if (advocate?.email && process.env.RESEND_API_KEY) {
+          try {
+            await sendHearingReminderEmail({
+              to: advocate.email,
+              advocateName: advocate.full_name,
+              caseTitle: c.title,
+              court: c.court,
+              date: new Date(hearing.date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+              time: hearing.time || 'Time to be confirmed',
+              purpose: hearing.purpose?.replace(/_/g, ' ') || '',
+              daysUntil: days,
+              caseUrl: `${process.env.APP_URL || 'https://lexai-platform-web.vercel.app'}/cases/${c.id}`,
+            });
+          } catch (emailErr: any) {
+            console.warn('[Scheduler] Email failed:', emailErr.message);
+          }
+        }
 
         sent++;
       }
@@ -539,6 +555,56 @@ function getPortalForCourt(courtLevel: string): any {
   if (courtLevel === 'high_court') return 'ecourts';
   if (courtLevel === 'tribunal') return 'nclt';
   return 'ecourts';
+}
+
+
+// ── Email via Resend ──────────────────────────────────────────
+async function sendHearingReminderEmail(opts: {
+  to: string; advocateName: string; caseTitle: string; court: string;
+  date: string; time: string; purpose: string; daysUntil: number; caseUrl: string;
+}) {
+  if (!process.env.RESEND_API_KEY) return;
+
+  const subject = opts.daysUntil === 1
+    ? `⚖ Tomorrow: Hearing in ${opts.caseTitle}`
+    : `⚖ Hearing in ${opts.daysUntil} days: ${opts.caseTitle}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: #1E3A5F; padding: 24px; border-radius: 8px 8px 0 0;">
+        <h1 style="color: #D4AF37; margin: 0; font-size: 20px;">⚖ LexAI India</h1>
+        <p style="color: #93c5fd; margin: 4px 0 0; font-size: 14px;">Hearing Reminder</p>
+      </div>
+      <div style="background: #f8fafc; padding: 24px; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0;">
+        <p style="color: #374151; margin: 0 0 16px;">Dear ${opts.advocateName},</p>
+        <p style="color: #374151;">You have a hearing scheduled in <strong>${opts.daysUntil === 1 ? 'tomorrow' : opts.daysUntil + ' days'}</strong>:</p>
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <p style="margin: 0 0 8px; font-weight: bold; color: #1e3a5f; font-size: 16px;">${opts.caseTitle}</p>
+          <p style="margin: 0 0 4px; color: #6b7280; font-size: 14px;">📍 ${opts.court}</p>
+          <p style="margin: 0 0 4px; color: #6b7280; font-size: 14px;">📅 ${opts.date}</p>
+          <p style="margin: 0 0 4px; color: #6b7280; font-size: 14px;">🕐 ${opts.time} IST</p>
+          <p style="margin: 0; color: #6b7280; font-size: 14px; text-transform: capitalize;">📋 ${opts.purpose}</p>
+        </div>
+        <a href="${opts.caseUrl}" style="display: inline-block; background: #1E3A5F; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold; margin-top: 8px;">
+          View Case Details →
+        </a>
+        <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">LexAI India · AI-Powered Legal Platform</p>
+      </div>
+    </div>`;
+
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'LexAI India <reminders@lexai.in>',
+      to: opts.to,
+      subject,
+      html,
+    }),
+  });
 }
 
 // ── Worker setup ──────────────────────────────────────────────

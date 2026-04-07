@@ -9,7 +9,7 @@ import type {
   Client, Invoice, Notification, User, Tenant,
   ApiResponse, CaseType, CourtLevel, CasePerspective,
   CasePriority, HearingPurpose, AgentType
-} from '@lexai/core';
+} from '@/lib/constants';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -289,3 +289,27 @@ export const billingApi = {
 };
 
 export { ApiError };
+
+// ── Drafts ────────────────────────────────────────────────────
+export const draftsApi = {
+  listForCase: (token: string, caseId: string) =>
+    request<Draft[]>(`/drafts/case/${caseId}`, {}, token),
+
+  get: (token: string, id: string) =>
+    request<Draft>(`/drafts/${id}`, {}, token),
+
+  create: (token: string, data: {
+    case_id: string; title: string; doc_type?: string; content?: any;
+  }) => request<Draft>('/drafts', { method: 'POST', body: JSON.stringify(data) }, token),
+
+  update: (token: string, id: string, data: { title?: string; content?: any; doc_type?: string }) =>
+    request<Draft>(`/drafts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }, token),
+
+  delete: (token: string, id: string) =>
+    fetch(`${BASE}/v1/drafts/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+
+  aiAssist: (token: string, id: string, selectedText: string, instruction: string) =>
+    request<{ suggestion: string; original: string }>(`/drafts/${id}/ai-assist`, {
+      method: 'POST', body: JSON.stringify({ selected_text: selectedText, instruction }),
+    }, token),
+};

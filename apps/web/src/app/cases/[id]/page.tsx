@@ -9,12 +9,14 @@ import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
-import { casesApi, documentsApi, agentsApi, hearingsApi, tasksApi, uploadDocument } from '@/lib/api';
+import { casesApi, documentsApi, agentsApi, hearingsApi, tasksApi, draftsApi, uploadDocument } from '@/lib/api';
+import dynamic from 'next/dynamic';
+const DraftEditor = dynamic(() => import('@/components/editor/DraftEditor'), { ssr: false, loading: () => <div className="h-96 bg-gray-50 rounded-xl animate-pulse" /> });
 import { CASE_STATUS_LABELS } from '@/lib/constants';
 import {
   FolderOpen, Upload, Bot, FileText, Calendar, Clock,
   ChevronRight, Play, CheckCircle2, AlertCircle, Loader2,
-  Eye, Download, Share2, X, Plus, ArrowRight, CheckSquare, Square
+  Eye, Download, Share2, X, Plus, ArrowRight, CheckSquare, Square, Trash2
 } from 'lucide-react';
 
 const TABS = ['overview', 'documents', 'hearings', 'tasks', 'agents', 'drafts'] as const;
@@ -515,13 +517,9 @@ export default function CasePage() {
         <HearingsTab caseId={id!} token={token!} hearings={c.hearings || []} onRefresh={() => qc.invalidateQueries({ queryKey: ['case', id] })} />
       )}
 
-      {/* Tab: Drafts placeholder */}
+      {/* Tab: Drafts */}
       {activeTab === 'drafts' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">Drafting Workspace — Phase 2a</p>
-          <p className="text-gray-400 text-sm mt-1">TipTap editor, AI writing assist, version history coming soon</p>
-        </div>
+        <DraftsTab caseId={id!} token={token!} onRefresh={() => qc.invalidateQueries({ queryKey: ['case', id] })} />
       )}
     </div>
   );
@@ -935,6 +933,178 @@ function TasksTab({ caseId, token, tasks, onRefresh }: {
           <button onClick={() => setShowAdd(true)} className="mt-3 text-sm text-blue-600 hover:underline">
             + Add first task
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+// ── Drafts Tab Component ──────────────────────────────────────
+const DOC_TYPE_OPTIONS = [
+  { value: 'petition', label: 'Petition' },
+  { value: 'written_statement', label: 'Written Statement' },
+  { value: 'affidavit', label: 'Affidavit' },
+  { value: 'vakalatnama', label: 'Vakalatnama' },
+  { value: 'bail_application', label: 'Bail Application' },
+  { value: 'opening_statement', label: 'Opening Statement' },
+  { value: 'memo_of_appeal', label: 'Memo of Appeal' },
+  { value: 'legal_notice', label: 'Legal Notice' },
+  { value: 'reply_notice', label: 'Reply Notice' },
+  { value: 'other', label: 'Other' },
+];
+
+function DraftsTab({ caseId, token, onRefresh }: { caseId: string; token: string; onRefresh: () => void }) {
+  const [selectedDraft, setSelectedDraft] = useState<any | null>(null);
+  const [showNew, setShowNew] = useState(false);
+  const [newForm, setNewForm] = useState({ title: '', doc_type: 'other' });
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['drafts', caseId],
+    queryFn: () => draftsApi.listForCase(token, caseId),
+    enabled: !!token,
+  });
+
+  const { data: draftDetail, refetch: refetchDetail } = useQuery({
+    queryKey: ['draft', selectedDraft?.id],
+    queryFn: () => draftsApi.get(token, selectedDraft!.id),
+    enabled: !!selectedDraft?.id,
+  });
+
+  const drafts: any[] = (data as any)?.data || [];
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const res = await draftsApi.create(token, { case_id: caseId, ...newForm });
+      const newDraft = (res as any).data;
+      await refetch();
+      setShowNew(false);
+      setNewForm({ title: '', doc_type: 'other' });
+      setSelectedDraft(newDraft);
+    } catch {}
+    setCreating(false);
+  };
+
+  const handleDelete = async (draftId: string) => {
+    if (!confirm('Delete this draft?')) return;
+    setDeleting(draftId);
+    await draftsApi.delete(token, draftId);
+    if (selectedDraft?.id === draftId) setSelectedDraft(null);
+    await refetch();
+    setDeleting(null);
+  };
+
+  if (selectedDraft) {
+    const draft = draftDetail?.data as any || selectedDraft;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSelectedDraft(null)}
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
+            ← All drafts
+          </button>
+          <span className="text-gray-300">·</span>
+          <span className="text-sm font-medium text-gray-700 truncate">{draft.title}</span>
+          <span className="text-xs text-gray-400">v{draft.version}</span>
+          {draft.word_count > 0 && <span className="text-xs text-gray-400">{draft.word_count} words</span>}
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <DraftEditor
+            draftId={draft.id}
+            caseId={caseId}
+            initialContent={draft.content}
+            title={draft.title}
+            token={token}
+            onSave={() => refetchDetail()}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">{drafts.length} draft{drafts.length !== 1 ? 's' : ''}</p>
+        <button onClick={() => setShowNew(!showNew)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-white"
+          style={{ backgroundColor: '#1E3A5F' }}>
+          <Plus size={14} /> New Draft
+        </button>
+      </div>
+
+      {showNew && (
+        <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4">New Draft</h3>
+          <form onSubmit={handleCreate} className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Title *</label>
+              <input type="text" required value={newForm.title} onChange={e => setNewForm({ ...newForm, title: e.target.value })}
+                placeholder="e.g. Bail Application — State vs Ramesh" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Document Type</label>
+              <select value={newForm.doc_type} onChange={e => setNewForm({ ...newForm, doc_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {DOC_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={creating}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-60"
+                style={{ backgroundColor: '#1E3A5F' }}>
+                {creating ? 'Creating...' : 'Create Draft'}
+              </button>
+              <button type="button" onClick={() => setShowNew(false)}
+                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
+        </div>
+      ) : drafts.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <FileText size={36} className="mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-500 text-sm">No drafts yet</p>
+          <p className="text-xs text-gray-400 mt-1">Run an agent and click "To Draft", or create a blank draft above</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+          {drafts.map((draft: any) => (
+            <div key={draft.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors group">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <FileText size={16} style={{ color: '#1E3A5F' }} />
+              </div>
+              <button onClick={() => setSelectedDraft(draft)} className="flex-1 min-w-0 text-left">
+                <p className="font-medium text-gray-900 text-sm truncate">{draft.title}</p>
+                <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                  <span className="capitalize">{draft.doc_type?.replace(/_/g, ' ')}</span>
+                  <span>·</span><span>v{draft.version}</span>
+                  {draft.word_count > 0 && <><span>·</span><span>{draft.word_count} words</span></>}
+                  <span>·</span>
+                  <span>{new Date(draft.last_modified_at || draft.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                </div>
+              </button>
+              <button onClick={() => handleDelete(draft.id)} disabled={deleting === draft.id}
+                className="p-1.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50">
+                <Trash2 size={14} />
+              </button>
+              <button onClick={() => setSelectedDraft(draft)}
+                className="px-3 py-1.5 text-xs font-medium text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                style={{ backgroundColor: '#1E3A5F' }}>
+                Open
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
