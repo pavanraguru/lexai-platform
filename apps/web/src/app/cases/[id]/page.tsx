@@ -9,7 +9,7 @@ import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
-import { casesApi, documentsApi, agentsApi, hearingsApi, uploadDocument } from '@/lib/api';
+import { casesApi, documentsApi, agentsApi, hearingsApi, tasksApi, uploadDocument } from '@/lib/api';
 import { CASE_STATUS_LABELS } from '@/lib/constants';
 import {
   FolderOpen, Upload, Bot, FileText, Calendar, Clock,
@@ -17,7 +17,7 @@ import {
   Eye, Download, Share2, X, Plus, ArrowRight, CheckSquare, Square
 } from 'lucide-react';
 
-const TABS = ['overview', 'documents', 'hearings', 'agents', 'drafts'] as const;
+const TABS = ['overview', 'documents', 'hearings', 'tasks', 'agents', 'drafts'] as const;
 type Tab = typeof TABS[number];
 
 const AGENT_INFO: Record<string, { label: string; desc: string; color: string; icon: string }> = {
@@ -409,6 +409,11 @@ export default function CasePage() {
         </div>
       )}
 
+      {/* Tab: Tasks */}
+      {activeTab === 'tasks' && (
+        <TasksTab caseId={id!} token={token!} tasks={c.tasks || []} onRefresh={() => qc.invalidateQueries({ queryKey: ['case', id] })} />
+      )}
+
       {/* Tab: Agents */}
       {activeTab === 'agents' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -766,6 +771,169 @@ function HearingsTab({ caseId, token, hearings, onRefresh }: {
           <p className="text-gray-500 text-sm">No hearings scheduled yet</p>
           <button onClick={() => setShowAdd(true)} className="mt-3 text-sm text-blue-600 hover:underline">
             + Schedule first hearing
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ── Tasks Tab Component ───────────────────────────────────────
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: 'bg-red-100 text-red-700',
+  high: 'bg-orange-100 text-orange-700',
+  normal: 'bg-gray-100 text-gray-600',
+  low: 'bg-green-100 text-green-700',
+};
+
+function TasksTab({ caseId, token, tasks, onRefresh }: {
+  caseId: string; token: string; tasks: any[]; onRefresh: () => void;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', priority: 'normal', due_date: '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const activeTasks = tasks.filter(t => t.status !== 'cancelled' && t.status !== 'done');
+  const doneTasks = tasks.filter(t => t.status === 'done');
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true); setError('');
+    try {
+      await tasksApi.create(token, {
+        case_id: caseId,
+        title: form.title,
+        description: form.description || undefined,
+        priority: form.priority,
+        due_date: form.due_date || undefined,
+      });
+      setShowAdd(false);
+      setForm({ title: '', description: '', priority: 'normal', due_date: '' });
+      onRefresh();
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
+  };
+
+  const toggleDone = async (task: any) => {
+    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    try {
+      await tasksApi.update(token, task.id, { status: newStatus });
+      onRefresh();
+    } catch {}
+  };
+
+  const isOverdue = (task: any) => task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">{activeTasks.length} active · {doneTasks.length} done</p>
+        <button onClick={() => setShowAdd(!showAdd)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-white"
+          style={{ backgroundColor: '#1E3A5F' }}>
+          <Plus size={14} /> Add Task
+        </button>
+      </div>
+
+      {showAdd && (
+        <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4">New Task</h3>
+          <form onSubmit={handleAdd} className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Task title *</label>
+              <input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                placeholder="e.g. File written arguments" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Due date</label>
+                <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+              <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                placeholder="Optional details" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            {error && <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+            <div className="flex gap-2">
+              <button type="submit" disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-60"
+                style={{ backgroundColor: '#1E3A5F' }}>
+                {saving ? 'Saving...' : 'Add Task'}
+              </button>
+              <button type="button" onClick={() => setShowAdd(false)}
+                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Active tasks */}
+      {activeTasks.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+          {activeTasks.map((task: any) => (
+            <div key={task.id} className="flex items-start gap-3 px-5 py-4">
+              <button onClick={() => toggleDone(task)} className="mt-0.5 flex-shrink-0">
+                <Square size={18} className="text-gray-300 hover:text-blue-500 transition-colors" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${isOverdue(task) ? 'text-red-700' : 'text-gray-900'}`}>{task.title}</p>
+                {task.description && <p className="text-xs text-gray-400 mt-0.5">{task.description}</p>}
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_COLORS[task.priority]}`}>
+                    {task.priority}
+                  </span>
+                  {task.due_date && (
+                    <span className={`text-xs ${isOverdue(task) ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
+                      {isOverdue(task) ? '⚠ ' : ''}Due {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Done tasks (collapsed) */}
+      {doneTasks.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50 opacity-60">
+          <div className="px-5 py-3 bg-gray-50">
+            <p className="text-xs font-semibold text-gray-400 uppercase">Completed ({doneTasks.length})</p>
+          </div>
+          {doneTasks.slice(0, 5).map((task: any) => (
+            <div key={task.id} className="flex items-center gap-3 px-5 py-3">
+              <button onClick={() => toggleDone(task)} className="flex-shrink-0">
+                <CheckSquare size={18} className="text-green-500" />
+              </button>
+              <p className="text-sm text-gray-400 line-through">{task.title}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tasks.length === 0 && !showAdd && (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <CheckSquare size={36} className="mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-500 text-sm">No tasks yet</p>
+          <button onClick={() => setShowAdd(true)} className="mt-3 text-sm text-blue-600 hover:underline">
+            + Add first task
           </button>
         </div>
       )}

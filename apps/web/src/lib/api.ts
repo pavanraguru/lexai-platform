@@ -9,7 +9,7 @@ import type {
   Client, Invoice, Notification, User, Tenant,
   ApiResponse, CaseType, CourtLevel, CasePerspective,
   CasePriority, HearingPurpose, AgentType
-} from '@/lib/constants';
+} from '@lexai/core';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
