@@ -12,7 +12,7 @@ import {
   ChevronDown, LogOut, Menu, X, Search, ChevronLeft
 } from 'lucide-react';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import { getSupabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -49,9 +49,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, token, clearUser } = useAuthStore();
+  const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  const { data: notifData } = useQuery({
+
+  const markAllRead = async () => {
+    if (!token) return;
+    await fetch(`${BASE}/v1/notifications/read-all`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}` },
+    });
+    queryClient.invalidateQueries({ queryKey: ['notif-count', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['notif-list', user?.id] });
+  };
+  const { data: notifListData } = useQuery({
+    queryKey: ['notif-list', user?.id],
+    queryFn: async () => {
+      if (!token) return [];
+      const res = await fetch(`${BASE}/v1/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: !!token && notifOpen,
+    refetchInterval: notifOpen ? 15000 : false,
+  });
+
+    const { data: notifData } = useQuery({
     queryKey: ['notif-count', user?.id],
     queryFn: async () => {
       if (!token) return { count: 0 };
@@ -185,16 +210,57 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
-          {/* Notification bell */}
-          <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <Bell size={20} className="text-gray-600" />
-            {notifCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 text-xs font-bold text-white rounded-full flex items-center justify-center"
-                style={{ backgroundColor: '#B7231A' }}>
-                {notifCount > 9 ? '9+' : notifCount}
-              </span>
+          {/* Notification bell with dropdown */}
+          <div className="relative">
+            <button onClick={() => setNotifOpen(!notifOpen)}
+              className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+              <Bell size={20} className="text-gray-600" />
+              {notifCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 text-xs font-bold text-white rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#B7231A' }}>
+                  {notifCount > 9 ? '9+' : notifCount}
+                </span>
+              )}
+            </button>
+
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
+                <div className="absolute right-0 top-10 w-80 bg-white rounded-xl border border-gray-200 shadow-lg z-20 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <p className="font-semibold text-sm text-gray-900">Notifications</p>
+                    {notifCount > 0 && (
+                      <button onClick={markAllRead} className="text-xs text-blue-600 hover:underline">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                    {!notifListData || notifListData.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-8">No notifications</p>
+                    ) : (
+                      (notifListData as any[]).slice(0, 10).map((n: any) => (
+                        <Link key={n.id} href={n.action_url || '/dashboard'}
+                          onClick={() => setNotifOpen(false)}
+                          className={`block px-4 py-3 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}>
+                          <div className="flex items-start gap-2">
+                            {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />}
+                            <div className={!n.read ? '' : 'pl-3.5'}>
+                              <p className="text-xs font-medium text-gray-900">{n.title}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
             )}
-          </button>
+          </div>
 
           {/* User avatar (mobile) */}
           <button className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"

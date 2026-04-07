@@ -535,12 +535,70 @@ async function scrapeCNR(cnr: string, courtLevel: string): Promise<{
       throw new Error(`eCourts portal returned ${res.status}`);
     }
 
-    // Parse response — eCourts returns inconsistent formats
     const text = await res.text();
-    // TODO: Parse the actual eCourts response format
-    // For now return null to indicate scraper needs full implementation
-    console.log(`[eCourts] CNR ${cnr}: portal response received (${text.length} chars) — parser not yet implemented`);
-    return null;
+
+    // Parse eCourts response — handles both JSON and HTML formats
+    let nextDate: string | null = null;
+    let nextTime: string | null = null;
+    let courtRoom: string | null = null;
+    let caseStatus: string | null = null;
+
+    // Try JSON first (newer eCourts API)
+    try {
+      const json = JSON.parse(text);
+      // eCourts JSON structure varies by court
+      const caseInfo = json?.case_details || json?.caseDetails || json?.data || json;
+      nextDate = caseInfo?.next_hearing_date || caseInfo?.nextHearingDate || caseInfo?.next_date || null;
+      nextTime = caseInfo?.next_hearing_time || caseInfo?.nextHearingTime || null;
+      courtRoom = caseInfo?.court_room || caseInfo?.courtRoom || null;
+      caseStatus = caseInfo?.case_status || caseInfo?.caseStatus || caseInfo?.status || null;
+    } catch {
+      // Fall back to HTML parsing
+      // eCourts HTML typically contains dates in formats like "15-Apr-2025" or "15/04/2025"
+      const datePatterns = [
+        /next[^<]*date[^<]*?(\d{1,2}[-/]\w{3,9}[-/]\d{2,4})/i,
+        /next[^<]*hearing[^<]*?(\d{2}[-/]\d{2}[-/]\d{4})/i,
+        /(\d{1,2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{4})/i,
+      ];
+
+      for (const pattern of datePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+          // Normalise to YYYY-MM-DD
+          const raw = match[1];
+          const months: Record<string, string> = {
+            jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
+            jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'
+          };
+          let normalised: string | null = null;
+          // DD-Mon-YYYY
+          const m1 = raw.match(/(\d{1,2})-(\w{3})-(\d{4})/i);
+          if (m1) normalised = `${m1[3]}-${months[m1[2].toLowerCase()]}-${m1[1].padStart(2,'0')}`;
+          // DD/MM/YYYY
+          const m2 = raw.match(/(\d{1,2})\/(\d{2})\/(\d{4})/);
+          if (m2) normalised = `${m2[3]}-${m2[2]}-${m2[1].padStart(2,'0')}`;
+
+          if (normalised) { nextDate = normalised; break; }
+        }
+      }
+
+      // Extract case status from HTML
+      const statusMatch = text.match(/case[^<]*status[^<]*?:\s*<[^>]*>([^<]+)/i)
+        || text.match(/Status[^<]*?<[^>]*>([^<]{3,30})</i);
+      if (statusMatch) caseStatus = statusMatch[1].trim();
+
+      // Extract court room
+      const roomMatch = text.match(/court[^<]*room[^<]*?(?:no\.?|number)?\s*:?\s*(\w+)/i);
+      if (roomMatch) courtRoom = roomMatch[1];
+    }
+
+    if (!nextDate && !caseStatus) {
+      console.log(`[eCourts] CNR ${cnr}: could not parse response (${text.length} chars)`);
+      return null;
+    }
+
+    console.log(`[eCourts] CNR ${cnr}: parsed — next: ${nextDate}, status: ${caseStatus}`);
+    return { next_date: nextDate, next_time: nextTime, court_room: courtRoom, case_status: caseStatus };
 
   } catch (err: any) {
     if (err.name === 'AbortError' || err.name === 'TimeoutError') {
