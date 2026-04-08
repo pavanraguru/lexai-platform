@@ -1,6 +1,5 @@
 // ============================================================
-// LexAI India — Fastify API Server
-// PRD v1.1 Section 10 — API Design Conventions
+// LexAI India — Fastify API Server  v1.1.0
 // ============================================================
 
 import 'dotenv/config';
@@ -11,29 +10,28 @@ import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 
 // Route imports
-import { authRoutes } from './routes/auth.js';
-import { tenantRoutes } from './routes/tenants.js';
-import { userRoutes } from './routes/users.js';
-import { caseRoutes } from './routes/cases.js';
-import { documentRoutes } from './routes/documents.js';
-import { hearingRoutes } from './routes/hearings.js';
-import { taskRoutes } from './routes/tasks.js';
-import { agentRoutes } from './routes/agents.js';
-import { draftRoutes } from './routes/drafts.js';
-import { clientRoutes } from './routes/clients.js';
-import { invoiceRoutes } from './routes/invoices.js';
+import { authRoutes }         from './routes/auth.js';
+import { tenantRoutes }       from './routes/tenants.js';
+import { userRoutes }         from './routes/users.js';
+import { caseRoutes }         from './routes/cases.js';
+import { documentRoutes }     from './routes/documents.js';
+import { hearingRoutes }      from './routes/hearings.js';
+import { taskRoutes }         from './routes/tasks.js';
+import { agentRoutes }        from './routes/agents.js';
+import { draftRoutes }        from './routes/drafts.js';
+import { clientRoutes }       from './routes/clients.js';
+import { invoiceRoutes }      from './routes/invoices.js';
 import { notificationRoutes } from './routes/notifications.js';
-import { calendarRoutes } from './routes/calendar.js';
-import { billingRoutes } from './routes/billing.js';
-import { dashboardRoutes } from './routes/dashboard.js';
+import { calendarRoutes }     from './routes/calendar.js';
+import { dashboardRoutes }    from './routes/dashboard.js';
 
 // Plugin imports
 import { prismaPlugin } from './plugins/prisma.js';
-import { authPlugin } from './plugins/auth.js';
-import { redisPlugin } from './plugins/redis.js';
+import { authPlugin }   from './plugins/auth.js';
+import { redisPlugin }  from './plugins/redis.js';
 
-// Fix BigInt serialization (Prisma returns BigInt for paise fields)
-(BigInt.prototype as any).toJSON = function() { return Number(this); };
+// Fix BigInt serialization — Prisma returns BigInt for all paise/amount fields
+(BigInt.prototype as any).toJSON = function () { return Number(this); };
 
 const server = Fastify({
   logger: {
@@ -45,8 +43,6 @@ const server = Fastify({
 });
 
 async function bootstrap() {
-  // ── Register Core Plugins ──────────────────────────────────
-
   await server.register(cors, {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     credentials: true,
@@ -54,25 +50,23 @@ async function bootstrap() {
 
   await server.register(jwt, {
     secret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
-    sign: { expiresIn: '1h' },
+    sign: { expiresIn: '7d' },
   });
 
   await server.register(multipart, {
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max per file
+    limits: { fileSize: 50 * 1024 * 1024 },
   });
 
   await server.register(rateLimit, {
     max: 1000,
     timeWindow: '1 minute',
-    redis: undefined, // will use in-memory for dev; override with Redis in prod
   });
 
-  // ── Register App Plugins ───────────────────────────────────
   await server.register(prismaPlugin);
   await server.register(authPlugin);
   await server.register(redisPlugin);
 
-  // ── Health Check ───────────────────────────────────────────
+  // Health check
   server.get('/health', async () => ({
     status: 'ok',
     service: 'LexAI India API',
@@ -81,7 +75,7 @@ async function bootstrap() {
     environment: process.env.NODE_ENV,
   }));
 
-  // ── API Routes (all prefixed /v1) ──────────────────────────
+  // All routes under /v1
   await server.register(async (app) => {
     await app.register(authRoutes,         { prefix: '/auth' });
     await app.register(tenantRoutes,       { prefix: '/tenants' });
@@ -97,50 +91,29 @@ async function bootstrap() {
     await app.register(notificationRoutes, { prefix: '/notifications' });
     await app.register(calendarRoutes,     { prefix: '/calendar' });
     await app.register(dashboardRoutes,    { prefix: '/dashboard' });
-    await app.register(billingRoutes,      { prefix: '/billing' });
   }, { prefix: '/v1' });
 
-  // ── Global Error Handler ───────────────────────────────────
+  // Global error handler
   server.setErrorHandler((error, request, reply) => {
     server.log.error(error);
-
     if (error.statusCode === 429) {
-      return reply.status(429).send({
-        error: { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' }
-      });
+      return reply.status(429).send({ error: { code: 'RATE_LIMITED', message: 'Too many requests.' } });
     }
-
     if (error.validation) {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: error.message }
-      });
+      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: error.message } });
     }
-
     return reply.status(error.statusCode || 500).send({
       error: {
         code: error.code || 'INTERNAL_ERROR',
-        message: process.env.NODE_ENV === 'production'
-          ? 'An internal error occurred'
-          : error.message,
-      }
+        message: process.env.NODE_ENV === 'production' ? 'An internal error occurred' : error.message,
+      },
     });
   });
 
-  // ── Start Server ───────────────────────────────────────────
   const port = parseInt(process.env.API_PORT || '3001');
   const host = process.env.API_HOST || '0.0.0.0';
-
   await server.listen({ port, host });
-  console.log(`
-  ╔═══════════════════════════════════════════╗
-  ║         LexAI India API v1.1.0            ║
-  ║  ⚖  AI-Powered Legal Platform for India  ║
-  ╠═══════════════════════════════════════════╣
-  ║  Server: http://${host}:${port}           ║
-  ║  Health: http://${host}:${port}/health    ║
-  ║  Env:    ${(process.env.NODE_ENV || 'development').padEnd(32)}║
-  ╚═══════════════════════════════════════════╝
-  `);
+  console.log(`🚀 LexAI India API running on ${host}:${port}`);
 }
 
 bootstrap().catch((err) => {
