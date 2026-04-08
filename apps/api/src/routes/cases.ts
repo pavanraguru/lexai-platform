@@ -19,7 +19,7 @@ const CreateCaseSchema = z.object({
   judge_name: z.string().optional().nullable(),
   priority: z.enum(['low','normal','high','urgent']).default('normal'),
   filed_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-  assigned_advocates: z.array(z.string().uuid()).min(1),
+  assigned_advocates: z.array(z.string().uuid()).optional().default([]),
   client_id: z.string().uuid().optional().nullable(),
   metadata: z.object({
     fir_number: z.string().optional(),
@@ -121,7 +121,7 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
         judge_name: body.judge_name || null,
         priority: body.priority as any,
         filed_date: body.filed_date ? new Date(body.filed_date) : null,
-        assigned_advocates: body.assigned_advocates,
+        assigned_advocates: body.assigned_advocates.length > 0 ? body.assigned_advocates : [user_id],
         client_id: body.client_id || null,
         metadata: body.metadata,
         created_by: user_id,
