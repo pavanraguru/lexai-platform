@@ -23,3 +23,5 @@ RUN test -f apps/api/dist/server.js || (echo "ERROR: server.js not emitted" && e
 EXPOSE 3001
 HEALTHCHECK NONE
 CMD ["bash", "start.sh"]
+
+# cache-bust Fri Apr 10 15:33:28 IST 2026
