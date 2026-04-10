@@ -160,14 +160,20 @@ export default function CaseDetailPage() {
 
   const handleRunAgent = async (agentType: string) => {
     if (!c) return;
-    const docIds = (c.documents || []).filter((d: any) => d.processing_status === 'ready').map((d: any) => d.id);
-    if (docIds.length === 0) { setError('Upload and process at least one document before running agents.'); return; }
+    const readyDocs = (c.documents || []).filter((d: any) => d.processing_status === 'ready');
+    if (readyDocs.length === 0) {
+      setError('No processed documents found. Upload a document and wait for OCR to complete first.');
+      return;
+    }
     setRunningAgent(agentType); setError('');
     try {
-      await apiCall('/v1/agents/run', 'POST', {
-        case_id: id, agent_type: agentType, doc_ids: docIds,
-        case_metadata: { title: c.title, case_type: c.case_type, court: c.court, perspective: c.perspective },
+      const res = await fetch(`${BASE}/v1/agents/cases/${id}/run/${agentType}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
       });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
       refresh();
     } catch (err: any) { setError(err.message); }
     setRunningAgent(null);
