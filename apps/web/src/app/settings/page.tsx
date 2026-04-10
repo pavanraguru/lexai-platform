@@ -5,7 +5,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { User, Building2, Bell, Shield, CreditCard, LogOut, ChevronRight } from 'lucide-react';
 
-const s = { fontFamily: 'Manrope, sans-serif', maxWidth: '720px', margin: '0 auto', padding: '32px 24px' };
+const s = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '720px' };
 
 const card: React.CSSProperties = {
   background: '#fff', borderRadius: '16px',

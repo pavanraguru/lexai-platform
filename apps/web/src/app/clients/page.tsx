@@ -7,11 +7,7 @@ import { Users, Plus, Phone, Mail, X, Search } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const pg: React.CSSProperties = {
-  fontFamily: 'Manrope, sans-serif',
-  padding: '32px 32px',
-  maxWidth: '860px',
-};
+const pg: React.CSSProperties = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif' };
 
 const inp: React.CSSProperties = {
   padding: '10px 13px', border: '1px solid rgba(196,198,207,0.5)',

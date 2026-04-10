@@ -163,7 +163,7 @@ export default function NewCasePage() {
   });
 
   return (
-    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '680px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '32px' }}>

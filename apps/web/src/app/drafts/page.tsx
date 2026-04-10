@@ -15,7 +15,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   reply_notice: 'Reply Notice', other: 'Document',
 };
 
-const s = { fontFamily: 'Manrope, sans-serif', maxWidth: '860px', margin: '0 auto', padding: '32px 24px' };
+const s = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif' };
 
 export default function DraftsPage() {
   const { token } = useAuthStore();

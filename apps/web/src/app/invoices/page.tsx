@@ -7,7 +7,7 @@ import { Receipt, Plus, Clock, X, ChevronRight } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const pg: React.CSSProperties = { fontFamily: 'Manrope, sans-serif', padding: '32px 32px', maxWidth: '860px' };
+const pg: React.CSSProperties = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif' };
 const inp: React.CSSProperties = { padding: '10px 13px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '14px', color: '#191c1e', background: '#fff', outline: 'none', fontFamily: 'Manrope, sans-serif', width: '100%', boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px' };
 

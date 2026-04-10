@@ -88,7 +88,7 @@ export default function CalendarPage() {
     .slice(0, 5);
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* Hero */}
       <div style={{ marginBottom: '24px' }}>

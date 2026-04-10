@@ -180,7 +180,7 @@ export default function CaseDetailPage() {
   };
 
   if (isLoading) return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
       <div style={{ height: '120px', borderRadius: '20px', background: '#edeef0', marginBottom: '16px' }} />
       <div style={{ height: '48px', borderRadius: '12px', background: '#edeef0', marginBottom: '16px' }} />
       <div style={{ height: '300px', borderRadius: '20px', background: '#edeef0' }} />
@@ -214,7 +214,7 @@ export default function CaseDetailPage() {
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* ── Case Header ─────────────────────────────────── */}
       <div style={{ ...cardStyle, padding: '24px', marginBottom: '20px' }}>

@@ -67,7 +67,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* ── Greeting ─────────────────────────────────────── */}
       <div style={{ marginBottom: '36px' }}>

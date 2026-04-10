@@ -60,7 +60,7 @@ export default function CasesPage() {
   const s: React.CSSProperties = {};
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
