@@ -3,31 +3,35 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
+import {
+  Gavel, Calendar, CheckSquare, Bot,
+  MapPin, ChevronRight, Plus, ArrowRight
+} from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const STAT_CARDS = [
-  { key: 'active_cases',          label: 'ACTIVE CASES',     icon: 'gavel',         bg: 'var(--primary)',           text: '#fff',      subColor: 'rgba(255,255,255,0.6)' },
-  { key: 'hearings_this_week',    label: 'HEARINGS THIS WEEK', icon: 'calendar_month', bg: 'var(--secondary-fixed)', text: 'var(--on-secondary-container)', subColor: 'var(--secondary)' },
-  { key: 'pending_tasks',         label: 'PENDING TASKS',    icon: 'task_alt',       bg: 'var(--error-container)',   text: 'var(--error)', subColor: 'var(--on-error-container)' },
-  { key: 'agent_runs_this_month', label: 'AGENT RUNS',       icon: 'smart_toy',      bg: 'var(--tertiary-fixed)',    text: 'var(--tertiary)', subColor: 'var(--on-tertiary-fixed-variant)' },
-];
-
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  intake:          { bg: 'var(--surface-container)',      color: 'var(--on-surface-variant)' },
-  filed:           { bg: 'var(--primary-fixed)',          color: 'var(--on-primary-fixed)' },
-  pending_hearing: { bg: 'var(--secondary-fixed)',        color: 'var(--on-secondary-container)' },
-  arguments:       { bg: '#ede9fe',                       color: '#5b21b6' },
-  reserved:        { bg: '#fff7ed',                       color: '#c2410c' },
-  decided:         { bg: '#dcfce7',                       color: '#15803d' },
-  appeal:          { bg: 'var(--error-container)',        color: 'var(--on-error-container)' },
-  closed:          { bg: 'var(--surface-container-high)', color: 'var(--outline)' },
+  intake:          { bg: '#edeef0', color: '#43474e' },
+  filed:           { bg: '#d5e3ff', color: '#001c3b' },
+  pending_hearing: { bg: '#ffe088', color: '#745c00' },
+  arguments:       { bg: '#ede9fe', color: '#5b21b6' },
+  reserved:        { bg: '#fff7ed', color: '#c2410c' },
+  decided:         { bg: '#dcfce7', color: '#15803d' },
+  appeal:          { bg: '#ffdad6', color: '#93000a' },
+  closed:          { bg: '#e7e8ea', color: '#74777f' },
 };
 
 const STATUS_LABELS: Record<string, string> = {
   intake: 'Intake', filed: 'Filed', pending_hearing: 'Pending Hearing',
   arguments: 'Arguments', reserved: 'Reserved', decided: 'Decided',
   appeal: 'Appeal', closed: 'Closed',
+};
+
+const CASE_TYPE_LABELS: Record<string, string> = {
+  criminal_sessions: 'Criminal', criminal_magistrate: 'Criminal (Mag)',
+  civil_district: 'Civil', writ_hc: 'Writ (HC)', corporate_nclt: 'Corporate',
+  family: 'Family', labour: 'Labour', ip: 'IP', tax: 'Tax',
+  arbitration: 'Arbitration', consumer: 'Consumer',
 };
 
 export default function DashboardPage() {
@@ -39,6 +43,7 @@ export default function DashboardPage() {
       const res = await fetch(`${BASE}/v1/dashboard/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error('Failed to fetch stats');
       return (await res.json()).data;
     },
     enabled: !!token,
@@ -52,25 +57,31 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
-  const firstName = user?.full_name?.split(' ')[0] || 'Advocate';
+  const firstName = user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Advocate';
+
+  const STATS = [
+    { key: 'active_cases',          label: 'ACTIVE CASES',      Icon: Gavel,       bg: '#022448', numColor: '#fff',     labelColor: 'rgba(255,255,255,0.7)' },
+    { key: 'hearings_this_week',    label: 'HEARINGS THIS WEEK', Icon: Calendar,    bg: '#ffe088', numColor: '#745c00',  labelColor: '#735c00' },
+    { key: 'pending_tasks',         label: 'PENDING TASKS',      Icon: CheckSquare, bg: '#ffdad6', numColor: '#ba1a1a',  labelColor: '#93000a' },
+    { key: 'agent_runs_this_month', label: 'AGENT RUNS',         Icon: Bot,         bg: '#fdddb9', numColor: '#322109',  labelColor: '#584328' },
+  ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
 
-      {/* ── Hero Greeting ──────────────────────────────────── */}
-      <div className="mb-10 fade-up">
-        <h1 className="font-serif font-bold mb-3" style={{ fontSize: '2.2rem', color: 'var(--primary)', lineHeight: '1.15' }}>
+      {/* ── Greeting ─────────────────────────────────────── */}
+      <div style={{ marginBottom: '36px' }}>
+        <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2.2rem', fontWeight: 700, color: '#022448', lineHeight: 1.15, margin: 0 }}>
           {greeting()}, {firstName}
         </h1>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2" style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>calendar_today</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+          <span style={{ color: '#43474e', fontSize: '14px' }}>
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </div>
+          </span>
           {data?.today_hearings > 0 && (
             <>
-              <span style={{ color: 'var(--outline-variant)' }}>·</span>
-              <span className="font-bold" style={{ color: 'var(--error)', fontSize: '14px' }}>
+              <span style={{ color: '#c4c6cf' }}>·</span>
+              <span style={{ color: '#ba1a1a', fontWeight: 700, fontSize: '14px' }}>
                 {data.today_hearings} hearing{data.today_hearings > 1 ? 's' : ''} today
               </span>
             </>
@@ -78,98 +89,84 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stat Cards ─────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 mb-10">
-        {STAT_CARDS.map((card, i) => (
-          <div key={card.key} className={`rounded-2xl p-5 fade-up fade-up-${i + 1}`}
-            style={{ background: card.bg, boxShadow: 'var(--shadow-tonal)' }}>
-            <span className="material-symbols-outlined mb-3 block" style={{ color: card.text, fontSize: '22px', opacity: 0.8 }}>
-              {card.icon}
-            </span>
-            <div className={`font-serif font-bold count-up fade-up-${i + 2}`}
-              style={{ fontSize: '2.2rem', color: card.text, lineHeight: 1 }}>
-              {isLoading ? (
-                <div className="h-9 w-10 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.2)' }} />
-              ) : (
-                String(data?.[card.key] ?? 0).padStart(2, '0')
-              )}
+      {/* ── Stats Grid ───────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '40px' }}>
+        {STATS.map(({ key, label, Icon, bg, numColor, labelColor }) => (
+          <div key={key} style={{
+            background: bg, borderRadius: '16px', padding: '20px',
+            boxShadow: '0px 4px 16px rgba(2, 36, 72, 0.08)',
+          }}>
+            <Icon size={20} color={numColor} style={{ opacity: 0.8, marginBottom: '10px', display: 'block' }} />
+            <div style={{ fontFamily: 'Newsreader, serif', fontSize: '2.4rem', fontWeight: 700, color: numColor, lineHeight: 1 }}>
+              {isLoading
+                ? <span style={{ display: 'inline-block', width: '48px', height: '36px', background: 'rgba(255,255,255,0.25)', borderRadius: '4px' }} />
+                : String(data?.[key] ?? 0).padStart(2, '0')
+              }
             </div>
-            <p className="text-xs font-bold mt-1 tracking-wider" style={{ color: card.subColor }}>
-              {card.label}
+            <p style={{ fontSize: '10px', fontWeight: 800, color: labelColor, letterSpacing: '0.08em', marginTop: '6px' }}>
+              {label}
             </p>
           </div>
         ))}
       </div>
 
-      {/* ── Upcoming Hearings ──────────────────────────────── */}
-      <section className="mb-10 fade-up fade-up-3">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-serif font-bold text-xl" style={{ color: 'var(--on-surface)' }}>
+      {/* ── Upcoming Hearings ────────────────────────────── */}
+      <section style={{ marginBottom: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#191c1e', margin: 0 }}>
             Upcoming Hearings
           </h2>
-          <Link href="/calendar" className="text-xs font-bold tracking-wider transition-colors"
-            style={{ color: 'var(--secondary)' }}>
+          <Link href="/calendar" style={{ fontSize: '11px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', textDecoration: 'none' }}>
             VIEW ALL
           </Link>
         </div>
 
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
+            Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} style={{ height: '80px', borderRadius: '16px', background: '#edeef0', animation: 'pulse 2s infinite' }} />
             ))
-          ) : data?.upcoming_hearings?.length === 0 ? (
-            <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No upcoming hearings scheduled</p>
+          ) : !data?.upcoming_hearings?.length ? (
+            <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>No upcoming hearings scheduled</p>
             </div>
           ) : (
-            data?.upcoming_hearings?.map((h: any, i: number) => {
+            data.upcoming_hearings.map((h: any) => {
               const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
               const isUrgent = daysUntil <= 1;
-              const isSoon = daysUntil <= 7;
               return (
-                <Link key={h.id} href={`/cases/${h.case?.id}`}
-                  className={`block rounded-2xl p-5 transition-all hover:shadow-lg group cursor-pointer fade-up fade-up-${i + 1}`}
-                  style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', boxShadow: 'var(--shadow-tonal)' }}>
-                  <div className="flex gap-5 items-start">
+                <Link key={h.id} href={`/cases/${h.case?.id}`} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    background: '#fff', borderRadius: '16px', padding: '18px 20px',
+                    border: '1px solid rgba(196,198,207,0.15)',
+                    boxShadow: '0px 4px 16px rgba(2,36,72,0.05)',
+                    display: 'flex', gap: '20px', alignItems: 'flex-start',
+                    cursor: 'pointer',
+                  }}>
                     {/* Date column */}
-                    <div className="flex-shrink-0 text-center" style={{ borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '20px', minWidth: '52px' }}>
-                      <div className="text-xs font-bold uppercase" style={{ color: isUrgent ? 'var(--error)' : 'var(--on-surface-variant)' }}>
-                        {new Date(h.date).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}
+                    <div style={{ textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.25)', paddingRight: '18px', minWidth: '48px', flexShrink: 0 }}>
+                      <div style={{ fontSize: '10px', fontWeight: 800, color: isUrgent ? '#ba1a1a' : '#74777f', textTransform: 'uppercase' }}>
+                        {new Date(h.date).toLocaleDateString('en-IN', { month: 'short' })}
                       </div>
-                      <div className="font-serif font-bold text-2xl" style={{ color: isUrgent ? 'var(--error)' : 'var(--primary)', lineHeight: 1.1 }}>
+                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.6rem', color: isUrgent ? '#ba1a1a' : '#022448', lineHeight: 1 }}>
                         {new Date(h.date).getDate()}
                       </div>
                     </div>
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-serif font-bold text-base group-hover:opacity-80 transition-opacity truncate"
-                        style={{ color: 'var(--primary)' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '16px', color: '#022448', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {h.case?.title}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="material-symbols-outlined" style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>location_on</span>
-                        <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>
-                          {h.case?.court}{h.court_room ? ` · ${h.court_room}` : ''}
-                        </p>
                       </div>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <span className="text-xs font-bold px-2 py-0.5 capitalize"
-                          style={{
-                            background: isUrgent ? 'var(--error)' : 'var(--primary)',
-                            color: '#fff',
-                            borderRadius: '2px',
-                            fontSize: '9px',
-                            letterSpacing: '0.05em',
-                          }}>
-                          {h.purpose?.replace(/_/g, ' ').toUpperCase()}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#43474e' }}>
+                        <MapPin size={11} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.case?.court}{h.court_room ? ` · ${h.court_room}` : ''}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: isUrgent ? '#ba1a1a' : '#022448', color: '#fff', borderRadius: '2px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                          {h.purpose?.replace(/_/g, ' ')}
                         </span>
-                        {h.time && (
-                          <span className="text-xs font-bold" style={{ color: isUrgent ? 'var(--error)' : 'var(--on-surface-variant)' }}>
-                            {h.time} IST
-                          </span>
-                        )}
-                        <span className="ml-auto text-xs font-bold" style={{ color: isUrgent ? 'var(--error)' : isSoon ? 'var(--secondary)' : 'var(--outline)' }}>
+                        {h.time && <span style={{ fontSize: '11px', fontWeight: 700, color: isUrgent ? '#ba1a1a' : '#43474e' }}>{h.time} IST</span>}
+                        <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 800, color: isUrgent ? '#ba1a1a' : daysUntil <= 7 ? '#735c00' : '#74777f' }}>
                           {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TOMORROW' : `${daysUntil}d`}
                         </span>
                       </div>
@@ -182,83 +179,81 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ── AI Agents Banner ───────────────────────────────── */}
-      <section className="mb-10 fade-up fade-up-4">
-        <div className="rounded-2xl p-6" style={{ background: 'var(--primary)', boxShadow: '0 8px 32px rgba(2,36,72,0.25)' }}>
-          <h2 className="font-serif font-bold text-xl mb-2" style={{ color: '#fff' }}>
+      {/* ── AI Agents Banner ─────────────────────────────── */}
+      <section style={{ marginBottom: '40px' }}>
+        <div style={{ background: '#022448', borderRadius: '20px', padding: '24px', boxShadow: '0 8px 32px rgba(2,36,72,0.25)' }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#fff', margin: '0 0 6px' }}>
             AI Agents Ready
           </h2>
-          <p className="text-sm mb-5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
-            {data?.agent_runs_this_month || 0} runs this month · {data?.active_cases || 0} active cases
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', lineHeight: 1.6 }}>
+            {data?.agent_runs_this_month || 0} runs this month · {data?.active_cases || 0} active cases analysed
           </p>
-          <Link href="/cases"
-            className="inline-flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-lg transition-all hover:opacity-90"
-            style={{ background: 'var(--secondary-fixed)', color: 'var(--on-secondary-container)', borderRadius: '6px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>smart_toy</span>
-            Run LexAI Agent
+          <Link href="/cases" style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#ffe088', color: '#745c00', fontWeight: 800, fontSize: '13px', padding: '10px 20px', borderRadius: '6px' }}>
+              <Bot size={16} />
+              Run LexAI Agent
+            </div>
           </Link>
         </div>
       </section>
 
-      {/* ── Recent Cases ───────────────────────────────────── */}
-      <section className="fade-up fade-up-5">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-serif font-bold text-xl" style={{ color: 'var(--on-surface)' }}>
+      {/* ── Recent Cases ─────────────────────────────────── */}
+      <section>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#191c1e', margin: 0 }}>
             Recent Cases
           </h2>
-          <Link href="/cases" className="text-xs font-bold tracking-wider" style={{ color: 'var(--secondary)' }}>
+          <Link href="/cases" style={{ fontSize: '11px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', textDecoration: 'none' }}>
             HISTORY
           </Link>
         </div>
 
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
+              <div key={i} style={{ height: '80px', borderRadius: '16px', background: '#edeef0' }} />
             ))
-          ) : data?.recent_cases?.length === 0 ? (
-            <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <p className="text-sm mb-3" style={{ color: 'var(--on-surface-variant)' }}>No cases yet</p>
-              <Link href="/cases/new" className="text-xs font-bold" style={{ color: 'var(--primary)' }}>
-                Create your first case →
+          ) : !data?.recent_cases?.length ? (
+            <div style={{ background: '#fff', borderRadius: '16px', padding: '40px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+              <p style={{ color: '#74777f', fontSize: '14px', marginBottom: '16px' }}>No cases yet</p>
+              <Link href="/cases/new" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#022448', color: '#fff', fontWeight: 700, fontSize: '13px', padding: '10px 20px', borderRadius: '6px' }}>
+                <Plus size={15} /> Create First Case
               </Link>
             </div>
           ) : (
-            data?.recent_cases?.map((c: any, i: number) => {
+            data.recent_cases.map((c: any) => {
               const statusStyle = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
               return (
-                <Link key={c.id} href={`/cases/${c.id}`}
-                  className={`block rounded-2xl p-5 transition-all hover:shadow-lg fade-up fade-up-${i + 1}`}
-                  style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="text-xs font-bold tracking-wider uppercase"
-                          style={{ color: 'var(--secondary)', fontSize: '10px' }}>
-                          {c.case_type?.replace(/_/g, ' ')}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 font-bold rounded-full"
-                          style={{ background: statusStyle.bg, color: statusStyle.color, fontSize: '10px' }}>
-                          {STATUS_LABELS[c.status] || c.status}
-                        </span>
+                <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
+                  <div style={{ background: '#fff', borderRadius: '16px', padding: '18px 20px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 4px 16px rgba(2,36,72,0.05)', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '9px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                            {CASE_TYPE_LABELS[c.case_type] || c.case_type?.replace(/_/g, ' ')}
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: statusStyle.bg, color: statusStyle.color }}>
+                            {STATUS_LABELS[c.status] || c.status}
+                          </span>
+                        </div>
+                        <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '16px', color: '#022448', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.title}
+                        </div>
+                        {c.cnr_number && (
+                          <p style={{ fontSize: '11px', color: '#43474e', fontFamily: 'monospace', marginTop: '3px' }}>
+                            CNR: {c.cnr_number}
+                          </p>
+                        )}
                       </div>
-                      <h3 className="font-serif font-bold" style={{ color: 'var(--primary)', fontSize: '16px' }}>
-                        {c.title}
-                      </h3>
-                      {c.cnr_number && (
-                        <p className="text-xs mt-1 font-mono" style={{ color: 'var(--on-surface-variant)' }}>
-                          CNR: {c.cnr_number}
-                        </p>
+                      {c.next_hearing_date && (
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <p style={{ fontSize: '9px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', margin: 0 }}>NEXT</p>
+                          <p style={{ fontWeight: 800, fontSize: '13px', color: '#022448', margin: 0 }}>
+                            {new Date(c.next_hearing_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </p>
+                        </div>
                       )}
                     </div>
-                    {c.next_hearing_date && (
-                      <div className="flex-shrink-0 text-right">
-                        <p style={{ fontSize: '10px', color: 'var(--on-surface-variant)', fontWeight: '600' }}>NEXT</p>
-                        <p className="text-sm font-bold" style={{ color: 'var(--primary)' }}>
-                          {new Date(c.next_hearing_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </Link>
               );
@@ -266,15 +261,13 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="text-center mt-5">
-          <Link href="/cases/new"
-            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 transition-all hover:opacity-80"
-            style={{ color: 'var(--primary)', border: '1px solid rgba(2,36,72,0.2)', borderRadius: '6px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-            New Case
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <Link href="/cases/new" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#022448', fontWeight: 700, fontSize: '13px', padding: '10px 20px', border: '1px solid rgba(2,36,72,0.2)', borderRadius: '6px' }}>
+            <Plus size={14} /> New Case
           </Link>
         </div>
       </section>
+
     </div>
   );
 }
