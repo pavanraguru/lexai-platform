@@ -15,9 +15,11 @@ COPY apps/api/package*.json ./apps/api/
 # Install root workspace deps
 RUN npm install --legacy-peer-deps
 
-# Explicitly install inside apps/api — ensures all packages resolve correctly
-# regardless of workspace hoisting behaviour
-RUN cd apps/api && npm install --legacy-peer-deps
+# Explicitly install inside apps/api — the directory exists because we copied
+# apps/api/package*.json above, but npm needs to run from within it
+WORKDIR /app/apps/api
+RUN npm install --legacy-peer-deps
+WORKDIR /app
 
 # Copy all source
 COPY packages/core ./packages/core
