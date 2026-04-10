@@ -86,13 +86,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div style={{ background: '#f8f9fb', minHeight: '100dvh', fontFamily: 'Manrope, sans-serif' }}>
       <style>{`
         @media (min-width: 768px) {
-          #main-content-area { margin-left: 220px; }
+          #main-content-area { margin-left: 200px; }
+          @media (max-width: 767px) { :root { --mobile-label-display: block; } }
+          @media (min-width: 768px) { .md-breadcrumb { display: flex !important; } }
         }
       `}</style>
 
       {/* ── Desktop Sidebar ─────────────────────────────────── */}
-      <aside className="hidden md:flex" style={{
-        position: 'fixed', left: 0, top: 0, height: '100%', width: '220px',
+      <aside style={{ display: 'none' }} className="md-breadcrumb" style={{
+        position: 'fixed', left: 0, top: 0, height: '100%', width: '200px',
         background: sidebar, flexDirection: 'column', padding: '24px 12px',
         zIndex: 40, borderRight: '1px solid rgba(196,198,207,0.2)',
       }}>
@@ -145,10 +147,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Home + Logout */}
         <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(196,198,207,0.2)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', textDecoration: 'none', color: '#74777f', fontSize: '13px', fontWeight: 500, borderRadius: '8px' }}>
-            <Home size={16} />
-            Home
-          </Link>
+
           <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', fontSize: '13px', fontWeight: 500, width: '100%', borderRadius: '8px', fontFamily: 'Manrope, sans-serif', textAlign: 'left' }}>
             <LogOut size={16} />
             Sign out
@@ -182,9 +181,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
             <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(196,198,207,0.2)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <Link href="/dashboard" onClick={() => setMobileOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', textDecoration: 'none', color: '#74777f', fontSize: '14px', borderRadius: '8px' }}>
-                <Home size={18} /> Home
-              </Link>
+
               <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', fontSize: '14px', fontFamily: 'Manrope, sans-serif', borderRadius: '8px', width: '100%' }}>
                 <LogOut size={18} /> Sign out
               </button>
@@ -238,7 +235,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             {/* Breadcrumbs — desktop */}
             {!isOnDashboard && (
-              <nav className="hidden md:flex" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}>
+              <nav style={{ display: 'none' }} className="md-breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}>
                 {breadcrumbs.map((crumb, i) => (
                   <div key={crumb.href} style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
                     {i > 0 && <ChevronRight size={13} color="#c4c6cf" style={{ flexShrink: 0 }} />}
@@ -256,9 +253,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </nav>
             )}
 
-            {/* Current page label on mobile */}
+            {/* Current page label - mobile only via style, desktop uses breadcrumb */}
             {!isOnDashboard && (
-              <span className="md:hidden" style={{ fontSize: '14px', fontWeight: 700, color: p, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: p, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'var(--mobile-label-display, none)' }}>
                 {breadcrumbs[breadcrumbs.length - 1]?.label}
               </span>
             )}
@@ -267,16 +264,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {/* Right: Home + Bell + New */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
 
-            {/* Home button — visible on all pages */}
-            <Link href="/dashboard" title="Go to Dashboard" style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: '34px', height: '34px', borderRadius: '8px',
-              background: isOnDashboard ? 'rgba(2,36,72,0.08)' : 'transparent',
-              color: isOnDashboard ? p : '#74777f',
-              textDecoration: 'none',
-            }}>
-              <Home size={17} />
-            </Link>
+
 
             {/* Quick new case */}
             <Link href="/cases/new" title="New Case" style={{
@@ -329,7 +317,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
         {/* Sidebar spacer */}
         <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
-          <div className="hidden md:block" style={{ width: '220px', minWidth: '220px', flexShrink: 0 }} />
+          <div className="hidden md:block" style={{ width: '200px', minWidth: '220px', flexShrink: 0 }} />
           <main style={{ flex: 1, minWidth: 0, paddingBottom: '80px' }}>
             {children}
           </main>
@@ -347,12 +335,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         backdropFilter: 'blur(12px)',
         borderTop: '1px solid rgba(196,198,207,0.3)',
       }}>
-        {/* Home always first */}
-        <Link href="/dashboard" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', color: isOnDashboard ? gold : '#74777f', textDecoration: 'none' }}>
-          <Home size={22} />
-          <span style={{ fontSize: '9px', fontWeight: isOnDashboard ? 800 : 500 }}>Home</span>
-        </Link>
-        {MOBILE_NAV.slice(1).map(({ href, Icon, label }) => {
+        {MOBILE_NAV.map(({ href, Icon, label }) => {
           const active = isActive(href);
           return (
             <Link key={href} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', color: active ? gold : '#74777f', textDecoration: 'none' }}>

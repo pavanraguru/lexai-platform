@@ -1,14 +1,9 @@
 'use client';
-// ============================================================
-// LexAI India — Drafts Workspace Page
-// PRD v1.1 DW-01 to DW-05
-// ============================================================
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
-import { FileText, Plus, Clock, Trash2, ExternalLink } from 'lucide-react';
+import { FileText, Clock, ExternalLink } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -17,91 +12,99 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   affidavit: 'Affidavit', vakalatnama: 'Vakalatnama',
   bail_application: 'Bail Application', opening_statement: 'Opening Statement',
   memo_of_appeal: 'Memo of Appeal', legal_notice: 'Legal Notice',
-  reply_notice: 'Reply Notice', other: 'Other',
+  reply_notice: 'Reply Notice', other: 'Document',
 };
+
+const s = { fontFamily: 'Manrope, sans-serif', maxWidth: '860px', margin: '0 auto', padding: '32px 24px' };
 
 export default function DraftsPage() {
   const { token } = useAuthStore();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['all-drafts'],
+  const { data: casesData } = useQuery({
+    queryKey: ['cases-for-drafts'],
     queryFn: async () => {
-      // Get recent drafts across all cases via cases list
-      const res = await fetch(`${BASE}/v1/cases?limit=50`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      const cases = json.data || [];
-
-      // Fetch drafts for each case in parallel (up to 10)
-      const draftResults = await Promise.all(
-        cases.slice(0, 10).map(async (c: any) => {
-          const r = await fetch(`${BASE}/v1/drafts/case/${c.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const j = await r.json();
-          return (j.data || []).map((d: any) => ({ ...d, case_title: c.title, case_id: c.id }));
-        })
-      );
-      return draftResults.flat().sort((a: any, b: any) =>
-        new Date(b.last_modified_at || b.created_at).getTime() - new Date(a.last_modified_at || a.created_at).getTime()
-      );
+      const res = await fetch(`${BASE}/v1/cases?limit=50`, { headers: { Authorization: `Bearer ${token}` } });
+      return (await res.json()).data || [];
     },
     enabled: !!token,
   });
 
-  const drafts: any[] = data || [];
+  const { data: draftsData, isLoading } = useQuery({
+    queryKey: ['all-drafts', casesData?.length],
+    queryFn: async () => {
+      const cases = casesData || [];
+      const results = await Promise.all(
+        cases.slice(0, 15).map(async (c: any) => {
+          const r = await fetch(`${BASE}/v1/drafts/case/${c.id}`, { headers: { Authorization: `Bearer ${token}` } });
+          const j = await r.json();
+          return (j.data || []).map((d: any) => ({ ...d, case_title: c.title, case_id: c.id }));
+        })
+      );
+      return results.flat().sort((a: any, b: any) =>
+        new Date(b.last_modified_at || b.created_at).getTime() - new Date(a.last_modified_at || a.created_at).getTime()
+      );
+    },
+    enabled: !!token && !!casesData?.length,
+  });
+
+  const drafts: any[] = draftsData || [];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1E3A5F' }}>Drafting Workspace</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{drafts.length} drafts across all cases</p>
-        </div>
+    <div style={s}>
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: '0 0 4px' }}>
+          Drafting Workspace
+        </h1>
+        <p style={{ fontSize: '14px', color: '#74777f', margin: 0 }}>
+          {isLoading ? 'Loading...' : `${drafts.length} draft${drafts.length !== 1 ? 's' : ''} across all cases`}
+        </p>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[1,2,3].map(i => <div key={i} style={{ height: '72px', borderRadius: '14px', background: '#edeef0' }} />)}
         </div>
       ) : drafts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">No drafts yet</p>
-          <p className="text-sm text-gray-400 mt-1">Run an AI agent on a case and click "To Draft" to create your first document</p>
-          <Link href="/cases" className="mt-4 inline-block text-sm font-medium text-white px-4 py-2 rounded-lg"
-            style={{ backgroundColor: '#1E3A5F' }}>
-            Go to Cases
+        <div style={{ background: '#fff', borderRadius: '20px', padding: '60px 24px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+          <FileText size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
+          <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No drafts yet</p>
+          <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 24px' }}>
+            Run an AI agent on a case, then click "To Draft" to create your first document
+          </p>
+          <Link href="/cases" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#022448', color: '#fff', fontWeight: 700, fontSize: '13px', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none' }}>
+            Go to Cases →
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {drafts.map((draft: any) => (
-            <Link key={draft.id} href={`/cases/${draft.case_id}?tab=drafts&draft=${draft.id}`}
-              className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors group">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <FileText size={18} style={{ color: '#1E3A5F' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{draft.title}</p>
-                <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
-                  <span>{draft.case_title}</span>
-                  <span>·</span>
-                  <span>{DOC_TYPE_LABELS[draft.doc_type] || draft.doc_type}</span>
-                  <span>·</span>
-                  <span>v{draft.version}</span>
-                  {draft.word_count > 0 && <><span>·</span><span>{draft.word_count} words</span></>}
+            <Link key={draft.id} href={`/cases/${draft.case_id}?tab=drafts&draft=${draft.id}`} style={{ textDecoration: 'none' }}>
+              <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0 2px 8px rgba(2,36,72,0.04)', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FileText size={18} color="#022448" />
                 </div>
-              </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="flex items-center gap-1 text-xs text-gray-400">
-                  <Clock size={12} />
-                  {new Date(draft.last_modified_at || draft.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#022448', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {draft.title}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', color: '#74777f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>{draft.case_title}</span>
+                    <span style={{ color: '#c4c6cf', fontSize: '10px' }}>·</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#735c00', textTransform: 'uppercase' }}>{DOC_TYPE_LABELS[draft.doc_type] || 'Document'}</span>
+                    <span style={{ color: '#c4c6cf', fontSize: '10px' }}>·</span>
+                    <span style={{ fontSize: '10px', color: '#74777f' }}>v{draft.version}</span>
+                    {draft.word_count > 0 && <><span style={{ color: '#c4c6cf', fontSize: '10px' }}>·</span><span style={{ fontSize: '10px', color: '#74777f' }}>{draft.word_count} words</span></>}
+                  </div>
                 </div>
-                <ExternalLink size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#74777f' }}>
+                    <Clock size={12} />
+                    <span style={{ fontSize: '11px' }}>
+                      {new Date(draft.last_modified_at || draft.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                  <ExternalLink size={14} color="#c4c6cf" />
+                </div>
               </div>
             </Link>
           ))}
