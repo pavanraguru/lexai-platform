@@ -90,14 +90,15 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Stats Grid ───────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '40px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '40px' }}>
         {STATS.map(({ key, label, Icon, bg, numColor, labelColor }) => (
           <div key={key} style={{
-            background: bg, borderRadius: '16px', padding: '20px',
-            boxShadow: '0px 4px 16px rgba(2, 36, 72, 0.08)',
+            background: bg, borderRadius: '14px', padding: '16px 20px',
+            boxShadow: '0px 2px 8px rgba(2, 36, 72, 0.06)',
+            minWidth: '160px', flex: '1 1 160px', maxWidth: '220px',
           }}>
             <Icon size={20} color={numColor} style={{ opacity: 0.8, marginBottom: '10px', display: 'block' }} />
-            <div style={{ fontFamily: 'Newsreader, serif', fontSize: '2.4rem', fontWeight: 700, color: numColor, lineHeight: 1 }}>
+            <div style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: numColor, lineHeight: 1 }}>
               {isLoading
                 ? <span style={{ display: 'inline-block', width: '48px', height: '36px', background: 'rgba(255,255,255,0.25)', borderRadius: '4px' }} />
                 : String(data?.[key] ?? 0).padStart(2, '0')
@@ -225,7 +226,7 @@ export default function DashboardPage() {
               const statusStyle = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
               return (
                 <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ background: '#fff', borderRadius: '16px', padding: '18px 20px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 4px 16px rgba(2,36,72,0.05)', cursor: 'pointer' }}>
+                  <div style={{ background: '#fff', borderRadius: '12px', padding: '14px 16px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 1px 4px rgba(2,36,72,0.06)', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>

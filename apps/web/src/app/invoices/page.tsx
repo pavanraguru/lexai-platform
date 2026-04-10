@@ -106,13 +106,13 @@ export default function BillingPage() {
 
       {/* Summary cards */}
       {unbilledAmount > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-          <div style={{ background: '#ffe088', borderRadius: '14px', padding: '16px 20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ background: '#ffe088', borderRadius: '12px', padding: '14px 18px', minWidth: '160px', maxWidth: '220px' }}>
             <p style={{ fontSize: '11px', fontWeight: 800, color: '#735c00', letterSpacing: '0.06em', margin: '0 0 6px' }}>UNBILLED HOURS</p>
             <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.8rem', fontWeight: 700, color: '#022448', margin: 0 }}>{unbilledEntries.reduce((s, e) => s + Number(e.hours), 0).toFixed(1)}h</p>
             <p style={{ fontSize: '12px', color: '#735c00', margin: '4px 0 0' }}>₹{(unbilledAmount / 100).toLocaleString('en-IN')} to bill</p>
           </div>
-          <div style={{ background: outstanding > 0 ? '#ffdad6' : '#dcfce7', borderRadius: '14px', padding: '16px 20px' }}>
+          <div style={{ background: outstanding > 0 ? '#ffdad6' : '#dcfce7', borderRadius: '12px', padding: '14px 18px', minWidth: '160px', maxWidth: '220px' }}>
             <p style={{ fontSize: '11px', fontWeight: 800, color: outstanding > 0 ? '#93000a' : '#15803d', letterSpacing: '0.06em', margin: '0 0 6px' }}>OUTSTANDING</p>
             <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.8rem', fontWeight: 700, color: '#022448', margin: 0 }}>₹{(outstanding / 100).toLocaleString('en-IN')}</p>
             <p style={{ fontSize: '12px', color: outstanding > 0 ? '#93000a' : '#15803d', margin: '4px 0 0' }}>{(invoices as any[]).filter(i => i.status === 'issued').length} invoice{(invoices as any[]).filter(i => i.status === 'issued').length !== 1 ? 's' : ''} pending</p>
@@ -185,13 +185,13 @@ export default function BillingPage() {
             {[1,2,3].map(i => <div key={i} style={{ height: '68px', borderRadius: '14px', background: '#edeef0' }} />)}
           </div>
         ) : (invoices as any[]).length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: '20px', padding: '56px 24px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '36px 32px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', display: 'inline-block', minWidth: '300px' }}>
             <Receipt size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
             <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No invoices yet</p>
             <p style={{ fontSize: '14px', color: '#74777f', margin: 0 }}>Log time entries then generate your first invoice</p>
           </div>
         ) : (
-          <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', maxWidth: '720px' }}>
             {(invoices as any[]).map((inv: any, i: number) => {
               const ss = STATUS_STYLE[inv.status] || STATUS_STYLE.draft;
               return (
@@ -232,7 +232,7 @@ export default function BillingPage() {
             {[1,2,3].map(i => <div key={i} style={{ height: '56px', borderRadius: '14px', background: '#edeef0' }} />)}
           </div>
         ) : (timeEntries as any[]).length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: '20px', padding: '56px 24px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '36px 32px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', display: 'inline-block', minWidth: '300px' }}>
             <Clock size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
             <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No time entries yet</p>
             <button onClick={() => setShowTimeForm(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '10px 20px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
@@ -240,7 +240,7 @@ export default function BillingPage() {
             </button>
           </div>
         ) : (
-          <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', maxWidth: '720px' }}>
             {/* Summary row */}
             <div style={{ padding: '12px 20px', background: '#f8f9fb', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '13px', color: '#74777f' }}><strong style={{ color: '#022448' }}>{unbilledEntries.length}</strong> unbilled</span>

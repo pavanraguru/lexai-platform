@@ -113,7 +113,7 @@ export default function ClientsPage() {
           {[1,2,3].map(i => <div key={i} style={{ height: '70px', borderRadius: '14px', background: '#edeef0' }} />)}
         </div>
       ) : clients.length === 0 ? (
-        <div style={{ background: '#fff', borderRadius: '20px', padding: '56px 24px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '40px 24px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', display: 'inline-block', minWidth: '320px' }}>
           <Users size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
           <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>
             {search ? 'No clients found' : 'No clients yet'}
@@ -128,7 +128,7 @@ export default function ClientsPage() {
           )}
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', display: 'inline-block', width: '100%', maxWidth: '640px' }}>
           {clients.map((client: any, i: number) => (
             <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderBottom: i < clients.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
               <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#ffe088', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: '#022448', flexShrink: 0 }}>

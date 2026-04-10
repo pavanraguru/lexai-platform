@@ -65,7 +65,7 @@ export default function DraftsPage() {
           {[1,2,3].map(i => <div key={i} style={{ height: '72px', borderRadius: '14px', background: '#edeef0' }} />)}
         </div>
       ) : drafts.length === 0 ? (
-        <div style={{ background: '#fff', borderRadius: '20px', padding: '60px 24px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '40px 32px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', display: 'inline-block' }}>
           <FileText size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
           <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No drafts yet</p>
           <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 24px' }}>
@@ -79,7 +79,7 @@ export default function DraftsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {drafts.map((draft: any) => (
             <Link key={draft.id} href={`/cases/${draft.case_id}?tab=drafts&draft=${draft.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0 2px 8px rgba(2,36,72,0.04)', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer' }}>
+              <div style={{ background: '#fff', borderRadius: '10px', padding: '12px 16px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 1px 3px rgba(2,36,72,0.04)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', maxWidth: '720px' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <FileText size={18} color="#022448" />
                 </div>

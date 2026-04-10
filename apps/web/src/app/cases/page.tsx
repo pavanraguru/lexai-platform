@@ -149,11 +149,11 @@ export default function CasesPage() {
             return (
               <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
                 <div style={{
-                  background: '#fff', borderRadius: '16px', padding: '18px 20px',
-                  border: '1px solid rgba(196,198,207,0.15)',
-                  boxShadow: '0px 2px 12px rgba(2,36,72,0.05)',
+                  background: '#fff', borderRadius: '10px', padding: '13px 16px',
+                  border: '1px solid rgba(196,198,207,0.2)',
+                  boxShadow: '0px 1px 3px rgba(2,36,72,0.05)',
                   display: 'flex', alignItems: 'flex-start', gap: '12px',
-                  cursor: 'pointer', transition: 'box-shadow 0.15s ease',
+                  cursor: 'pointer',
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {/* Type + status row */}

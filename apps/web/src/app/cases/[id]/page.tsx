@@ -217,7 +217,7 @@ export default function CaseDetailPage() {
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* ── Case Header ─────────────────────────────────── */}
-      <div style={{ ...cardStyle, padding: '24px', marginBottom: '20px' }}>
+      <div style={{ ...cardStyle, padding: '20px', marginBottom: '16px', maxWidth: '860px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -262,7 +262,7 @@ export default function CaseDetailPage() {
       </div>
 
       {/* ── Tabs ─────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '2px', flexWrap: 'wrap' }}>
         {TABS.map(({ key, Icon, label }) => (
           <button key={key} onClick={() => setActiveTab(key)} style={{
             display: 'flex', alignItems: 'center', gap: '6px',
@@ -291,7 +291,7 @@ export default function CaseDetailPage() {
 
       {/* ─── OVERVIEW ───────────────────────────────────── */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           <div style={{ ...cardStyle, padding: '20px', gridColumn: 'span 2' }}>
             <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 16px' }}>Case Details</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
@@ -316,7 +316,7 @@ export default function CaseDetailPage() {
             { label: 'Active Tasks', value: activeTasks.length, bg: '#fdddb9', color: '#322109' },
             { label: 'Agent Runs', value: agents.length, bg: '#edeef0', color: '#43474e' },
           ].map(item => (
-            <div key={item.label} style={{ background: item.bg, borderRadius: '14px', padding: '18px', textAlign: 'center' }}>
+            <div key={item.label} style={{ background: item.bg, borderRadius: '10px', padding: '14px 18px', textAlign: 'center', minWidth: '110px' }}>
               <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '2.2rem', color: item.color, margin: 0 }}>{item.value}</p>
               <p style={{ fontSize: '11px', fontWeight: 700, color: item.color, opacity: 0.7, margin: '4px 0 0', letterSpacing: '0.06em' }}>{item.label.toUpperCase()}</p>
             </div>
@@ -646,12 +646,12 @@ export default function CaseDetailPage() {
       {/* ─── AGENTS ─────────────────────────────────────── */}
       {activeTab === 'agents' && (
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
             {AGENTS.map(({ type, Icon, label, desc }) => {
               const isRunning = runningAgent === type;
               const lastRun = agents.find((j: any) => j.agent_type === type);
               return (
-                <div key={type} style={{ ...cardStyle, padding: '18px' }}>
+                <div key={type} style={{ ...cardStyle, padding: '16px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon size={18} color="#022448" />

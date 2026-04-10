@@ -120,7 +120,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Main layout: Calendar + Sidebar */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 260px', gap: '20px', alignItems: 'start', maxWidth: '1000px' }}>
 
         {/* ── Calendar Grid ──────────────────────────────── */}
         <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', overflow: 'hidden' }}>
@@ -310,7 +310,7 @@ export default function CalendarPage() {
             {selectedItems?.hearings.map((h: any) => {
               const colors = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
               return (
-                <div key={h.id} style={{ background: '#fff', borderRadius: '16px', padding: '20px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', cursor: 'pointer' }}>
+                <div key={h.id} style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 1px 4px rgba(2,36,72,0.05)', cursor: 'pointer', maxWidth: '700px' }}>
                   <div style={{ display: 'flex', gap: '20px' }}>
                     {/* Time column */}
                     <div style={{ flexShrink: 0, textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '20px', minWidth: '52px' }}>

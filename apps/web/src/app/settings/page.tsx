@@ -8,10 +8,11 @@ import { User, Building2, Bell, Shield, CreditCard, LogOut, ChevronRight } from 
 const s = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '720px' };
 
 const card: React.CSSProperties = {
-  background: '#fff', borderRadius: '16px',
+  background: '#fff', borderRadius: '12px',
   border: '1px solid rgba(196,198,207,0.2)',
-  boxShadow: '0 2px 8px rgba(2,36,72,0.04)',
-  overflow: 'hidden', marginBottom: '16px',
+  boxShadow: '0 1px 4px rgba(2,36,72,0.04)',
+  overflow: 'hidden', marginBottom: '12px',
+  maxWidth: '620px',
 };
 
 const row: React.CSSProperties = {
@@ -165,7 +166,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Sign out */}
-      <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 20px', background: '#ffdad6', border: 'none', borderRadius: '12px', cursor: 'pointer', color: '#93000a', fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif' }}>
+      <button onClick={handleLogout} style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '11px 20px', background: '#ffdad6', border: 'none', borderRadius: '10px', cursor: 'pointer', color: '#93000a', fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope, sans-serif' }}>
         <LogOut size={16} />
         Sign out of Sovereign Counsel
       </button>
