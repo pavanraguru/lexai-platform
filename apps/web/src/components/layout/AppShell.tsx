@@ -86,7 +86,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div style={{ background: '#f8f9fb', minHeight: '100dvh', fontFamily: 'Manrope, sans-serif' }}>
       <style>{`
         @media (min-width: 768px) {
-          #main-content-area { margin-left: 200px; }
+          #main-content-area { margin-left: 160px; }
           @media (max-width: 767px) { :root { --mobile-label-display: block; } }
           @media (min-width: 768px) { .md-breadcrumb { display: flex !important; } }
         }
@@ -94,7 +94,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Desktop Sidebar ─────────────────────────────────── */}
       <aside style={{ display: 'none' }} className="md-breadcrumb" style={{
-        position: 'fixed', left: 0, top: 0, height: '100%', width: '200px',
+        position: 'fixed', left: 0, top: 0, height: '100%', width: '160px',
         background: sidebar, flexDirection: 'column', padding: '24px 12px',
         zIndex: 40, borderRight: '1px solid rgba(196,198,207,0.2)',
       }}>
@@ -317,7 +317,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
         {/* Sidebar spacer */}
         <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
-          <div className="hidden md:block" style={{ width: '200px', minWidth: '220px', flexShrink: 0 }} />
+          <div className="hidden md:block" style={{ width: '160px', minWidth: '220px', flexShrink: 0 }} />
           <main style={{ flex: 1, minWidth: 0, paddingBottom: '80px' }}>
             {children}
           </main>
