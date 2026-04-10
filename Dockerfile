@@ -15,10 +15,11 @@ COPY apps/api/package*.json ./apps/api/
 # Install root workspace deps
 RUN npm install --legacy-peer-deps
 
-# Explicitly install inside apps/api — the directory exists because we copied
-# apps/api/package*.json above, but npm needs to run from within it
+# Install inside apps/api to guarantee all runtime deps are local (not just hoisted)
 WORKDIR /app/apps/api
 RUN npm install --legacy-peer-deps
+# Explicitly install packages that workspace hoisting sometimes misses at runtime
+RUN npm install dotenv bullmq ioredis fastify fastify-plugin @fastify/cors @fastify/jwt @fastify/multipart @fastify/rate-limit @anthropic-ai/sdk @aws-sdk/client-s3 @aws-sdk/s3-request-presigner @supabase/supabase-js zod pino-pretty --legacy-peer-deps
 WORKDIR /app
 
 # Copy all source
