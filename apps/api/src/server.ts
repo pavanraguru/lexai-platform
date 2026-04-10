@@ -50,7 +50,7 @@ async function bootstrap() {
 
   await server.register(jwt, {
     secret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
-    sign: { expiresIn: '7d' },
+    sign: { expiresIn: '30d' },
   });
 
   await server.register(multipart, {

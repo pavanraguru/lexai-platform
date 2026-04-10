@@ -65,7 +65,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       tenant_id: dbUser.tenant_id,
       role: dbUser.role,
       email: dbUser.email,
-    });
+    }, { expiresIn: '30d' });
 
     // Step 4: Update last_seen_at
     await fastify.prisma.user.update({

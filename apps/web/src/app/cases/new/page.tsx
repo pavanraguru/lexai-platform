@@ -131,7 +131,15 @@ export default function NewCasePage() {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || json.error?.message || 'Failed to create case');
+      if (res.status === 401) {
+        // Token expired — clear auth and redirect to login
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('lexai-auth');
+          window.location.href = '/login';
+        }
+        throw new Error('Session expired. Please log in again.');
+      }
+      if (!res.ok) throw new Error(json.message || json.error?.message || JSON.stringify(json.error) || 'Failed to create case');
 
       router.push(`/cases/${json.data.id}`);
     } catch (err: any) {
