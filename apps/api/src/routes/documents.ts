@@ -17,8 +17,6 @@ const s3 = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
-  requestChecksumCalculation: 'WHEN_REQUIRED',
-  responseChecksumValidation: 'WHEN_REQUIRED',
 });
 
 const PresignRequestSchema = z.object({
@@ -128,20 +126,33 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    // Enqueue OCR processing job
-    const ocrQueue = new Queue('document-ocr', {
-      connection: fastify.redis,
-    });
-    await ocrQueue.add('process-document', {
-      document_id: document.id,
-      s3_key: body.s3_key,
-      mime_type: body.mime_type,
-      tenant_id,
-      case_id: body.case_id,
-    }, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 2000 },
-    });
+    // Enqueue OCR processing job — always catch so upload succeeds even if Redis is down/over-limit
+    try {
+      const ocrQueue = new Queue('document-ocr', {
+        connection: fastify.redis,
+      });
+      await ocrQueue.add('process-document', {
+        document_id: document.id,
+        s3_key: body.s3_key,
+        mime_type: body.mime_type,
+        tenant_id,
+        case_id: body.case_id,
+      }, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+      });
+      fastify.log.info(`[Documents] OCR job queued for ${document.id}`);
+    } catch (queueErr: any) {
+      // Redis unavailable or over request limit — document is saved, OCR skipped.
+      // User can still view and manually re-process the document.
+      fastify.log.warn(`[Documents] OCR queue unavailable (${queueErr.message}) — document saved, OCR pending`);
+      try {
+        await fastify.prisma.document.update({
+          where: { id: document.id },
+          data: { processing_status: 'pending' }, // keep as pending, not failed — can retry
+        });
+      } catch {} // ignore secondary error
+    }
 
     await fastify.prisma.auditLog.create({
       data: {
@@ -156,7 +167,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(201).send({ data: document });
   });
 
-  // GET /v1/documents/:id/download — get presigned download URL
+  // GET /v1/documents/:id/download — presigned download URL (forces download)
   fastify.get('/:id/download', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
@@ -176,9 +187,34 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       ResponseContentDisposition: `attachment; filename="${document.filename}"`,
     });
 
-    const url = await getSignedUrl(s3, command, { expiresIn: 900 }); // 15 min
-
+    const url = await getSignedUrl(s3, command, { expiresIn: 900 });
     return reply.send({ data: { download_url: url, expires_in: 900 } });
+  });
+
+  // GET /v1/documents/:id/preview — presigned URL for inline browser preview
+  fastify.get('/:id/preview', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    const { id } = request.params as { id: string };
+
+    const document = await fastify.prisma.document.findFirst({
+      where: { id, tenant_id },
+    });
+    if (!document) {
+      return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Document not found' } });
+    }
+
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET!,
+      Key: document.s3_key,
+      // 'inline' tells browser to render it (PDF viewer, image) instead of downloading
+      ResponseContentDisposition: `inline; filename="${document.filename}"`,
+      ResponseContentType: document.mime_type || 'application/octet-stream',
+    });
+
+    const url = await getSignedUrl(s3, command, { expiresIn: 900 });
+    return reply.send({ data: { preview_url: url, mime_type: document.mime_type, expires_in: 900 } });
   });
 
   // GET /v1/documents/search — semantic + keyword search across all case docs

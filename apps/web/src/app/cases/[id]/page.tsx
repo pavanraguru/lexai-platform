@@ -8,7 +8,8 @@ import Link from 'next/link';
 import {
   MapPin, FileText, Gavel, CheckSquare, Square, Bot, BookOpen,
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
-  Trash2, Play, RotateCcw, Info, Upload
+  Trash2, Play, RotateCcw, Info, Upload,
+  Eye, Download
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -361,16 +362,52 @@ export default function CaseDetailPage() {
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
               {(c.documents || []).map((doc: any, i: number) => (
                 <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', borderBottom: i < c.documents.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
-                  <FileText size={20} color="#022448" />
+                  <FileText size={20} color="#022448" style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: '13px', fontWeight: 700, color: '#191c1e', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.filename}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
                       {doc.doc_category && <span style={{ fontSize: '9px', fontWeight: 800, color: '#735c00', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{doc.doc_category.replace(/_/g, ' ')}</span>}
                       <span style={{ fontSize: '11px', color: doc.processing_status === 'ready' ? '#15803d' : doc.processing_status === 'processing' ? '#735c00' : '#74777f' }}>
                         {doc.processing_status === 'ready' ? '✓ Processed' : doc.processing_status === 'processing' ? '⟳ Processing...' : doc.processing_status === 'pending' ? '○ Pending OCR' : '⚠ ' + doc.processing_status}
                       </span>
                       {doc.page_count && <span style={{ fontSize: '11px', color: '#74777f' }}>{doc.page_count}pp</span>}
                     </div>
+                  </div>
+                  {/* Preview + Download buttons */}
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      title="Preview in browser"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${BASE}/v1/documents/${doc.id}/preview`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                          });
+                          const json = await res.json();
+                          if (json.data?.preview_url) window.open(json.data.preview_url, '_blank');
+                        } catch { alert('Preview failed'); }
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', background: '#d5e3ff', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 700, color: '#022448', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                      <Eye size={13} /> Preview
+                    </button>
+                    <button
+                      title="Download file"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${BASE}/v1/documents/${doc.id}/download`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                          });
+                          const json = await res.json();
+                          if (json.data?.download_url) {
+                            const a = document.createElement('a');
+                            a.href = json.data.download_url;
+                            a.download = doc.filename;
+                            a.click();
+                          }
+                        } catch { alert('Download failed'); }
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', background: '#edeef0', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 700, color: '#43474e', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                      <Download size={13} /> Download
+                    </button>
                   </div>
                 </div>
               ))}
