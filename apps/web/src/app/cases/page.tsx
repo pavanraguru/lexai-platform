@@ -63,9 +63,9 @@ export default function CasesPage() {
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: 0 }}>
+          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '1.6rem', fontWeight: 700, color: '#022448', margin: 0 }}>
             My Cases
           </h1>
           <p style={{ color: '#74777f', fontSize: '14px', margin: '4px 0 0' }}>
@@ -83,7 +83,7 @@ export default function CasesPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', maxWidth: '780px' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
           <Search size={15} color="#74777f" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
@@ -118,7 +118,7 @@ export default function CasesPage() {
 
       {/* Cases list */}
       {isLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxWidth: '780px' }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} style={{ height: '84px', borderRadius: '16px', background: '#edeef0' }} />
           ))}
@@ -143,16 +143,16 @@ export default function CasesPage() {
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxWidth: '780px' }}>
           {cases.map((c: any) => {
             const ss = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
             return (
               <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
                 <div style={{
-                  background: '#fff', borderRadius: '10px', padding: '13px 16px',
+                  background: '#fff', borderRadius: '9px', padding: '10px 14px',
                   border: '1px solid rgba(196,198,207,0.2)',
-                  boxShadow: '0px 1px 3px rgba(2,36,72,0.05)',
-                  display: 'flex', alignItems: 'flex-start', gap: '12px',
+                  boxShadow: '0px 1px 3px rgba(2,36,72,0.03)',
+                  display: 'flex', alignItems: 'center', gap: '12px',
                   cursor: 'pointer',
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -170,14 +170,14 @@ export default function CasesPage() {
                     </div>
                     {/* Title */}
                     <div style={{
-                      fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '16px',
+                      fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '14px',
                       color: '#022448', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {c.title}
                     </div>
                     {/* Court + CNR */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '12px', color: '#43474e' }}>{c.court}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11px', color: '#74777f' }}>{c.court}</span>
                       {c.cnr_number && (
                         <>
                           <span style={{ color: '#c4c6cf', fontSize: '10px' }}>·</span>

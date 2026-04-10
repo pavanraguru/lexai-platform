@@ -70,7 +70,7 @@ export default function DashboardPage() {
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* ── Greeting ─────────────────────────────────────── */}
-      <div style={{ marginBottom: '36px' }}>
+      <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2.2rem', fontWeight: 700, color: '#022448', lineHeight: 1.15, margin: 0 }}>
           {greeting()}, {firstName}
         </h1>
@@ -90,21 +90,20 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Stats Grid ───────────────────────────────────── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '40px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '32px', flexWrap: 'wrap' }}>
         {STATS.map(({ key, label, Icon, bg, numColor, labelColor }) => (
           <div key={key} style={{
-            background: bg, borderRadius: '14px', padding: '16px 20px',
-            boxShadow: '0px 2px 8px rgba(2, 36, 72, 0.06)',
-            minWidth: '160px', flex: '1 1 160px', maxWidth: '220px',
+            background: bg, borderRadius: '12px', padding: '14px 16px',
+            width: '140px', flexShrink: 0,
           }}>
-            <Icon size={20} color={numColor} style={{ opacity: 0.8, marginBottom: '10px', display: 'block' }} />
-            <div style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: numColor, lineHeight: 1 }}>
+            <Icon size={16} color={numColor} style={{ opacity: 0.8, marginBottom: '8px', display: 'block' }} />
+            <div style={{ fontFamily: 'Newsreader, serif', fontSize: '1.7rem', fontWeight: 700, color: numColor, lineHeight: 1 }}>
               {isLoading
                 ? <span style={{ display: 'inline-block', width: '48px', height: '36px', background: 'rgba(255,255,255,0.25)', borderRadius: '4px' }} />
                 : String(data?.[key] ?? 0).padStart(2, '0')
               }
             </div>
-            <p style={{ fontSize: '10px', fontWeight: 800, color: labelColor, letterSpacing: '0.08em', marginTop: '6px' }}>
+            <p style={{ fontSize: '9px', fontWeight: 800, color: labelColor, letterSpacing: '0.07em', marginTop: '4px' }}>
               {label}
             </p>
           </div>
@@ -113,8 +112,8 @@ export default function DashboardPage() {
 
       {/* ── Upcoming Hearings ────────────────────────────── */}
       <section style={{ marginBottom: '40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#191c1e', margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#191c1e', margin: 0 }}>
             Upcoming Hearings
           </h2>
           <Link href="/calendar" style={{ fontSize: '11px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', textDecoration: 'none' }}>
@@ -122,7 +121,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
           {isLoading ? (
             Array.from({ length: 2 }).map((_, i) => (
               <div key={i} style={{ height: '80px', borderRadius: '16px', background: '#edeef0', animation: 'pulse 2s infinite' }} />
@@ -138,24 +137,24 @@ export default function DashboardPage() {
               return (
                 <Link key={h.id} href={`/cases/${h.case?.id}`} style={{ textDecoration: 'none' }}>
                   <div style={{
-                    background: '#fff', borderRadius: '16px', padding: '18px 20px',
-                    border: '1px solid rgba(196,198,207,0.15)',
-                    boxShadow: '0px 4px 16px rgba(2,36,72,0.05)',
-                    display: 'flex', gap: '20px', alignItems: 'flex-start',
+                    background: '#fff', borderRadius: '9px', padding: '10px 14px',
+                    border: '1px solid rgba(196,198,207,0.2)',
+                    boxShadow: '0px 1px 3px rgba(2,36,72,0.04)',
+                    display: 'flex', gap: '14px', alignItems: 'center',
                     cursor: 'pointer',
                   }}>
                     {/* Date column */}
-                    <div style={{ textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.25)', paddingRight: '18px', minWidth: '48px', flexShrink: 0 }}>
-                      <div style={{ fontSize: '10px', fontWeight: 800, color: isUrgent ? '#ba1a1a' : '#74777f', textTransform: 'uppercase' }}>
+                    <div style={{ textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '14px', minWidth: '40px', flexShrink: 0 }}>
+                      <div style={{ fontSize: '9px', fontWeight: 800, color: isUrgent ? '#ba1a1a' : '#74777f', textTransform: 'uppercase' }}>
                         {new Date(h.date).toLocaleDateString('en-IN', { month: 'short' })}
                       </div>
-                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.6rem', color: isUrgent ? '#ba1a1a' : '#022448', lineHeight: 1 }}>
+                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: isUrgent ? '#ba1a1a' : '#022448', lineHeight: 1 }}>
                         {new Date(h.date).getDate()}
                       </div>
                     </div>
                     {/* Content */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '16px', color: '#022448', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '14px', color: '#022448', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {h.case?.title}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#43474e' }}>
@@ -167,7 +166,7 @@ export default function DashboardPage() {
                           {h.purpose?.replace(/_/g, ' ')}
                         </span>
                         {h.time && <span style={{ fontSize: '11px', fontWeight: 700, color: isUrgent ? '#ba1a1a' : '#43474e' }}>{h.time} IST</span>}
-                        <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 800, color: isUrgent ? '#ba1a1a' : daysUntil <= 7 ? '#735c00' : '#74777f' }}>
+                        <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 800, color: isUrgent ? '#ba1a1a' : daysUntil <= 7 ? '#735c00' : '#74777f', flexShrink: 0 }}>
                           {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TOMORROW' : `${daysUntil}d`}
                         </span>
                       </div>
@@ -182,11 +181,11 @@ export default function DashboardPage() {
 
       {/* ── AI Agents Banner ─────────────────────────────── */}
       <section style={{ marginBottom: '40px' }}>
-        <div style={{ background: '#022448', borderRadius: '20px', padding: '24px', boxShadow: '0 8px 32px rgba(2,36,72,0.25)' }}>
-          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#fff', margin: '0 0 6px' }}>
+        <div style={{ background: '#022448', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 4px 16px rgba(2,36,72,0.2)', display: 'inline-flex', alignItems: 'center', gap: '20px' }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#fff', margin: 0 }}>
             AI Agents Ready
           </h2>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '2px 0 0', lineHeight: 1.4 }}>
             {data?.agent_runs_this_month || 0} runs this month · {data?.active_cases || 0} active cases analysed
           </p>
           <Link href="/cases" style={{ textDecoration: 'none' }}>
@@ -200,8 +199,8 @@ export default function DashboardPage() {
 
       {/* ── Recent Cases ─────────────────────────────────── */}
       <section>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#191c1e', margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#191c1e', margin: 0 }}>
             Recent Cases
           </h2>
           <Link href="/cases" style={{ fontSize: '11px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', textDecoration: 'none' }}>
@@ -209,7 +208,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} style={{ height: '80px', borderRadius: '16px', background: '#edeef0' }} />
@@ -226,7 +225,7 @@ export default function DashboardPage() {
               const statusStyle = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
               return (
                 <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ background: '#fff', borderRadius: '12px', padding: '14px 16px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 1px 4px rgba(2,36,72,0.06)', cursor: 'pointer' }}>
+                  <div style={{ background: '#fff', borderRadius: '9px', padding: '10px 14px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0px 1px 3px rgba(2,36,72,0.04)', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
