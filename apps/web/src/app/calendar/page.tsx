@@ -4,28 +4,29 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Calendar, ExternalLink, FileText, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, ExternalLink, FileText, RotateCcw, MapPin } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAYS_SHORT = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 
-const PURPOSE_CHIP: Record<string, { bg: string; color: string; label: string }> = {
-  bail:              { bg: 'var(--error)',    color: '#fff',     label: 'BAIL' },
-  arguments:         { bg: '#7c3aed',         color: '#fff',     label: 'ARG' },
-  judgment:          { bg: '#16a34a',         color: '#fff',     label: 'JUDG' },
-  framing_of_charges:{ bg: 'var(--primary)',  color: '#fff',     label: 'CHARGE' },
-  evidence:          { bg: 'var(--primary)',  color: '#fff',     label: 'EVID' },
-  default:           { bg: 'var(--outline)',  color: '#fff',     label: 'HRNG' },
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+
+const PURPOSE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  bail:               { bg: '#ffdad6', text: '#93000a', dot: '#ba1a1a' },
+  arguments:          { bg: '#ede9fe', text: '#5b21b6', dot: '#7c3aed' },
+  judgment:           { bg: '#dcfce7', text: '#15803d', dot: '#16a34a' },
+  framing_of_charges: { bg: '#d5e3ff', text: '#001c3b', dot: '#022448' },
+  evidence:           { bg: '#d5e3ff', text: '#001c3b', dot: '#022448' },
+  cross_examination:  { bg: '#fff7ed', text: '#c2410c', dot: '#ea580c' },
+  interim_order:      { bg: '#fef9c3', text: '#854d0e', dot: '#ca8a04' },
+  default:            { bg: '#edeef0', text: '#43474e', dot: '#74777f' },
 };
 
-const PURPOSE_FULL: Record<string, { bg: string; color: string }> = {
-  bail:              { bg: 'var(--error)',   color: '#fff' },
-  arguments:         { bg: '#7c3aed',        color: '#fff' },
-  judgment:          { bg: '#16a34a',        color: '#fff' },
-  framing_of_charges:{ bg: 'var(--primary)', color: '#fff' },
-  evidence:          { bg: '#0284c7',        color: '#fff' },
-  default:           { bg: 'var(--outline)', color: '#fff' },
+const purposeLabel: Record<string, string> = {
+  bail: 'BAIL', arguments: 'ARG', judgment: 'JUDG',
+  framing_of_charges: 'CHRG', evidence: 'EVID',
+  cross_examination: 'X-EX', interim_order: 'ORD',
+  examination: 'EXAM', misc: 'MISC',
 };
 
 export default function CalendarPage() {
@@ -45,6 +46,7 @@ export default function CalendarPage() {
       const res = await fetch(`${BASE}/v1/calendar?from=${from}&to=${to}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) return { hearings: [], tasks: [] };
       return (await res.json()).data;
     },
     enabled: !!token,
@@ -56,7 +58,8 @@ export default function CalendarPage() {
   // Build day map
   const dayMap: Record<string, { hearings: any[]; tasks: any[] }> = {};
   hearings.forEach(h => {
-    const d = h.date.split('T')[0];
+    const d = (h.date || '').split('T')[0];
+    if (!d) return;
     if (!dayMap[d]) dayMap[d] = { hearings: [], tasks: [] };
     dayMap[d].hearings.push(h);
   });
@@ -67,299 +70,298 @@ export default function CalendarPage() {
     dayMap[d].tasks.push(t);
   });
 
+  // Build grid cells
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  // Pad to complete rows
+  while (cells.length % 7 !== 0) cells.push(null);
 
   const selectedItems = dayMap[selectedDate];
   const selectedDateObj = new Date(selectedDate + 'T12:00:00');
 
-  const getChip = (purpose: string) => PURPOSE_CHIP[purpose] || PURPOSE_CHIP.default;
-  const getFullChip = (purpose: string) => PURPOSE_FULL[purpose] || PURPOSE_FULL.default;
+  const upcomingHearings = hearings
+    .filter(h => (h.date || '').split('T')[0] >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 5);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
+    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
 
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <div className="mb-8 fade-up">
-        <h1 className="font-serif font-bold mb-1" style={{ fontSize: '2rem', color: 'var(--primary)' }}>
+      {/* Hero */}
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: '0 0 4px' }}>
           Court Schedule
         </h1>
-        <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-          Managing {hearings.length} active hearing{hearings.length !== 1 ? 's' : ''} for {MONTHS[month]} {year}
+        <p style={{ fontSize: '14px', color: '#74777f', margin: 0 }}>
+          {isLoading ? 'Loading...' : `Managing ${hearings.length} active hearing${hearings.length !== 1 ? 's' : ''} for ${MONTHS[month]} ${year}`}
         </p>
       </div>
 
-      {/* ── Month Navigation ─────────────────────────────────── */}
-      <div className="flex items-center gap-3 mb-6 fade-up fade-up-1">
+      {/* Month Navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
         <button onClick={() => setCurrent(new Date(year, month - 1, 1))}
-          className="p-2 rounded-full transition-colors hover:opacity-70"
-          style={{ background: 'var(--surface-container-low)' }}>
-          <ChevronLeft size={18} color="#022448" />
+          style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid rgba(196,198,207,0.4)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronLeft size={16} color="#022448" />
         </button>
-        <span className="font-serif font-bold text-base" style={{ color: 'var(--primary)', minWidth: '140px', textAlign: 'center' }}>
+        <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', minWidth: '150px', textAlign: 'center' }}>
           {MONTHS[month]} {year}
         </span>
         <button onClick={() => setCurrent(new Date(year, month + 1, 1))}
-          className="p-2 rounded-full transition-colors hover:opacity-70"
-          style={{ background: 'var(--surface-container-low)' }}>
-          <ChevronRight size={18} color="#022448" />
+          style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid rgba(196,198,207,0.4)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronRight size={16} color="#022448" />
         </button>
         <button onClick={() => { setCurrent(new Date()); setSelectedDate(today); }}
-          className="ml-auto text-xs font-bold px-3 py-1.5 transition-all hover:opacity-80"
-          style={{ background: 'var(--surface-container)', color: 'var(--primary)', borderRadius: '4px' }}>
+          style={{ marginLeft: '8px', padding: '6px 14px', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.4)', background: '#fff', fontSize: '12px', fontWeight: 700, color: '#022448', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
           TODAY
         </button>
       </div>
 
-      {/* ── Calendar Grid ─────────────────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden mb-10 fade-up fade-up-2"
-        style={{ background: 'var(--surface-container-lowest)', boxShadow: 'var(--shadow-tonal)', border: '1px solid rgba(196,198,207,0.1)' }}>
+      {/* Main layout: Calendar + Sidebar */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px', alignItems: 'start' }}>
 
-        {/* Day headers */}
-        <div className="grid grid-cols-7">
-          {DAYS_SHORT.map(d => (
-            <div key={d} className="py-3 text-center"
-              style={{ borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
-              <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--on-surface-variant)', letterSpacing: '0.08em' }}>
+        {/* ── Calendar Grid ──────────────────────────────── */}
+        <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', overflow: 'hidden' }}>
+
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid rgba(196,198,207,0.15)' }}>
+            {DAYS.map(d => (
+              <div key={d} style={{ padding: '10px 0', textAlign: 'center', fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em' }}>
                 {d}
-              </span>
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Date cells */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+            {cells.map((day, i) => {
+              if (!day) return (
+                <div key={`empty-${i}`} style={{
+                  minHeight: '90px', padding: '6px',
+                  background: 'rgba(196,198,207,0.04)',
+                  borderRight: i % 7 !== 6 ? '1px solid rgba(196,198,207,0.08)' : 'none',
+                  borderBottom: '1px solid rgba(196,198,207,0.08)',
+                }} />
+              );
+
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const items = dayMap[dateStr];
+              const isToday = dateStr === today;
+              const isSelected = dateStr === selectedDate;
+
+              return (
+                <div key={dateStr}
+                  onClick={() => setSelectedDate(dateStr)}
+                  style={{
+                    minHeight: '90px', padding: '6px',
+                    borderRight: i % 7 !== 6 ? '1px solid rgba(196,198,207,0.08)' : 'none',
+                    borderBottom: '1px solid rgba(196,198,207,0.08)',
+                    background: isSelected ? 'rgba(2,36,72,0.04)' : 'transparent',
+                    cursor: 'pointer',
+                  }}>
+                  {/* Day number */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '4px' }}>
+                    <span style={{
+                      width: '26px', height: '26px', borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', fontWeight: isToday ? 800 : 600,
+                      background: isToday ? '#022448' : 'transparent',
+                      color: isToday ? '#fff' : isSelected ? '#022448' : '#191c1e',
+                    }}>
+                      {day}
+                    </span>
+                  </div>
+                  {/* Event pills */}
+                  {items?.hearings.slice(0, 2).map((h: any, hi: number) => {
+                    const colors = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
+                    const label = purposeLabel[h.purpose] || 'HRNG';
+                    return (
+                      <div key={hi} style={{
+                        display: 'flex', alignItems: 'center', gap: '3px',
+                        background: colors.bg, borderRadius: '3px',
+                        padding: '1px 5px', marginBottom: '2px',
+                      }}>
+                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: colors.dot, flexShrink: 0 }} />
+                        <span style={{ fontSize: '8px', fontWeight: 800, color: colors.text, letterSpacing: '0.04em' }}>{label}</span>
+                      </div>
+                    );
+                  })}
+                  {items?.tasks.slice(0, 1).map((t: any, ti: number) => (
+                    <div key={`t-${ti}`} style={{
+                      display: 'flex', alignItems: 'center', gap: '3px',
+                      background: '#ffe08830', borderRadius: '3px', padding: '1px 5px', marginBottom: '2px',
+                    }}>
+                      <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#735c00', flexShrink: 0 }} />
+                      <span style={{ fontSize: '8px', fontWeight: 800, color: '#735c00' }}>TASK</span>
+                    </div>
+                  ))}
+                  {items && (items.hearings.length + items.tasks.length) > 2 && (
+                    <span style={{ fontSize: '9px', color: '#74777f', fontWeight: 600 }}>
+                      +{items.hearings.length + items.tasks.length - 2} more
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Date cells */}
-        <div className="grid grid-cols-7">
-          {cells.map((day, i) => {
-            if (!day) return (
-              <div key={i} className="min-h-16 md:min-h-24 p-1"
-                style={{ background: 'rgba(196,198,207,0.04)', borderRight: '1px solid rgba(196,198,207,0.06)', borderBottom: '1px solid rgba(196,198,207,0.06)' }} />
-            );
+        {/* ── Sidebar ─────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-            const items = dayMap[dateStr];
-            const isToday = dateStr === today;
-            const isSelected = dateStr === selectedDate;
-
-            return (
-              <div key={i}
-                onClick={() => setSelectedDate(dateStr)}
-                className="min-h-16 md:min-h-24 p-1.5 cursor-pointer transition-all"
-                style={{
-                  borderRight: i % 7 !== 6 ? '1px solid rgba(196,198,207,0.06)' : 'none',
-                  borderBottom: '1px solid rgba(196,198,207,0.06)',
-                  background: isSelected ? 'rgba(2,36,72,0.04)' : 'transparent',
-                }}>
-                {/* Day number */}
-                <div className="flex justify-start mb-1 ml-0.5">
-                  <span className="flex items-center justify-center font-bold text-xs w-6 h-6 rounded-full"
-                    style={{
-                      background: isToday ? 'var(--primary)' : 'transparent',
-                      color: isToday ? '#fff' : isSelected ? 'var(--primary)' : 'var(--on-surface)',
-                      fontWeight: isToday || isSelected ? '800' : '600',
-                    }}>
-                    {day}
+          {/* Monthly Summary */}
+          <div style={{ background: '#022448', borderRadius: '16px', padding: '20px', boxShadow: '0 8px 24px rgba(2,36,72,0.2)' }}>
+            <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#fff', margin: '0 0 16px' }}>
+              Monthly Summary
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                { label: 'Total Hearings', value: hearings.length },
+                { label: 'Tasks Due', value: tasks.length },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>{item.label}</span>
+                  <span style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#fff' }}>
+                    {String(item.value).padStart(2, '0')}
                   </span>
                 </div>
-                {/* Event chips */}
-                {items?.hearings.slice(0, 2).map((h: any, hi: number) => {
-                  const chip = getChip(h.purpose);
-                  return (
-                    <div key={hi} className="flex items-center gap-0.5 mb-0.5 rounded-sm px-1 py-0.5"
-                      style={{ background: chip.bg + '15', maxWidth: '100%' }}>
-                      <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: chip.bg }} />
-                      <span style={{ fontSize: '8px', fontWeight: '700', color: chip.bg, letterSpacing: '0.04em', lineHeight: 1 }}>
-                        {chip.label}
-                      </span>
-                    </div>
-                  );
-                })}
-                {items && (items.hearings.length + items.tasks.length) > 2 && (
-                  <div style={{ fontSize: '8px', color: 'var(--outline)', fontWeight: '600' }}>
-                    +{items.hearings.length + items.tasks.length - 2}
+              ))}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px', marginTop: '4px' }}>
+                <p style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', margin: '0 0 10px' }}>LEGEND</p>
+                {[
+                  { color: '#ba1a1a', label: 'Bail Applications' },
+                  { color: '#7c3aed', label: 'Arguments' },
+                  { color: '#16a34a', label: 'Judgments' },
+                  { color: '#74777f', label: 'Other Hearings' },
+                  { color: '#735c00', label: 'Tasks Due' },
+                ].map(item => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)' }}>{item.label}</span>
                   </div>
-                )}
+                ))}
               </div>
-            );
-          })}
+            </div>
+          </div>
+
+          {/* Upcoming hearings quick list */}
+          {upcomingHearings.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: 0 }}>NEXT HEARINGS</p>
+              </div>
+              {upcomingHearings.map((h: any) => {
+                const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
+                const colors = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
+                return (
+                  <Link key={h.id} href={`/cases/${h.case?.id}`} style={{ textDecoration: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid rgba(196,198,207,0.06)', cursor: 'pointer' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {h.case?.title}
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                          <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 5px', background: colors.bg, color: colors.text, borderRadius: '2px' }}>
+                            {(purposeLabel[h.purpose] || 'HRNG')}
+                          </span>
+                          {h.time && <span style={{ fontSize: '10px', color: '#74777f' }}>{h.time} IST</span>}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', marginLeft: '10px', flexShrink: 0 }}>
+                        <p style={{ fontSize: '12px', fontWeight: 800, color: daysUntil <= 1 ? '#ba1a1a' : '#022448', margin: 0 }}>
+                          {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </p>
+                        <p style={{ fontSize: '9px', color: '#74777f', margin: 0, fontWeight: 600 }}>
+                          {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TMRW' : `${daysUntil}d`}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Agenda + Summary ──────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* ── Agenda Section ──────────────────────────────────── */}
+      <div style={{ marginTop: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: 0 }}>
+            Agenda: {selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </h2>
+          {selectedItems?.hearings.length > 0 && (
+            <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '99px', background: '#ffe088', color: '#745c00' }}>
+              {selectedItems.hearings.length} Hearing{selectedItems.hearings.length > 1 ? 's' : ''} Scheduled
+            </span>
+          )}
+        </div>
 
-        {/* Agenda */}
-        <div className="lg:col-span-2 space-y-5 fade-up fade-up-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-2xl" style={{ color: 'var(--primary)' }}>
-              Agenda: {selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </h2>
-            {selectedItems?.hearings.length > 0 && (
-              <span className="text-xs font-bold px-3 py-1 rounded-full"
-                style={{ background: 'var(--secondary-container)', color: 'var(--on-secondary-container)' }}>
-                {selectedItems.hearings.length} Hearing{selectedItems.hearings.length > 1 ? 's' : ''} Scheduled
-              </span>
-            )}
+        {!selectedItems?.hearings.length && !selectedItems?.tasks.length ? (
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+            <Calendar size={36} color="#c4c6cf" style={{ marginBottom: '12px' }} />
+            <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 4px', fontWeight: 600 }}>No hearings on this date</p>
+            <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Click any date on the calendar to see its schedule</p>
           </div>
-
-          {!selectedItems?.hearings.length && !selectedItems?.tasks.length ? (
-            <div className="rounded-2xl p-10 text-center"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <Calendar size={36} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No hearings on this date</p>
-              <p style={{ fontSize: '12px', color: 'var(--outline)', marginTop: '4px' }}>Select a date on the calendar above</p>
-            </div>
-          ) : (
-            selectedItems?.hearings.map((h: any, i: number) => {
-              const chip = getFullChip(h.purpose);
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {selectedItems?.hearings.map((h: any) => {
+              const colors = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
               return (
-                <div key={h.id}
-                  className={`rounded-2xl p-6 transition-all hover:shadow-lg group cursor-pointer fade-up fade-up-${i + 1}`}
-                  style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', boxShadow: 'var(--shadow-tonal)' }}>
-                  <div className="flex gap-6">
-                    {/* Time */}
-                    <div className="flex flex-col items-center flex-shrink-0"
-                      style={{ borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '20px', minWidth: '48px' }}>
-                      <span className="text-sm font-bold uppercase" style={{ color: 'var(--on-surface-variant)' }}>
-                        {h.time || '--:--'}
-                      </span>
-                      <span style={{ fontSize: '10px', color: 'var(--outline)' }}>IST</span>
+                <div key={h.id} style={{ background: '#fff', borderRadius: '16px', padding: '20px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', gap: '20px' }}>
+                    {/* Time column */}
+                    <div style={{ flexShrink: 0, textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '20px', minWidth: '52px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#43474e' }}>{h.time || '--:--'}</div>
+                      <div style={{ fontSize: '10px', color: '#74777f' }}>IST</div>
                     </div>
-                    {/* Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-2 gap-3">
-                        <span className="text-xs font-bold px-2 py-0.5 tracking-wider"
-                          style={{ background: chip.bg, color: chip.color, borderRadius: '2px', fontSize: '9px' }}>
-                          {h.purpose?.replace(/_/g, ' ').toUpperCase()}
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', background: colors.bg, color: colors.text, borderRadius: '2px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                          {h.purpose?.replace(/_/g, ' ')}
                         </span>
                         {h.court_room && (
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--on-surface-variant)' }}>
-                            {h.court_room}
-                          </span>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#43474e' }}>{h.court_room}</span>
                         )}
                       </div>
-                      <h3 className="font-serif font-bold text-lg group-hover:opacity-75 transition-opacity mb-1"
-                        style={{ color: 'var(--primary)' }}>
+                      <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {h.case?.title}
                       </h3>
-                      <p className="text-sm mb-4" style={{ color: 'var(--on-surface-variant)' }}>
-                        {h.case?.court}{h.case?.cnr_number ? ` · CNR: ${h.case.cnr_number}` : ''}
-                      </p>
-                      <div className="flex items-center gap-5 flex-wrap">
-                        <Link href={`/cases/${h.case?.id}`}
-                          className="flex items-center gap-1 text-xs font-bold transition-colors hover:opacity-70"
-                          style={{ color: 'var(--primary)' }}>
-                          <ExternalLink size={13} />
-                          VIEW CASE FILE
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#74777f', marginBottom: '14px' }}>
+                        <MapPin size={12} />
+                        <span>{h.case?.court}</span>
+                        {h.case?.cnr_number && <><span>·</span><span style={{ fontFamily: 'monospace' }}>{h.case.cnr_number}</span></>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <Link href={`/cases/${h.case?.id}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
+                          <ExternalLink size={13} /> VIEW CASE FILE
                         </Link>
-                        <Link href={`/cases/${h.case?.id}?tab=drafts`}
-                          className="flex items-center gap-1 text-xs font-bold transition-colors hover:opacity-70"
-                          style={{ color: 'var(--primary)' }}>
-                          <FileText size={13} />
-                          BRIEFING NOTE
+                        <Link href={`/cases/${h.case?.id}?tab=drafts`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
+                          <FileText size={13} /> BRIEFING NOTE
                         </Link>
                       </div>
                     </div>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-5 fade-up fade-up-4">
-          {/* Monthly Summary */}
-          <div className="rounded-2xl p-6" style={{ background: 'var(--primary)', boxShadow: '0 8px 32px rgba(2,36,72,0.25)' }}>
-            <h3 className="font-serif font-bold text-xl mb-5" style={{ color: '#fff' }}>Monthly Summary</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>Total Hearings</span>
-                <span className="font-serif font-bold text-xl" style={{ color: '#fff' }}>
-                  {String(hearings.length).padStart(2, '0')}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>Tasks Due</span>
-                <span className="font-serif font-bold text-xl" style={{ color: '#fff' }}>
-                  {String(tasks.length).padStart(2, '0')}
-                </span>
-              </div>
-              <div className="pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                <p style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.45)', marginBottom: '10px' }}>
-                  LEGEND
-                </p>
-                <div className="space-y-2">
-                  {[
-                    { color: 'var(--error)',   label: 'Bail Applications' },
-                    { color: '#7c3aed',         label: 'Arguments' },
-                    { color: '#16a34a',         label: 'Judgments' },
-                    { color: 'var(--primary-fixed-dim)', label: 'Other Hearings' },
-                  ].map(item => (
-                    <div key={item.label} className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>{item.label}</span>
-                    </div>
-                  ))}
+            })}
+            {/* Tasks on this day */}
+            {selectedItems?.tasks.map((t: any) => (
+              <div key={t.id} style={{ background: '#fffbeb', borderRadius: '16px', padding: '16px 20px', border: '1px solid rgba(202,138,4,0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#854d0e', margin: 0 }}>{t.title}</p>
+                    <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0' }}>Task due · {t.case?.title}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
-
-          {/* Quick Sync */}
-          <div className="rounded-2xl p-6"
-            style={{ background: 'var(--surface-container-low)', border: '1px solid rgba(196,198,207,0.1)' }}>
-            <h3 className="font-serif font-bold text-lg mb-3" style={{ color: 'var(--primary)' }}>
-              Quick Calendar Sync
-            </h3>
-            <p className="text-sm mb-5 leading-relaxed" style={{ color: 'var(--on-surface-variant)' }}>
-              Sync your court schedule with Google Calendar or Outlook for real-time notifications.
-            </p>
-            <button className="w-full py-3 font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-80"
-              style={{ background: 'var(--surface-container-lowest)', color: 'var(--primary)', border: '1px solid rgba(196,198,207,0.2)', borderRadius: '6px' }}>
-              <RotateCcw size={16} />
-              SYNC NOW
-            </button>
-          </div>
-
-          {/* Upcoming list */}
-          {hearings.filter(h => h.date.split('T')[0] >= today).length > 0 && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
-                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>
-                  NEXT HEARINGS
-                </p>
-              </div>
-              <div className="divide-y" style={{ borderColor: 'rgba(196,198,207,0.08)' }}>
-                {hearings.filter(h => h.date.split('T')[0] >= today).slice(0, 4).map((h: any) => {
-                  const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
-                  return (
-                    <Link key={h.id} href={`/cases/${h.case?.id}`}
-                      className="flex items-center justify-between px-5 py-3 hover:opacity-70 transition-opacity">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold truncate" style={{ color: 'var(--primary)' }}>{h.case?.title}</p>
-                        <p style={{ fontSize: '10px', color: 'var(--on-surface-variant)' }} className="capitalize">
-                          {h.purpose?.replace(/_/g, ' ')}
-                        </p>
-                      </div>
-                      <div className="text-right ml-3 flex-shrink-0">
-                        <p className="text-xs font-bold" style={{ color: daysUntil <= 1 ? 'var(--error)' : 'var(--primary)' }}>
-                          {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </p>
-                        <p style={{ fontSize: '9px', color: 'var(--outline)', fontWeight: '600' }}>
-                          {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TMRW' : `${daysUntil}d`}
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
