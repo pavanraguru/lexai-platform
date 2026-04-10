@@ -1,1110 +1,716 @@
 'use client';
-// ============================================================
-// LexAI India — Case Detail Page
-// PRD v1.1 CM-02 — Case Dashboard (per-case view)
-// Tabs: Overview | Documents | Hearings | Agents | Drafts
-// ============================================================
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
-import { casesApi, documentsApi, agentsApi, hearingsApi, tasksApi, draftsApi, uploadDocument } from '@/lib/api';
-import dynamic from 'next/dynamic';
-const DraftEditor = dynamic(() => import('@/components/editor/DraftEditor'), { ssr: false, loading: () => <div className="h-96 bg-gray-50 rounded-xl animate-pulse" /> });
-import { CASE_STATUS_LABELS } from '@/lib/constants';
-import {
-  FolderOpen, Upload, Bot, FileText, Calendar, Clock,
-  ChevronRight, Play, CheckCircle2, AlertCircle, Loader2,
-  Eye, Download, Share2, X, Plus, ArrowRight, CheckSquare, Square, Trash2
-} from 'lucide-react';
+import { casesApi, hearingsApi, tasksApi, agentsApi, uploadDocument } from '@/lib/api';
+import Link from 'next/link';
 
-const TABS = ['overview', 'documents', 'hearings', 'tasks', 'agents', 'drafts'] as const;
-type Tab = typeof TABS[number];
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const AGENT_INFO: Record<string, { label: string; desc: string; color: string; icon: string }> = {
-  evidence:   { label: 'Evidence',   desc: 'Extracts exhibits, facts, contradictions', color: '#3B82F6', icon: '🔍' },
-  timeline:   { label: 'Timeline',   desc: 'Reconstructs chronological events',         color: '#8B5CF6', icon: '📅' },
-  deposition: { label: 'Deposition', desc: 'Analyses witness inconsistencies',          color: '#F59E0B', icon: '🎤' },
-  research:   { label: 'Research',   desc: 'Finds applicable statutes & precedents',    color: '#10B981', icon: '📚' },
-  strategy:   { label: 'Strategy',   desc: 'Opening statement, bench Q&A, sentiment',  color: '#EF4444', icon: '⚖️' },
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  intake:          { bg: 'var(--surface-container)',  color: 'var(--on-surface-variant)' },
+  filed:           { bg: 'var(--primary-fixed)',      color: 'var(--on-primary-fixed)' },
+  pending_hearing: { bg: 'var(--secondary-fixed)',    color: 'var(--on-secondary-container)' },
+  arguments:       { bg: '#ede9fe',                   color: '#5b21b6' },
+  decided:         { bg: '#dcfce7',                   color: '#15803d' },
+  appeal:          { bg: 'var(--error-container)',    color: 'var(--on-error-container)' },
+  closed:          { bg: 'var(--surface-container-high)', color: 'var(--outline)' },
 };
 
-const DOC_CATEGORY_LABELS: Record<string, string> = {
-  fir: 'FIR', chargesheet: 'Chargesheet', bail_order: 'Bail Order',
-  witness_statement: 'Witness Statement', forensic_report: 'Forensic Report',
-  affidavit: 'Affidavit', plaint: 'Plaint', written_statement: 'Written Statement',
-  vakalatnama: 'Vakalatnama', order: 'Court Order', judgment: 'Judgment',
-  deposition: 'Deposition', evidence_exhibit: 'Evidence Exhibit', other: 'Other',
-};
+const TABS = [
+  { key: 'overview',   icon: 'info',          label: 'Overview' },
+  { key: 'documents',  icon: 'description',   label: 'Documents' },
+  { key: 'hearings',   icon: 'gavel',         label: 'Hearings' },
+  { key: 'tasks',      icon: 'task_alt',      label: 'Tasks' },
+  { key: 'agents',     icon: 'smart_toy',     label: 'Agents' },
+  { key: 'drafts',     icon: 'history_edu',   label: 'Drafts' },
+] as const;
 
-export default function CasePage() {
+const HEARING_PURPOSES = [
+  { value: 'framing_of_charges', label: 'Framing of Charges' },
+  { value: 'bail',               label: 'Bail' },
+  { value: 'arguments',          label: 'Arguments' },
+  { value: 'judgment',           label: 'Judgment' },
+  { value: 'evidence',           label: 'Evidence' },
+  { value: 'examination',        label: 'Examination' },
+  { value: 'cross_examination',  label: 'Cross Examination' },
+  { value: 'interim_order',      label: 'Interim Order' },
+  { value: 'misc',               label: 'Misc' },
+];
+
+const AGENTS = [
+  { type: 'evidence',   icon: 'search',          label: 'Evidence',   desc: 'Extract and analyse all evidence from documents' },
+  { type: 'timeline',   icon: 'timeline',        label: 'Timeline',   desc: 'Reconstruct chronological order of events' },
+  { type: 'research',   icon: 'menu_book',       label: 'Research',   desc: 'Find relevant Indian case law and statutes' },
+  { type: 'deposition', icon: 'record_voice_over',label: 'Deposition', desc: 'Analyse deposition transcripts, find inconsistencies' },
+  { type: 'strategy',   icon: 'psychology',      label: 'Strategy',   desc: 'Develop court strategy from all prior analysis' },
+];
+
+type TabKey = typeof TABS[number]['key'];
+
+export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const { token, canRunAgents, canManageCases } = useAuthStore();
+  const { token } = useAuthStore();
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [uploadDragging, setUploadDragging] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
-  const { data, isLoading } = useQuery({
+  // Hearing form state
+  const [showHearingForm, setShowHearingForm] = useState(false);
+  const [showOutcome, setShowOutcome] = useState<string | null>(null);
+  const [hearingForm, setHearingForm] = useState({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
+  const [outcomeForm, setOutcomeForm] = useState({ outcome: '', order_summary: '', next_hearing_date: '' });
+
+  // Task form state
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: '', priority: 'normal', due_date: '', description: '' });
+
+  // Agent state
+  const [runningAgent, setRunningAgent] = useState<string | null>(null);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const { data: caseData, isLoading } = useQuery({
     queryKey: ['case', id],
     queryFn: () => casesApi.get(token!, id!),
     enabled: !!token && !!id,
   });
 
-  const { data: agentData } = useQuery({
-    queryKey: ['agents', id],
-    queryFn: () => agentsApi.getForCase(token!, id!),
-    enabled: !!token && !!id,
-    refetchInterval: 5000, // poll every 5s while agents run
-  });
+  const c = (caseData as any)?.data;
+  const refresh = () => qc.invalidateQueries({ queryKey: ['case', id] });
+  const statusStyle = STATUS_STYLES[c?.status] || STATUS_STYLES.intake;
 
-  const runAgent = useMutation({
-    mutationFn: (agentType: string) => agentsApi.run(token!, id!, agentType as any),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['agents', id] }),
-  });
-
-  const handleFileUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !token) return;
-    setUploadProgress(`Uploading ${files.length} file(s)...`);
+  const handleAddHearing = async (e: React.FormEvent) => {
+    e.preventDefault(); setSaving(true); setError('');
     try {
-      for (const file of Array.from(files)) {
-        setUploadProgress(`Uploading ${file.name}...`);
-        await uploadDocument(token, file, id!);
-      }
-      setUploadProgress(null);
-      qc.invalidateQueries({ queryKey: ['case', id] });
-    } catch (err: any) {
-      setUploadProgress(`Upload failed: ${err.message}`);
-      setTimeout(() => setUploadProgress(null), 3000);
-    }
+      await hearingsApi.create(token!, { case_id: id!, ...hearingForm, purpose: hearingForm.purpose as any });
+      setShowHearingForm(false);
+      setHearingForm({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
+      refresh();
+    } catch (err: any) { setError(err.message); }
+    setSaving(false);
   };
 
-  const c = data?.data as any;
-  const agents = agentData?.data?.latest || {};
-  const allAgentJobs = agentData?.data?.all || [];
+  const handleOutcome = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!showOutcome) return;
+    setSaving(true); setError('');
+    try {
+      await hearingsApi.recordOutcome(token!, showOutcome, outcomeForm);
+      setShowOutcome(null); setOutcomeForm({ outcome: '', order_summary: '', next_hearing_date: '' }); refresh();
+    } catch (err: any) { setError(err.message); }
+    setSaving(false);
+  };
+
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault(); setSaving(true); setError('');
+    try {
+      await tasksApi.create(token!, { case_id: id!, ...taskForm });
+      setShowTaskForm(false); setTaskForm({ title: '', priority: 'normal', due_date: '', description: '' }); refresh();
+    } catch (err: any) { setError(err.message); }
+    setSaving(false);
+  };
+
+  const handleRunAgent = async (agentType: string) => {
+    if (!c) return;
+    setRunningAgent(agentType);
+    try {
+      const docIds = (c.documents || []).filter((d: any) => d.processing_status === 'ready').map((d: any) => d.id);
+      if (docIds.length === 0) { setError('Upload and process documents first before running agents.'); setRunningAgent(null); return; }
+      await agentsApi.run(token!, id!, agentType as any, {});
+      refresh();
+    } catch (err: any) { setError(err.message); }
+    setRunningAgent(null);
+  };
+
+  const handleToggleTask = async (task: any) => {
+    await tasksApi.update(token!, task.id, { status: task.status === 'done' ? 'todo' : 'done' });
+    refresh();
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 size={32} className="animate-spin text-gray-400" />
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-5">
+        <div className="h-32 rounded-2xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
+        <div className="h-12 rounded-xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
+        <div className="h-64 rounded-2xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
       </div>
     );
   }
 
   if (!c) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-gray-500">Case not found.</p>
-        <button onClick={() => router.push('/cases')} className="mt-4 text-blue-600 text-sm hover:underline">
-          ← Back to cases
-        </button>
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-16 text-center">
+        <p className="font-serif text-xl font-bold" style={{ color: 'var(--primary)' }}>Case not found</p>
+        <Link href="/cases" className="mt-4 inline-block text-sm font-bold" style={{ color: 'var(--secondary)' }}>← Back to Cases</Link>
       </div>
     );
   }
 
+  const hearings = c.hearings || [];
+  const tasks = (c.tasks || []).filter((t: any) => t.status !== 'cancelled');
+  const agents = c.agent_jobs || [];
+  const upcomingHearings = hearings.filter((h: any) => !h.outcome && new Date(h.date) >= new Date());
+  const pastHearings = hearings.filter((h: any) => h.outcome || new Date(h.date) < new Date());
+  const activeTasks = tasks.filter((t: any) => t.status !== 'done');
+  const doneTasks = tasks.filter((t: any) => t.status === 'done');
+
+  // ── Shared sub-components ─────────────────────────────────
+  const inputStyle = {
+    background: 'var(--surface-container-lowest)',
+    border: '1px solid rgba(196,198,207,0.3)',
+    borderRadius: '4px',
+    color: 'var(--on-surface)',
+    outline: 'none',
+    fontSize: '13px',
+    padding: '8px 12px',
+    width: '100%',
+    fontFamily: 'Manrope, sans-serif',
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--on-surface-variant)',
+    letterSpacing: '0.06em',
+    marginBottom: '5px',
+    textTransform: 'uppercase' as const,
+  };
+
+  const btnPrimary = {
+    background: 'var(--primary)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '8px 16px',
+    fontSize: '12px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    fontFamily: 'Manrope, sans-serif',
+  };
+
+  const btnGhost = {
+    background: 'transparent',
+    color: 'var(--on-surface-variant)',
+    border: '1px solid rgba(196,198,207,0.3)',
+    borderRadius: '4px',
+    padding: '8px 16px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'Manrope, sans-serif',
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
 
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-        <button onClick={() => router.push('/cases')} className="hover:text-gray-600">Cases</button>
-        <ChevronRight size={14} />
-        <span className="text-gray-700 font-medium truncate max-w-xs">{c.title}</span>
-      </nav>
-
-      {/* Case header */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <div className="flex items-start justify-between flex-wrap gap-4">
+      {/* ── Case Header ─────────────────────────────────────── */}
+      <div className="rounded-2xl p-6 mb-6 fade-up"
+        style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', boxShadow: 'var(--shadow-tonal)' }}>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
+            {/* Type badge */}
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <span style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.1em', color: 'var(--secondary)', textTransform: 'uppercase' }}>
+                {c.case_type?.replace(/_/g, ' ')}
+              </span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{ background: statusStyle.bg, color: statusStyle.color, fontSize: '10px' }}>
+                {c.status?.replace(/_/g, ' ')}
+              </span>
+              {c.priority !== 'normal' && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: c.priority === 'urgent' ? 'var(--error-container)' : 'var(--tertiary-fixed)',
+                    color: c.priority === 'urgent' ? 'var(--on-error-container)' : 'var(--tertiary)',
+                    fontSize: '10px',
+                  }}>
+                  {c.priority?.toUpperCase()}
+                </span>
+              )}
+            </div>
+            {/* Title */}
+            <h1 className="font-serif font-bold mb-2" style={{ fontSize: '1.6rem', color: 'var(--primary)', lineHeight: '1.25' }}>
+              {c.title}
+            </h1>
+            {/* Court + CNR */}
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-bold text-gray-900">{c.title}</h1>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
-                ${c.status === 'decided' ? 'bg-green-100 text-green-700' :
-                  c.status === 'pending_hearing' ? 'bg-yellow-100 text-yellow-700' :
-                  c.status === 'arguments' ? 'bg-purple-100 text-purple-700' :
-                  'bg-blue-100 text-blue-700'}`}>
-                {CASE_STATUS_LABELS[c.status as keyof typeof CASE_STATUS_LABELS] || c.status}
-              </span>
-              <span className={`text-xs px-2 py-0.5 rounded font-medium
-                ${c.priority === 'urgent' ? 'bg-red-100 text-red-600' :
-                  c.priority === 'high' ? 'bg-orange-100 text-orange-600' :
-                  'bg-gray-100 text-gray-500'}`}>
-                {c.priority}
-              </span>
-            </div>
-            <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-gray-500">
-              <span>{c.court}</span>
-              {c.cnr_number && <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{c.cnr_number}</span>}
-              <span className="capitalize">{c.perspective}</span>
+              <div className="flex items-center gap-1.5" style={{ color: 'var(--on-surface-variant)', fontSize: '13px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>location_on</span>
+                {c.court}
+              </div>
+              {c.cnr_number && (
+                <>
+                  <span style={{ color: 'var(--outline-variant)' }}>·</span>
+                  <span className="font-mono" style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+                    {c.cnr_number}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Quick actions */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setActiveTab('documents'); fileRef.current?.click(); }}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <Upload size={14} />
-              Upload
-            </button>
-            {canRunAgents() && (
-              <button
-                onClick={() => { setActiveTab('agents'); }}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg text-white transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                <Bot size={14} />
-                Run Agent
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-4 gap-4 mt-5 pt-5 border-t border-gray-100">
-          {[
-            { label: 'Documents', value: c.documents?.length || 0, icon: FolderOpen },
-            { label: 'Hearings', value: c.hearings?.length || 0, icon: Calendar },
-            { label: 'Open Tasks', value: c.tasks?.filter((t: any) => t.status !== 'done').length || 0, icon: Clock },
-            { label: 'Agent Runs', value: c.agent_jobs?.length || 0, icon: Bot },
-          ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="text-center">
-              <Icon size={16} className="mx-auto text-gray-400 mb-1" />
-              <p className="text-2xl font-bold" style={{ color: '#1E3A5F' }}>{value}</p>
-              <p className="text-xs text-gray-400">{label}</p>
+          {/* Next hearing spotlight */}
+          {c.next_hearing_date && (
+            <div className="flex-shrink-0 rounded-xl p-4 text-center"
+              style={{ background: 'var(--primary)', minWidth: '100px' }}>
+              <p style={{ fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.08em' }}>NEXT HEARING</p>
+              <p className="font-serif font-bold text-2xl mt-1" style={{ color: 'var(--secondary-fixed)', lineHeight: 1 }}>
+                {new Date(c.next_hearing_date).getDate()}
+              </p>
+              <p style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>
+                {new Date(c.next_hearing_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+              </p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 overflow-x-auto">
+      {/* ── Tabs ─────────────────────────────────────────────── */}
+      <div className="flex gap-1 mb-6 overflow-x-auto pb-1 fade-up fade-up-1">
         {TABS.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium capitalize transition-all whitespace-nowrap
-              ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-            {tab}
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap transition-all"
+            style={{
+              background: activeTab === tab.key ? 'var(--primary)' : 'var(--surface-container-lowest)',
+              color: activeTab === tab.key ? '#fff' : 'var(--on-surface-variant)',
+              fontWeight: activeTab === tab.key ? '700' : '500',
+              borderRadius: '6px',
+              border: activeTab === tab.key ? 'none' : '1px solid rgba(196,198,207,0.2)',
+              fontSize: '13px',
+            }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>{tab.icon}</span>
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Tab: Overview */}
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl flex items-center gap-2 fade-up"
+          style={{ background: 'var(--error-container)', color: 'var(--on-error-container)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <p className="text-sm font-medium">{error}</p>
+          <button onClick={() => setError('')} className="ml-auto">
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+          </button>
+        </div>
+      )}
+
+      {/* ──────────── OVERVIEW TAB ────────────────────────── */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 fade-up">
           {/* Case details */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-900 mb-4">Case Details</h3>
-            <dl className="space-y-3">
+          <div className="rounded-2xl p-6"
+            style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+            <h3 className="font-serif font-bold text-base mb-4" style={{ color: 'var(--primary)' }}>Case Details</h3>
+            <div className="space-y-3">
               {[
-                { label: 'Case Type', value: c.case_type?.replace(/_/g, ' ') },
                 { label: 'Court Level', value: c.court_level?.replace(/_/g, ' ') },
-                { label: 'Judge', value: c.judge_name || '—' },
-                { label: 'Filed Date', value: c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : '—' },
-                { label: 'Next Hearing', value: c.next_hearing_date ? new Date(c.next_hearing_date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '—' },
-                { label: 'Sections Charged', value: (c.metadata?.sections_charged || []).join(', ') || '—' },
-                { label: 'FIR Number', value: c.metadata?.fir_number || '—' },
-                { label: 'Police Station', value: c.metadata?.police_station || '—' },
-                { label: 'Opposing Counsel', value: c.metadata?.opposing_counsel || '—' },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between text-sm">
-                  <dt className="text-gray-500 w-36 flex-shrink-0">{label}</dt>
-                  <dd className="text-gray-900 font-medium text-right capitalize">{value}</dd>
+                { label: 'Perspective', value: c.perspective },
+                { label: 'Judge', value: c.judge_name },
+                { label: 'Filed Date', value: c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : null },
+                { label: 'Priority', value: c.priority },
+              ].filter(item => item.value).map(item => (
+                <div key={item.label} className="flex justify-between items-start gap-4">
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {item.label}
+                  </span>
+                  <span className="text-sm font-medium text-right capitalize" style={{ color: 'var(--on-surface)' }}>
+                    {item.value}
+                  </span>
                 </div>
               ))}
-            </dl>
+            </div>
           </div>
+
+          {/* Quick stats */}
+          <div className="space-y-3">
+            {[
+              { icon: 'description', label: 'Documents',  value: c._count?.documents || 0, href: null, color: 'var(--primary-fixed)', iconColor: 'var(--primary)' },
+              { icon: 'gavel',       label: 'Hearings',   value: hearings.length,           href: null, color: 'var(--secondary-fixed)', iconColor: 'var(--secondary)' },
+              { icon: 'task_alt',    label: 'Active Tasks', value: activeTasks.length,      href: null, color: 'var(--tertiary-fixed)', iconColor: 'var(--tertiary)' },
+              { icon: 'smart_toy',   label: 'Agent Runs', value: agents.length,             href: null, color: 'var(--surface-container)', iconColor: 'var(--on-surface-variant)' },
+            ].map(stat => (
+              <div key={stat.label} className="flex items-center gap-4 rounded-xl p-4"
+                style={{ background: stat.color }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: stat.iconColor }}>{stat.icon}</span>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: '700', color: stat.iconColor, letterSpacing: '0.06em' }}>{stat.label.toUpperCase()}</p>
+                  <p className="font-serif font-bold text-xl" style={{ color: stat.iconColor }}>{stat.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ──────────── DOCUMENTS TAB ────────────────────────── */}
+      {activeTab === 'documents' && (
+        <div className="fade-up">
+          {/* Upload zone */}
+          <div className="rounded-2xl p-8 text-center mb-5"
+            style={{ border: '1.5px dashed rgba(196,198,207,0.4)', background: 'var(--surface-container-lowest)' }}>
+            <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>upload_file</span>
+            <p className="font-bold text-sm mb-1" style={{ color: 'var(--primary)' }}>Upload Documents</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--on-surface-variant)' }}>FIR, Charge Sheet, Evidence, Deposition — PDF or Image, up to 50MB</p>
+            <label className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 cursor-pointer transition-all hover:opacity-80"
+              style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>attach_file</span>
+              Choose File
+              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
+            </label>
+          </div>
+
+          {/* Documents list */}
+          {(c.documents || []).length === 0 ? (
+            <div className="rounded-2xl p-8 text-center"
+              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No documents uploaded yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(c.documents || []).map((doc: any) => (
+                <div key={doc.id} className="flex items-center gap-4 rounded-xl p-4"
+                  style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+                  <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '22px', color: 'var(--primary)' }}>
+                    {doc.mime_type?.includes('image') ? 'image' : 'description'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate" style={{ color: 'var(--on-surface)' }}>{doc.filename}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {doc.doc_category && (
+                        <span className="text-xs" style={{ color: 'var(--secondary)', fontWeight: '700', fontSize: '10px' }}>
+                          {doc.doc_category?.replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                      )}
+                      <span style={{ color: 'var(--outline-variant)', fontSize: '10px' }}>·</span>
+                      <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>
+                        {doc.processing_status === 'ready' ? '✓ Processed' :
+                         doc.processing_status === 'processing' ? '⟳ Processing...' :
+                         doc.processing_status === 'pending' ? '○ Pending OCR' : '⚠ Failed'}
+                      </span>
+                      {doc.page_count && <span style={{ fontSize: '11px', color: 'var(--outline)' }}>{doc.page_count}pp</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ──────────── HEARINGS TAB ─────────────────────────── */}
+      {activeTab === 'hearings' && (
+        <div className="space-y-4 fade-up">
+          <div className="flex items-center justify-between">
+            <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
+              {upcomingHearings.length} upcoming · {pastHearings.length} past
+            </p>
+            <button onClick={() => setShowHearingForm(!showHearingForm)}
+              className="flex items-center gap-1.5 text-sm font-bold px-4 py-2 transition-all hover:opacity-80"
+              style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+              Schedule Hearing
+            </button>
+          </div>
+
+          {showHearingForm && (
+            <form onSubmit={handleAddHearing} className="rounded-2xl p-6 space-y-4"
+              style={{ background: 'var(--primary-fixed)', border: '1px solid rgba(2,36,72,0.1)' }}>
+              <h3 className="font-serif font-bold" style={{ color: 'var(--primary)' }}>New Hearing</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><label style={labelStyle}>Date *</label><input type="date" required value={hearingForm.date} onChange={e => setHearingForm({ ...hearingForm, date: e.target.value })} style={inputStyle} /></div>
+                <div><label style={labelStyle}>Time (IST)</label><input type="time" value={hearingForm.time} onChange={e => setHearingForm({ ...hearingForm, time: e.target.value })} style={inputStyle} /></div>
+                <div>
+                  <label style={labelStyle}>Purpose *</label>
+                  <select value={hearingForm.purpose} onChange={e => setHearingForm({ ...hearingForm, purpose: e.target.value })} style={{ ...inputStyle, appearance: 'none' }}>
+                    {HEARING_PURPOSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </div>
+                <div><label style={labelStyle}>Court Room</label><input type="text" value={hearingForm.court_room} onChange={e => setHearingForm({ ...hearingForm, court_room: e.target.value })} placeholder="e.g. Court No. 5" style={inputStyle} /></div>
+                <div><label style={labelStyle}>Judge Name</label><input type="text" value={hearingForm.judge_name} onChange={e => setHearingForm({ ...hearingForm, judge_name: e.target.value })} placeholder="Hon. Justice..." style={inputStyle} /></div>
+                <div><label style={labelStyle}>Client Instruction</label><input type="text" value={hearingForm.client_instruction} onChange={e => setHearingForm({ ...hearingForm, client_instruction: e.target.value })} placeholder="e.g. Bring originals" style={inputStyle} /></div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
+                  {saving ? 'Scheduling...' : 'Schedule Hearing'}
+                </button>
+                <button type="button" onClick={() => setShowHearingForm(false)} style={btnGhost}>Cancel</button>
+              </div>
+            </form>
+          )}
 
           {/* Upcoming hearings */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Hearings</h3>
-              <button onClick={() => setActiveTab('hearings')}
-                className="text-xs text-blue-600 hover:underline">View all</button>
-            </div>
-            {c.hearings?.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">No hearings scheduled yet</p>
-            ) : (
-              <div className="space-y-3">
-                {c.hearings?.slice(0, 4).map((h: any) => (
-                  <div key={h.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {h.time && <span className="text-gray-400 ml-1">{h.time}</span>}
-                      </p>
-                      <p className="text-xs text-gray-400 capitalize">{h.purpose?.replace(/_/g, ' ')}</p>
-                    </div>
-                    {h.outcome
-                      ? <CheckCircle2 size={16} className="text-green-500" />
-                      : <Calendar size={16} className="text-gray-300" />
-                    }
-                  </div>
-                ))}
+          {upcomingHearings.length > 0 && (
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>UPCOMING</p>
               </div>
-            )}
+              {upcomingHearings.map((h: any) => {
+                const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
+                const isUrgent = daysUntil <= 1;
+                return (
+                  <div key={h.id} className="px-5 py-4" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-bold text-sm" style={{ color: isUrgent ? 'var(--error)' : 'var(--on-surface)' }}>
+                            {new Date(h.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                            {h.time && <span className="font-normal ml-2 text-xs" style={{ color: 'var(--on-surface-variant)' }}>{h.time} IST</span>}
+                          </span>
+                          <span className="text-xs font-bold px-2 py-0.5"
+                            style={{ background: isUrgent ? 'var(--error)' : 'var(--primary)', color: '#fff', borderRadius: '2px', fontSize: '9px' }}>
+                            {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TOMORROW' : `in ${daysUntil}d`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+                          <span className="capitalize">{h.purpose?.replace(/_/g, ' ')}</span>
+                          {h.court_room && <><span>·</span><span>{h.court_room}</span></>}
+                          {h.judge_name && <><span>·</span><span>{h.judge_name}</span></>}
+                        </div>
+                        {h.client_instruction && (
+                          <p className="text-xs mt-1" style={{ color: 'var(--secondary)' }}>
+                            📋 {h.client_instruction}
+                          </p>
+                        )}
+                      </div>
+                      {showOutcome !== h.id && (
+                        <button onClick={() => { setShowOutcome(h.id); setOutcomeForm({ outcome: '', order_summary: '', next_hearing_date: '' }); }}
+                          className="flex-shrink-0 text-xs font-bold px-3 py-1.5 transition-all hover:opacity-80"
+                          style={{ background: 'var(--primary)', color: '#fff', borderRadius: '4px' }}>
+                          Record Outcome
+                        </button>
+                      )}
+                    </div>
+                    {showOutcome === h.id && (
+                      <form onSubmit={handleOutcome} className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid rgba(196,198,207,0.1)' }}>
+                        <div><label style={labelStyle}>What happened? *</label><input type="text" required value={outcomeForm.outcome} onChange={e => setOutcomeForm({ ...outcomeForm, outcome: e.target.value })} placeholder="e.g. Arguments heard, next date given" style={inputStyle} /></div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label style={labelStyle}>Order Summary</label><input type="text" value={outcomeForm.order_summary} onChange={e => setOutcomeForm({ ...outcomeForm, order_summary: e.target.value })} placeholder="Brief summary" style={inputStyle} /></div>
+                          <div><label style={labelStyle}>Next Hearing Date</label><input type="date" value={outcomeForm.next_hearing_date} onChange={e => setOutcomeForm({ ...outcomeForm, next_hearing_date: e.target.value })} style={inputStyle} /></div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
+                            {saving ? 'Saving...' : 'Save Outcome'}
+                          </button>
+                          <button type="button" onClick={() => setShowOutcome(null)} style={btnGhost}>Cancel</button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Past hearings */}
+          {pastHearings.length > 0 && (
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', opacity: 0.7 }}>
+              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>PAST</p>
+              </div>
+              {[...pastHearings].reverse().map((h: any) => (
+                <div key={h.id} className="flex items-start gap-3 px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                  <span className="material-symbols-outlined flex-shrink-0 mt-0.5" style={{ fontSize: '16px', color: '#16a34a' }}>check_circle</span>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--on-surface-variant)' }}>
+                      {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <span className="ml-2 capitalize text-xs" style={{ color: 'var(--outline)' }}>{h.purpose?.replace(/_/g, ' ')}</span>
+                    </p>
+                    {h.outcome && <p className="text-xs mt-0.5" style={{ color: 'var(--on-surface-variant)' }}>{h.outcome}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {hearings.length === 0 && !showHearingForm && (
+            <div className="rounded-2xl p-10 text-center"
+              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+              <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>gavel</span>
+              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No hearings scheduled yet</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ──────────── TASKS TAB ─────────────────────────────── */}
+      {activeTab === 'tasks' && (
+        <div className="space-y-4 fade-up">
+          <div className="flex items-center justify-between">
+            <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
+              {activeTasks.length} active · {doneTasks.length} done
+            </p>
+            <button onClick={() => setShowTaskForm(!showTaskForm)}
+              className="flex items-center gap-1.5 text-sm font-bold px-4 py-2"
+              style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+              Add Task
+            </button>
           </div>
 
-          {/* Agent sentiment (if strategy has run) */}
-          {agents.strategy?.status === 'completed' && agents.strategy.output && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 lg:col-span-2">
-              <h3 className="font-semibold text-gray-900 mb-4">AI Case Assessment</h3>
-              {(() => {
-                const sentiment = (agents.strategy.output as any)?.sentiment;
-                if (!sentiment) return null;
-                const color = sentiment.label === 'Favorable' ? '#10B981' : sentiment.label === 'Unfavorable' ? '#EF4444' : '#F59E0B';
+          {showTaskForm && (
+            <form onSubmit={handleAddTask} className="rounded-2xl p-6 space-y-4"
+              style={{ background: 'var(--primary-fixed)', border: '1px solid rgba(2,36,72,0.1)' }}>
+              <h3 className="font-serif font-bold" style={{ color: 'var(--primary)' }}>New Task</h3>
+              <div><label style={labelStyle}>Title *</label><input type="text" required value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} placeholder="e.g. File written arguments" style={inputStyle} /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label style={labelStyle}>Priority</label>
+                  <select value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} style={{ ...inputStyle, appearance: 'none' }}>
+                    {['low','normal','high','urgent'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div><label style={labelStyle}>Due Date</label><input type="date" value={taskForm.due_date} onChange={e => setTaskForm({ ...taskForm, due_date: e.target.value })} style={inputStyle} /></div>
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
+                  {saving ? 'Adding...' : 'Add Task'}
+                </button>
+                <button type="button" onClick={() => setShowTaskForm(false)} style={btnGhost}>Cancel</button>
+              </div>
+            </form>
+          )}
+
+          {activeTasks.length > 0 && (
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+              {activeTasks.map((task: any) => {
+                const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+                const prioColor = task.priority === 'urgent' ? 'var(--error)' : task.priority === 'high' ? '#c2410c' : task.priority === 'low' ? '#16a34a' : 'var(--on-surface-variant)';
                 return (
-                  <div className="flex items-start gap-6 flex-wrap">
-                    <div className="text-center">
-                      <div className="w-20 h-20 rounded-full border-4 flex items-center justify-center text-2xl font-bold mx-auto mb-2"
-                        style={{ borderColor: color, color }}>
-                        {sentiment.score}
+                  <div key={task.id} className="flex items-start gap-4 px-5 py-4" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                    <button onClick={() => handleToggleTask(task)} className="mt-0.5 flex-shrink-0 transition-opacity hover:opacity-70">
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--outline-variant)' }}>check_box_outline_blank</span>
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold" style={{ color: isOverdue ? 'var(--error)' : 'var(--on-surface)' }}>{task.title}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span style={{ fontSize: '10px', fontWeight: '700', color: prioColor, textTransform: 'uppercase' }}>
+                          {task.priority}
+                        </span>
+                        {task.due_date && (
+                          <span style={{ fontSize: '11px', color: isOverdue ? 'var(--error)' : 'var(--on-surface-variant)', fontWeight: '600' }}>
+                            {isOverdue ? '⚠ ' : ''}Due {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-sm font-bold" style={{ color }}>{sentiment.label}</span>
-                    </div>
-                    <div className="flex-1 grid grid-cols-2 gap-3">
-                      {[
-                        { label: 'Evidence', value: sentiment.evidence_strength },
-                        { label: 'Precedents', value: sentiment.precedent_strength },
-                        { label: 'Timeline', value: sentiment.timeline_consistency },
-                        { label: 'Witnesses', value: sentiment.witness_credibility },
-                      ].map(({ label, value }) => (
-                        <div key={label}>
-                          <p className="text-xs text-gray-500 mb-1">{label}</p>
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                            value === 'Strong' || value === 'Consistent' || value === 'High' ? 'bg-green-100 text-green-700' :
-                            value === 'Weak' || value === 'Major Gaps' || value === 'Low' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500 mb-2">Reasoning</p>
-                      <p className="text-sm text-gray-700 leading-relaxed">{sentiment.reasoning}</p>
                     </div>
                   </div>
                 );
-              })()}
+              })}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Tab: Documents */}
-      {activeTab === 'documents' && (
-        <div>
-          <input ref={fileRef} type="file" multiple className="hidden"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt,.mp3,.mp4"
-            onChange={e => handleFileUpload(e.target.files)} />
-
-          {/* Upload zone */}
-          <div
-            onDragOver={e => { e.preventDefault(); setUploadDragging(true); }}
-            onDragLeave={() => setUploadDragging(false)}
-            onDrop={e => { e.preventDefault(); setUploadDragging(false); handleFileUpload(e.dataTransfer.files); }}
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all mb-6
-              ${uploadDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'}`}>
-            {uploadProgress ? (
-              <div className="flex items-center justify-center gap-2 text-blue-600">
-                <Loader2 size={20} className="animate-spin" />
-                <span className="text-sm font-medium">{uploadProgress}</span>
+          {doneTasks.length > 0 && (
+            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', opacity: 0.55 }}>
+              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>COMPLETED ({doneTasks.length})</p>
               </div>
-            ) : (
-              <>
-                <Upload size={24} className="mx-auto text-gray-400 mb-2" />
-                <p className="text-sm font-medium text-gray-600">Drop files here or click to upload</p>
-                <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG, Word, Audio — max 50MB per file</p>
-              </>
-            )}
-          </div>
-
-          {/* Document list */}
-          {c.documents?.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <FolderOpen size={40} className="mx-auto mb-3 opacity-40" />
-              <p className="text-sm">No documents uploaded yet</p>
+              {doneTasks.slice(0, 5).map((task: any) => (
+                <div key={task.id} className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.04)' }}>
+                  <button onClick={() => handleToggleTask(task)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#16a34a' }}>check_box</span>
+                  </button>
+                  <p className="text-sm line-through" style={{ color: 'var(--outline)' }}>{task.title}</p>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-5 py-3">Document</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 hidden sm:table-cell">Category</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Status</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 hidden md:table-cell">Shared</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {c.documents.map((doc: any) => (
-                    <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                            <FileText size={14} style={{ color: '#1E3A5F' }} />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 truncate max-w-xs">{doc.filename}</p>
-                            {doc.page_count && (
-                              <p className="text-xs text-gray-400">{doc.page_count} pages</p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                          {DOC_CATEGORY_LABELS[doc.doc_category] || doc.doc_category || 'Uncategorised'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          doc.processing_status === 'ready' ? 'bg-green-100 text-green-700' :
-                          doc.processing_status === 'processing' ? 'bg-yellow-100 text-yellow-700' :
-                          doc.processing_status === 'failed' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-500'
-                        }`}>
-                          {doc.processing_status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        {doc.shared_with_client
-                          ? <span className="text-xs text-green-600 font-medium">Shared</span>
-                          : <span className="text-xs text-gray-300">Private</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="View"
-                            onClick={async () => {
-                              const res = await documentsApi.download(token!, doc.id);
-                              window.open(res.data.download_url, '_blank');
-                            }}
-                          >
-                            <Eye size={14} className="text-gray-400" />
-                          </button>
-                          <button
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Download"
-                            onClick={async () => {
-                              const res = await documentsApi.download(token!, doc.id);
-                              const a = document.createElement('a');
-                              a.href = res.data.download_url;
-                              a.download = doc.filename;
-                              a.click();
-                            }}
-                          >
-                            <Download size={14} className="text-gray-400" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          )}
+
+          {tasks.length === 0 && !showTaskForm && (
+            <div className="rounded-2xl p-10 text-center"
+              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+              <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>task_alt</span>
+              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No tasks yet</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Tab: Tasks */}
-      {activeTab === 'tasks' && (
-        <TasksTab caseId={id!} token={token!} tasks={c.tasks || []} onRefresh={() => qc.invalidateQueries({ queryKey: ['case', id] })} />
-      )}
-
-      {/* Tab: Agents */}
+      {/* ──────────── AGENTS TAB ─────────────────────────────── */}
       {activeTab === 'agents' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {Object.entries(AGENT_INFO).map(([type, info]) => {
-            const job = agents[type];
-            const isRunning = job?.status === 'running' || job?.status === 'queued';
-            const isDone = job?.status === 'completed';
-            const isFailed = job?.status === 'failed';
-
-            return (
-              <div key={type}
-                className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">{info.icon}</span>
-                    <div>
-                      <p className="font-semibold text-gray-900">{info.label} Agent</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{info.desc}</p>
+        <div className="fade-up">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {AGENTS.map(agent => {
+              const isRunning = runningAgent === agent.type;
+              const lastRun = agents.find((j: any) => j.agent_type === agent.type);
+              return (
+                <div key={agent.type} className="rounded-2xl p-5"
+                  style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', boxShadow: 'var(--shadow-tonal)' }}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'var(--primary-fixed)' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{agent.icon}</span>
                     </div>
-                  </div>
-                  {isDone && <CheckCircle2 size={18} className="text-green-500 flex-shrink-0" />}
-                  {isRunning && <Loader2 size={18} className="animate-spin flex-shrink-0" style={{ color: info.color }} />}
-                  {isFailed && <AlertCircle size={18} className="text-red-400 flex-shrink-0" />}
-                </div>
-
-                {/* Output summary */}
-                {isDone && job?.output && (
-                  <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3 space-y-1">
-                    {type === 'evidence' && (
-                      <>
-                        <p>📋 {(job.output as any).exhibits?.length || 0} exhibits</p>
-                        <p>⚠️ {(job.output as any).contradictions?.length || 0} contradictions</p>
-                        <p>👥 {(job.output as any).witnesses?.length || 0} witnesses</p>
-                      </>
-                    )}
-                    {type === 'timeline' && (
-                      <>
-                        <p>📅 {(job.output as any).events?.length || 0} events</p>
-                        <p>🚨 {(job.output as any).prosecution_gaps?.length || 0} prosecution gaps</p>
-                      </>
-                    )}
-                    {type === 'research' && (
-                      <>
-                        <p>⚖️ {(job.output as any).applicable_statutes?.length || 0} statutes</p>
-                        <p>✅ {(job.output as any).favorable_precedents?.length || 0} favourable precedents</p>
-                      </>
-                    )}
-                    {type === 'strategy' && (job.output as any).sentiment && (
-                      <>
-                        <p>📊 Sentiment: <strong style={{ color: (job.output as any).sentiment.label === 'Favorable' ? '#10B981' : (job.output as any).sentiment.label === 'Unfavorable' ? '#EF4444' : '#F59E0B' }}>
-                          {(job.output as any).sentiment.label} ({(job.output as any).sentiment.score}/100)
-                        </strong></p>
-                        <p>💬 {(job.output as any).bench_questions?.length || 0} bench questions</p>
-                      </>
-                    )}
-                    {job.cost_inr && <p className="text-gray-400">Cost: ₹{Number(job.cost_inr).toFixed(2)}</p>}
-                  </div>
-                )}
-
-                {isFailed && (
-                  <div className="text-xs text-red-600 bg-red-50 rounded-lg p-3">
-                    {job.error_message || 'Agent failed. Please retry.'}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 mt-auto">
-                  {canRunAgents() && (
-                    <button
-                      onClick={() => runAgent.mutate(type)}
-                      disabled={isRunning}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-40"
-                      style={{ backgroundColor: info.color }}>
-                      {isRunning
-                        ? <><Loader2 size={14} className="animate-spin" /> Running...</>
-                        : isDone
-                          ? <><Play size={14} /> Re-run</>
-                          : <><Play size={14} /> Run</>
-                      }
-                    </button>
-                  )}
-                  {isDone && (
-                    <button
-                      onClick={() => agentsApi.promote(token!, job.id)}
-                      className="flex items-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50">
-                      <ArrowRight size={14} />
-                      To Draft
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Tab: Hearings */}
-      {activeTab === 'hearings' && (
-        <HearingsTab caseId={id!} token={token!} hearings={c.hearings || []} onRefresh={() => qc.invalidateQueries({ queryKey: ['case', id] })} />
-      )}
-
-      {/* Tab: Drafts */}
-      {activeTab === 'drafts' && (
-        <DraftsTab caseId={id!} token={token!} onRefresh={() => qc.invalidateQueries({ queryKey: ['case', id] })} />
-      )}
-    </div>
-  );
-}
-
-// ── Hearings Tab Component ────────────────────────────────────
-const HEARING_PURPOSES = [
-  { value: 'framing_of_charges', label: 'Framing of Charges' },
-  { value: 'bail', label: 'Bail' },
-  { value: 'arguments', label: 'Arguments' },
-  { value: 'judgment', label: 'Judgment' },
-  { value: 'evidence', label: 'Evidence' },
-  { value: 'examination', label: 'Examination' },
-  { value: 'cross_examination', label: 'Cross Examination' },
-  { value: 'interim_order', label: 'Interim Order' },
-  { value: 'return_of_summons', label: 'Return of Summons' },
-  { value: 'misc', label: 'Misc' },
-];
-
-function HearingsTab({ caseId, token, hearings, onRefresh }: {
-  caseId: string; token: string; hearings: any[]; onRefresh: () => void;
-}) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [showOutcome, setShowOutcome] = useState<string | null>(null);
-  const [form, setForm] = useState({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
-  const [outcomeForm, setOutcomeForm] = useState({ outcome: '', order_summary: '', next_hearing_date: '' });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const sorted = [...hearings].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const upcoming = sorted.filter(h => !h.outcome && new Date(h.date) >= new Date());
-  const past = sorted.filter(h => h.outcome || new Date(h.date) < new Date());
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true); setError('');
-    try {
-      await hearingsApi.create(token, {
-        case_id: caseId,
-        date: form.date,
-        time: form.time || undefined,
-        purpose: form.purpose as any,
-        court_room: form.court_room || undefined,
-        judge_name: form.judge_name || undefined,
-        client_instruction: form.client_instruction || undefined,
-      });
-      setShowAdd(false);
-      setForm({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
-      onRefresh();
-    } catch (err: any) { setError(err.message); }
-    finally { setSaving(false); }
-  };
-
-  const handleOutcome = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!showOutcome) return;
-    setSaving(true); setError('');
-    try {
-      await hearingsApi.recordOutcome(token, showOutcome, {
-        outcome: outcomeForm.outcome,
-        order_summary: outcomeForm.order_summary || undefined,
-        next_hearing_date: outcomeForm.next_hearing_date || undefined,
-      });
-      setShowOutcome(null);
-      setOutcomeForm({ outcome: '', order_summary: '', next_hearing_date: '' });
-      onRefresh();
-    } catch (err: any) { setError(err.message); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{upcoming.length} upcoming · {past.length} past</p>
-        </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-white"
-          style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-          <Plus size={14} /> Add Hearing
-        </button>
-      </div>
-
-      {/* Add hearing form */}
-      {showAdd && (
-        <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
-          <h3 className="font-semibold text-gray-900 mb-4">New Hearing</h3>
-          <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
-              <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Time (IST)</label>
-              <input type="time" value={form.time} onChange={e => setForm({ ...form, time: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Purpose *</label>
-              <select value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {HEARING_PURPOSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Court Room</label>
-              <input type="text" value={form.court_room} onChange={e => setForm({ ...form, court_room: e.target.value })}
-                placeholder="e.g. Court No. 5" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Judge Name</label>
-              <input type="text" value={form.judge_name} onChange={e => setForm({ ...form, judge_name: e.target.value })}
-                placeholder="Hon. Justice ..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Client Instruction</label>
-              <input type="text" value={form.client_instruction} onChange={e => setForm({ ...form, client_instruction: e.target.value })}
-                placeholder="e.g. Bring all original documents" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            {error && <p className="sm:col-span-2 text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-            <div className="sm:col-span-2 flex gap-2">
-              <button type="submit" disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-60"
-                style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                {saving ? 'Saving...' : 'Add Hearing'}
-              </button>
-              <button type="button" onClick={() => setShowAdd(false)}
-                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Upcoming hearings */}
-      {upcoming.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Upcoming</p>
-          </div>
-          {upcoming.map((h: any) => {
-            const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-            return (
-              <div key={h.id} className="px-5 py-4 border-b border-gray-50 last:border-0">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-gray-900 text-sm">
-                        {new Date(h.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                        {h.time && <span className="text-gray-400 font-normal ml-1">{h.time} IST</span>}
-                      </p>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${daysUntil <= 1 ? 'bg-red-100 text-red-700' : daysUntil <= 7 ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TOMORROW' : `in ${daysUntil}d`}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-gray-500">
-                      <span className="capitalize">{h.purpose?.replace(/_/g, ' ')}</span>
-                      {h.court_room && <span>Room: {h.court_room}</span>}
-                      {h.judge_name && <span>Judge: {h.judge_name}</span>}
-                    </div>
-                    {h.client_instruction && (
-                      <p className="text-xs text-blue-600 mt-1">📋 Client: {h.client_instruction}</p>
+                    {lastRun?.status === 'completed' && (
+                      <span className="text-xs font-bold px-2 py-0.5" style={{ background: '#dcfce7', color: '#15803d', borderRadius: '2px', fontSize: '9px' }}>DONE</span>
                     )}
                   </div>
-                  <button
-                    onClick={() => { setShowOutcome(h.id); setOutcomeForm({ outcome: '', order_summary: '', next_hearing_date: '' }); }}
-                    className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-white rounded-lg"
-                    style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                    Record Outcome
+                  <h3 className="font-serif font-bold text-base mb-1" style={{ color: 'var(--primary)' }}>{agent.label}</h3>
+                  <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--on-surface-variant)' }}>{agent.desc}</p>
+                  <button onClick={() => handleRunAgent(agent.type)} disabled={!!runningAgent}
+                    className="w-full py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all hover:opacity-80"
+                    style={{ background: isRunning ? 'var(--surface-container)' : 'var(--primary)', color: isRunning ? 'var(--on-surface-variant)' : '#fff', borderRadius: '6px', opacity: runningAgent && !isRunning ? 0.5 : 1 }}>
+                    {isRunning ? (
+                      <><span className="material-symbols-outlined animate-spin" style={{ fontSize: '16px' }}>refresh</span> Running...</>
+                    ) : (
+                      <><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>play_arrow</span> Run Agent</>
+                    )}
                   </button>
                 </div>
-                {/* Outcome form inline */}
-                {showOutcome === h.id && (
-                  <form onSubmit={handleOutcome} className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">What happened? *</label>
-                      <input type="text" required value={outcomeForm.outcome}
-                        onChange={e => setOutcomeForm({ ...outcomeForm, outcome: e.target.value })}
-                        placeholder="e.g. Arguments heard, next date given" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Order Summary</label>
-                        <input type="text" value={outcomeForm.order_summary}
-                          onChange={e => setOutcomeForm({ ...outcomeForm, order_summary: e.target.value })}
-                          placeholder="Brief order summary" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Next Hearing Date</label>
-                        <input type="date" value={outcomeForm.next_hearing_date}
-                          onChange={e => setOutcomeForm({ ...outcomeForm, next_hearing_date: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                    </div>
-                    {error && <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-                    <div className="flex gap-2">
-                      <button type="submit" disabled={saving}
-                        className="px-3 py-1.5 text-xs font-medium text-white rounded-lg disabled:opacity-60"
-                        style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                        {saving ? 'Saving...' : 'Save Outcome'}
-                      </button>
-                      <button type="button" onClick={() => setShowOutcome(null)}
-                        className="px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Past hearings */}
-      {past.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Past</p>
+              );
+            })}
           </div>
-          {[...past].reverse().map((h: any) => (
-            <div key={h.id} className="px-5 py-4 border-b border-gray-50 last:border-0">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-700">
-                    {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    {h.time && <span className="text-gray-400 ml-1">{h.time}</span>}
-                    <span className="ml-2 text-xs text-gray-400 capitalize">{h.purpose?.replace(/_/g, ' ')}</span>
-                  </p>
-                  {h.outcome && <p className="text-xs text-gray-600 mt-0.5">{h.outcome}</p>}
-                  {h.order_summary && <p className="text-xs text-gray-400 mt-0.5 italic">{h.order_summary}</p>}
-                </div>
+
+          {/* Agent history */}
+          {agents.length > 0 && (
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>RUN HISTORY</p>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {hearings.length === 0 && !showAdd && (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <Calendar size={36} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 text-sm">No hearings scheduled yet</p>
-          <button onClick={() => setShowAdd(true)} className="mt-3 text-sm text-blue-600 hover:underline">
-            + Schedule first hearing
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// ── Tasks Tab Component ───────────────────────────────────────
-const PRIORITY_COLORS: Record<string, string> = {
-  urgent: 'bg-red-100 text-red-700',
-  high: 'bg-orange-100 text-orange-700',
-  normal: 'bg-gray-100 text-gray-600',
-  low: 'bg-green-100 text-green-700',
-};
-
-function TasksTab({ caseId, token, tasks, onRefresh }: {
-  caseId: string; token: string; tasks: any[]; onRefresh: () => void;
-}) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', priority: 'normal', due_date: '' });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const activeTasks = tasks.filter(t => t.status !== 'cancelled' && t.status !== 'done');
-  const doneTasks = tasks.filter(t => t.status === 'done');
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true); setError('');
-    try {
-      await tasksApi.create(token, {
-        case_id: caseId,
-        title: form.title,
-        description: form.description || undefined,
-        priority: form.priority,
-        due_date: form.due_date || undefined,
-      });
-      setShowAdd(false);
-      setForm({ title: '', description: '', priority: 'normal', due_date: '' });
-      onRefresh();
-    } catch (err: any) { setError(err.message); }
-    finally { setSaving(false); }
-  };
-
-  const toggleDone = async (task: any) => {
-    const newStatus = task.status === 'done' ? 'todo' : 'done';
-    try {
-      await tasksApi.update(token, task.id, { status: newStatus });
-      onRefresh();
-    } catch {}
-  };
-
-  const isOverdue = (task: any) => task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{activeTasks.length} active · {doneTasks.length} done</p>
-        <button onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-white"
-          style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-          <Plus size={14} /> Add Task
-        </button>
-      </div>
-
-      {showAdd && (
-        <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
-          <h3 className="font-semibold text-gray-900 mb-4">New Task</h3>
-          <form onSubmit={handleAdd} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Task title *</label>
-              <input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-                placeholder="e.g. File written arguments" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
-                <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Due date</label>
-                <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-              <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-                placeholder="Optional details" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            {error && <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-60"
-                style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                {saving ? 'Saving...' : 'Add Task'}
-              </button>
-              <button type="button" onClick={() => setShowAdd(false)}
-                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Active tasks */}
-      {activeTasks.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
-          {activeTasks.map((task: any) => (
-            <div key={task.id} className="flex items-start gap-3 px-5 py-4">
-              <button onClick={() => toggleDone(task)} className="mt-0.5 flex-shrink-0">
-                <Square size={18} className="text-gray-300 hover:text-blue-500 transition-colors" />
-              </button>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${isOverdue(task) ? 'text-red-700' : 'text-gray-900'}`}>{task.title}</p>
-                {task.description && <p className="text-xs text-gray-400 mt-0.5">{task.description}</p>}
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_COLORS[task.priority]}`}>
-                    {task.priority}
+              {agents.slice(0, 10).map((job: any) => (
+                <div key={job.id} className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold capitalize" style={{ color: 'var(--on-surface)' }}>
+                      {job.agent_type} Analysis
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+                      {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      {job.cost_inr && ` · ₹${Number(job.cost_inr).toFixed(2)}`}
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold px-2 py-0.5"
+                    style={{
+                      background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? 'var(--error-container)' : 'var(--secondary-fixed)',
+                      color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? 'var(--on-error-container)' : 'var(--on-secondary-container)',
+                      borderRadius: '2px', fontSize: '9px',
+                    }}>
+                    {job.status.toUpperCase()}
                   </span>
-                  {task.due_date && (
-                    <span className={`text-xs ${isOverdue(task) ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
-                      {isOverdue(task) ? '⚠ ' : ''}Due {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                    </span>
-                  )}
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
-      {/* Done tasks (collapsed) */}
-      {doneTasks.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50 opacity-60">
-          <div className="px-5 py-3 bg-gray-50">
-            <p className="text-xs font-semibold text-gray-400 uppercase">Completed ({doneTasks.length})</p>
+      {/* ──────────── DRAFTS TAB ─────────────────────────────── */}
+      {activeTab === 'drafts' && (
+        <div className="fade-up">
+          <div className="rounded-2xl p-10 text-center"
+            style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+            <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>history_edu</span>
+            <p className="font-serif font-bold text-lg mb-1" style={{ color: 'var(--primary)' }}>Drafting Workspace</p>
+            <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
+              Run an AI agent and click "To Draft" to create an editable document with TipTap
+            </p>
           </div>
-          {doneTasks.slice(0, 5).map((task: any) => (
-            <div key={task.id} className="flex items-center gap-3 px-5 py-3">
-              <button onClick={() => toggleDone(task)} className="flex-shrink-0">
-                <CheckSquare size={18} className="text-green-500" />
-              </button>
-              <p className="text-sm text-gray-400 line-through">{task.title}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tasks.length === 0 && !showAdd && (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <CheckSquare size={36} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 text-sm">No tasks yet</p>
-          <button onClick={() => setShowAdd(true)} className="mt-3 text-sm text-blue-600 hover:underline">
-            + Add first task
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-// ── Drafts Tab Component ──────────────────────────────────────
-const DOC_TYPE_OPTIONS = [
-  { value: 'petition', label: 'Petition' },
-  { value: 'written_statement', label: 'Written Statement' },
-  { value: 'affidavit', label: 'Affidavit' },
-  { value: 'vakalatnama', label: 'Vakalatnama' },
-  { value: 'bail_application', label: 'Bail Application' },
-  { value: 'opening_statement', label: 'Opening Statement' },
-  { value: 'memo_of_appeal', label: 'Memo of Appeal' },
-  { value: 'legal_notice', label: 'Legal Notice' },
-  { value: 'reply_notice', label: 'Reply Notice' },
-  { value: 'other', label: 'Other' },
-];
-
-function DraftsTab({ caseId, token, onRefresh }: { caseId: string; token: string; onRefresh: () => void }) {
-  const [selectedDraft, setSelectedDraft] = useState<any | null>(null);
-  const [showNew, setShowNew] = useState(false);
-  const [newForm, setNewForm] = useState({ title: '', doc_type: 'other' });
-  const [creating, setCreating] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const qc = useQueryClient();
-
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['drafts', caseId],
-    queryFn: () => draftsApi.listForCase(token, caseId),
-    enabled: !!token,
-  });
-
-  const { data: draftDetail, refetch: refetchDetail } = useQuery({
-    queryKey: ['draft', selectedDraft?.id],
-    queryFn: () => draftsApi.get(token, selectedDraft!.id),
-    enabled: !!selectedDraft?.id,
-  });
-
-  const drafts: any[] = (data as any)?.data || [];
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreating(true);
-    try {
-      const res = await draftsApi.create(token, { case_id: caseId, ...newForm });
-      const newDraft = (res as any).data;
-      await refetch();
-      setShowNew(false);
-      setNewForm({ title: '', doc_type: 'other' });
-      setSelectedDraft(newDraft);
-    } catch {}
-    setCreating(false);
-  };
-
-  const handleDelete = async (draftId: string) => {
-    if (!confirm('Delete this draft?')) return;
-    setDeleting(draftId);
-    await draftsApi.delete(token, draftId);
-    if (selectedDraft?.id === draftId) setSelectedDraft(null);
-    await refetch();
-    setDeleting(null);
-  };
-
-  if (selectedDraft) {
-    const draft = draftDetail?.data as any || selectedDraft;
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSelectedDraft(null)}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
-            ← All drafts
-          </button>
-          <span className="text-gray-300">·</span>
-          <span className="text-sm font-medium text-gray-700 truncate">{draft.title}</span>
-          <span className="text-xs text-gray-400">v{draft.version}</span>
-          {draft.word_count > 0 && <span className="text-xs text-gray-400">{draft.word_count} words</span>}
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <DraftEditor
-            draftId={draft.id}
-            caseId={caseId}
-            initialContent={draft.content}
-            title={draft.title}
-            token={token}
-            onSave={() => refetchDetail()}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{drafts.length} draft{drafts.length !== 1 ? 's' : ''}</p>
-        <button onClick={() => setShowNew(!showNew)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-white"
-          style={{ backgroundColor: '#1E3A5F' }}>
-          <Plus size={14} /> New Draft
-        </button>
-      </div>
-
-      {showNew && (
-        <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
-          <h3 className="font-semibold text-gray-900 mb-4">New Draft</h3>
-          <form onSubmit={handleCreate} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Title *</label>
-              <input type="text" required value={newForm.title} onChange={e => setNewForm({ ...newForm, title: e.target.value })}
-                placeholder="e.g. Bail Application — State vs Ramesh" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Document Type</label>
-              <select value={newForm.doc_type} onChange={e => setNewForm({ ...newForm, doc_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {DOC_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={creating}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-60"
-                style={{ backgroundColor: '#1E3A5F' }}>
-                {creating ? 'Creating...' : 'Create Draft'}
-              </button>
-              <button type="button" onClick={() => setShowNew(false)}
-                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
-        </div>
-      ) : drafts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <FileText size={36} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 text-sm">No drafts yet</p>
-          <p className="text-xs text-gray-400 mt-1">Run an agent and click "To Draft", or create a blank draft above</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
-          {drafts.map((draft: any) => (
-            <div key={draft.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors group">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <FileText size={16} style={{ color: '#1E3A5F' }} />
-              </div>
-              <button onClick={() => setSelectedDraft(draft)} className="flex-1 min-w-0 text-left">
-                <p className="font-medium text-gray-900 text-sm truncate">{draft.title}</p>
-                <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
-                  <span className="capitalize">{draft.doc_type?.replace(/_/g, ' ')}</span>
-                  <span>·</span><span>v{draft.version}</span>
-                  {draft.word_count > 0 && <><span>·</span><span>{draft.word_count} words</span></>}
-                  <span>·</span>
-                  <span>{new Date(draft.last_modified_at || draft.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
-                </div>
-              </button>
-              <button onClick={() => handleDelete(draft.id)} disabled={deleting === draft.id}
-                className="p-1.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50">
-                <Trash2 size={14} />
-              </button>
-              <button onClick={() => setSelectedDraft(draft)}
-                className="px-3 py-1.5 text-xs font-medium text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                style={{ backgroundColor: '#1E3A5F' }}>
-                Open
-              </button>
-            </div>
-          ))}
         </div>
       )}
     </div>
