@@ -118,7 +118,7 @@ export default function CasesPage() {
 
       {/* Cases list */}
       {isLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxWidth: '780px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '780px' }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} style={{ height: '84px', borderRadius: '16px', background: '#edeef0' }} />
           ))}
@@ -143,15 +143,15 @@ export default function CasesPage() {
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxWidth: '780px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '780px' }}>
           {cases.map((c: any) => {
             const ss = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
             return (
               <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
                 <div style={{
-                  background: '#fff', borderRadius: '9px', padding: '10px 14px',
-                  border: '1px solid rgba(196,198,207,0.2)',
-                  boxShadow: '0px 1px 3px rgba(2,36,72,0.03)',
+                  background: '#fff', borderRadius: '10px', padding: '14px 16px',
+                  border: '1px solid rgba(196,198,207,0.18)',
+                  boxShadow: '0px 1px 4px rgba(2,36,72,0.05)',
                   display: 'flex', alignItems: 'center', gap: '12px',
                   cursor: 'pointer',
                 }}>

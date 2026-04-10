@@ -112,7 +112,7 @@ export default function DashboardPage() {
 
       {/* ── Upcoming Hearings ────────────────────────────── */}
       <section style={{ marginBottom: '40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#191c1e', margin: 0 }}>
             Upcoming Hearings
           </h2>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {isLoading ? (
             Array.from({ length: 2 }).map((_, i) => (
               <div key={i} style={{ height: '80px', borderRadius: '16px', background: '#edeef0', animation: 'pulse 2s infinite' }} />
@@ -137,18 +137,18 @@ export default function DashboardPage() {
               return (
                 <Link key={h.id} href={`/cases/${h.case?.id}`} style={{ textDecoration: 'none' }}>
                   <div style={{
-                    background: '#fff', borderRadius: '9px', padding: '10px 14px',
-                    border: '1px solid rgba(196,198,207,0.2)',
-                    boxShadow: '0px 1px 3px rgba(2,36,72,0.04)',
-                    display: 'flex', gap: '14px', alignItems: 'center',
-                    cursor: 'pointer',
+                    background: '#fff', borderRadius: '10px', padding: '14px 16px',
+                    border: '1px solid rgba(196,198,207,0.18)',
+                    boxShadow: '0px 1px 4px rgba(2,36,72,0.05)',
+                    display: 'flex', gap: '16px', alignItems: 'center',
+                    cursor: 'pointer', maxWidth: '780px',
                   }}>
                     {/* Date column */}
                     <div style={{ textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '14px', minWidth: '40px', flexShrink: 0 }}>
                       <div style={{ fontSize: '9px', fontWeight: 800, color: isUrgent ? '#ba1a1a' : '#74777f', textTransform: 'uppercase' }}>
                         {new Date(h.date).toLocaleDateString('en-IN', { month: 'short' })}
                       </div>
-                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: isUrgent ? '#ba1a1a' : '#022448', lineHeight: 1 }}>
+                      <div style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: isUrgent ? '#ba1a1a' : '#022448', lineHeight: 1 }}>
                         {new Date(h.date).getDate()}
                       </div>
                     </div>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
 
       {/* ── Recent Cases ─────────────────────────────────── */}
       <section>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#191c1e', margin: 0 }}>
             Recent Cases
           </h2>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} style={{ height: '80px', borderRadius: '16px', background: '#edeef0' }} />
@@ -225,7 +225,7 @@ export default function DashboardPage() {
               const statusStyle = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
               return (
                 <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ background: '#fff', borderRadius: '9px', padding: '10px 14px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0px 1px 3px rgba(2,36,72,0.04)', cursor: 'pointer' }}>
+                  <div style={{ background: '#fff', borderRadius: '10px', padding: '14px 16px', border: '1px solid rgba(196,198,207,0.18)', boxShadow: '0px 1px 4px rgba(2,36,72,0.05)', cursor: 'pointer', maxWidth: '780px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
