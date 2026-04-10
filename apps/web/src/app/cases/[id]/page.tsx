@@ -4,90 +4,128 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
-import { casesApi, hearingsApi, tasksApi, agentsApi, uploadDocument } from '@/lib/api';
 import Link from 'next/link';
+import {
+  MapPin, FileText, Gavel, CheckSquare, Square, Bot, BookOpen,
+  Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
+  Trash2, Play, RotateCcw, Info, Upload
+} from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  intake:          { bg: 'var(--surface-container)',  color: 'var(--on-surface-variant)' },
-  filed:           { bg: 'var(--primary-fixed)',      color: 'var(--on-primary-fixed)' },
-  pending_hearing: { bg: 'var(--secondary-fixed)',    color: 'var(--on-secondary-container)' },
-  arguments:       { bg: '#ede9fe',                   color: '#5b21b6' },
-  decided:         { bg: '#dcfce7',                   color: '#15803d' },
-  appeal:          { bg: 'var(--error-container)',    color: 'var(--on-error-container)' },
-  closed:          { bg: 'var(--surface-container-high)', color: 'var(--outline)' },
-};
-
 const TABS = [
-  { key: 'overview',   icon: 'info',          label: 'Overview' },
-  { key: 'documents',  icon: 'description',   label: 'Documents' },
-  { key: 'hearings',   icon: 'gavel',         label: 'Hearings' },
-  { key: 'tasks',      icon: 'task_alt',      label: 'Tasks' },
-  { key: 'agents',     icon: 'smart_toy',     label: 'Agents' },
-  { key: 'drafts',     icon: 'history_edu',   label: 'Drafts' },
+  { key: 'overview',   Icon: Info,        label: 'Overview' },
+  { key: 'documents',  Icon: FileText,    label: 'Documents' },
+  { key: 'hearings',   Icon: Gavel,       label: 'Hearings' },
+  { key: 'tasks',      Icon: CheckSquare, label: 'Tasks' },
+  { key: 'agents',     Icon: Bot,         label: 'Agents' },
+  { key: 'drafts',     Icon: BookOpen,    label: 'Drafts' },
 ] as const;
 
 const HEARING_PURPOSES = [
   { value: 'framing_of_charges', label: 'Framing of Charges' },
-  { value: 'bail',               label: 'Bail' },
-  { value: 'arguments',          label: 'Arguments' },
-  { value: 'judgment',           label: 'Judgment' },
-  { value: 'evidence',           label: 'Evidence' },
-  { value: 'examination',        label: 'Examination' },
-  { value: 'cross_examination',  label: 'Cross Examination' },
-  { value: 'interim_order',      label: 'Interim Order' },
-  { value: 'misc',               label: 'Misc' },
+  { value: 'bail', label: 'Bail' },
+  { value: 'arguments', label: 'Arguments' },
+  { value: 'judgment', label: 'Judgment' },
+  { value: 'evidence', label: 'Evidence' },
+  { value: 'examination', label: 'Examination' },
+  { value: 'cross_examination', label: 'Cross Examination' },
+  { value: 'interim_order', label: 'Interim Order' },
+  { value: 'misc', label: 'Misc' },
 ];
 
 const AGENTS = [
-  { type: 'evidence',   icon: 'search',          label: 'Evidence',   desc: 'Extract and analyse all evidence from documents' },
-  { type: 'timeline',   icon: 'timeline',        label: 'Timeline',   desc: 'Reconstruct chronological order of events' },
-  { type: 'research',   icon: 'menu_book',       label: 'Research',   desc: 'Find relevant Indian case law and statutes' },
-  { type: 'deposition', icon: 'record_voice_over',label: 'Deposition', desc: 'Analyse deposition transcripts, find inconsistencies' },
-  { type: 'strategy',   icon: 'psychology',      label: 'Strategy',   desc: 'Develop court strategy from all prior analysis' },
+  { type: 'evidence',   Icon: FileText,   label: 'Evidence',   desc: 'Extract and analyse all evidence from documents' },
+  { type: 'timeline',   Icon: RotateCcw,  label: 'Timeline',   desc: 'Reconstruct chronological order of events' },
+  { type: 'research',   Icon: BookOpen,   label: 'Research',   desc: 'Find relevant Indian case law and statutes' },
+  { type: 'deposition', Icon: FileText,   label: 'Deposition', desc: 'Analyse transcripts, find inconsistencies' },
+  { type: 'strategy',   Icon: Bot,        label: 'Strategy',   desc: 'Develop court strategy from all prior analysis' },
 ];
 
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  intake: { bg: '#edeef0', color: '#43474e' }, filed: { bg: '#d5e3ff', color: '#001c3b' },
+  pending_hearing: { bg: '#ffe088', color: '#745c00' }, arguments: { bg: '#ede9fe', color: '#5b21b6' },
+  decided: { bg: '#dcfce7', color: '#15803d' }, appeal: { bg: '#ffdad6', color: '#93000a' },
+  closed: { bg: '#e7e8ea', color: '#74777f' },
+};
+
 type TabKey = typeof TABS[number]['key'];
+
+const inp = (extra: React.CSSProperties = {}): React.CSSProperties => ({
+  width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.4)',
+  borderRadius: '6px', fontSize: '13px', color: '#191c1e', background: '#fff',
+  outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box', ...extra,
+});
+
+const btnPrimary: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '6px',
+  background: '#022448', color: '#fff', border: 'none', borderRadius: '6px',
+  padding: '9px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+  fontFamily: 'Manrope, sans-serif',
+};
+
+const btnGhost: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '6px',
+  background: 'transparent', color: '#74777f',
+  border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px',
+  padding: '9px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+  fontFamily: 'Manrope, sans-serif',
+};
+
+const lbl: React.CSSProperties = {
+  display: 'block', fontSize: '10px', fontWeight: 700,
+  color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px',
+};
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useAuthStore();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  // Hearing form state
+  // Hearing state
   const [showHearingForm, setShowHearingForm] = useState(false);
   const [showOutcome, setShowOutcome] = useState<string | null>(null);
-  const [hearingForm, setHearingForm] = useState({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
-  const [outcomeForm, setOutcomeForm] = useState({ outcome: '', order_summary: '', next_hearing_date: '' });
+  const [hf, setHf] = useState({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
+  const [of_, setOf_] = useState({ outcome: '', order_summary: '', next_hearing_date: '' });
 
-  // Task form state
+  // Task state
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [taskForm, setTaskForm] = useState({ title: '', priority: 'normal', due_date: '', description: '' });
+  const [tf, setTf] = useState({ title: '', priority: 'normal', due_date: '' });
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
 
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['case', id],
-    queryFn: () => casesApi.get(token!, id!),
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/v1/cases/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Case not found');
+      return (await res.json()).data;
+    },
     enabled: !!token && !!id,
   });
 
-  const c = (caseData as any)?.data;
+  const c = caseData as any;
   const refresh = () => qc.invalidateQueries({ queryKey: ['case', id] });
-  const statusStyle = STATUS_STYLES[c?.status] || STATUS_STYLES.intake;
+
+  const apiCall = async (url: string, method: string, body?: any) => {
+    const res = await fetch(`${BASE}${url}`, {
+      method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error((await res.json()).message || 'Request failed');
+    return res.json();
+  };
 
   const handleAddHearing = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      await hearingsApi.create(token!, { case_id: id!, ...hearingForm, purpose: hearingForm.purpose as any });
+      await apiCall('/v1/hearings', 'POST', { case_id: id, ...hf });
       setShowHearingForm(false);
-      setHearingForm({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
+      setHf({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
       refresh();
     } catch (err: any) { setError(err.message); }
     setSaving(false);
@@ -97,8 +135,8 @@ export default function CaseDetailPage() {
     e.preventDefault(); if (!showOutcome) return;
     setSaving(true); setError('');
     try {
-      await hearingsApi.recordOutcome(token!, showOutcome, outcomeForm);
-      setShowOutcome(null); setOutcomeForm({ outcome: '', order_summary: '', next_hearing_date: '' }); refresh();
+      await apiCall(`/v1/hearings/${showOutcome}/outcome`, 'PATCH', of_);
+      setShowOutcome(null); setOf_({ outcome: '', order_summary: '', next_hearing_date: '' }); refresh();
     } catch (err: any) { setError(err.message); }
     setSaving(false);
   };
@@ -106,161 +144,109 @@ export default function CaseDetailPage() {
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      await tasksApi.create(token!, { case_id: id!, ...taskForm });
-      setShowTaskForm(false); setTaskForm({ title: '', priority: 'normal', due_date: '', description: '' }); refresh();
+      await apiCall('/v1/tasks', 'POST', { case_id: id, ...tf });
+      setShowTaskForm(false); setTf({ title: '', priority: 'normal', due_date: '' }); refresh();
     } catch (err: any) { setError(err.message); }
     setSaving(false);
   };
 
+  const handleToggleTask = async (task: any) => {
+    try {
+      await apiCall(`/v1/tasks/${task.id}`, 'PATCH', { status: task.status === 'done' ? 'todo' : 'done' });
+      refresh();
+    } catch (err: any) { setError(err.message); }
+  };
+
   const handleRunAgent = async (agentType: string) => {
     if (!c) return;
-    setRunningAgent(agentType);
+    const docIds = (c.documents || []).filter((d: any) => d.processing_status === 'ready').map((d: any) => d.id);
+    if (docIds.length === 0) { setError('Upload and process at least one document before running agents.'); return; }
+    setRunningAgent(agentType); setError('');
     try {
-      const docIds = (c.documents || []).filter((d: any) => d.processing_status === 'ready').map((d: any) => d.id);
-      if (docIds.length === 0) { setError('Upload and process documents first before running agents.'); setRunningAgent(null); return; }
-      await agentsApi.run(token!, id!, agentType as any, {});
+      await apiCall('/v1/agents/run', 'POST', {
+        case_id: id, agent_type: agentType, doc_ids: docIds,
+        case_metadata: { title: c.title, case_type: c.case_type, court: c.court, perspective: c.perspective },
+      });
       refresh();
     } catch (err: any) { setError(err.message); }
     setRunningAgent(null);
   };
 
-  const handleToggleTask = async (task: any) => {
-    await tasksApi.update(token!, task.id, { status: task.status === 'done' ? 'todo' : 'done' });
-    refresh();
-  };
+  if (isLoading) return (
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ height: '120px', borderRadius: '20px', background: '#edeef0', marginBottom: '16px' }} />
+      <div style={{ height: '48px', borderRadius: '12px', background: '#edeef0', marginBottom: '16px' }} />
+      <div style={{ height: '300px', borderRadius: '20px', background: '#edeef0' }} />
+    </div>
+  );
 
-  if (isLoading) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-5">
-        <div className="h-32 rounded-2xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
-        <div className="h-12 rounded-xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
-        <div className="h-64 rounded-2xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
-      </div>
-    );
-  }
-
-  if (!c) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-16 text-center">
-        <p className="font-serif text-xl font-bold" style={{ color: 'var(--primary)' }}>Case not found</p>
-        <Link href="/cases" className="mt-4 inline-block text-sm font-bold" style={{ color: 'var(--secondary)' }}>← Back to Cases</Link>
-      </div>
-    );
-  }
+  if (!c) return (
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '60px 24px', textAlign: 'center' }}>
+      <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.4rem', color: '#022448' }}>Case not found</p>
+      <Link href="/cases" style={{ color: '#735c00', fontWeight: 700, fontSize: '14px' }}>← Back to Cases</Link>
+    </div>
+  );
 
   const hearings = c.hearings || [];
   const tasks = (c.tasks || []).filter((t: any) => t.status !== 'cancelled');
-  const agents = c.agent_jobs || [];
   const upcomingHearings = hearings.filter((h: any) => !h.outcome && new Date(h.date) >= new Date());
   const pastHearings = hearings.filter((h: any) => h.outcome || new Date(h.date) < new Date());
   const activeTasks = tasks.filter((t: any) => t.status !== 'done');
   const doneTasks = tasks.filter((t: any) => t.status === 'done');
+  const agents = c.agent_jobs || [];
+  const ss = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
 
-  // ── Shared sub-components ─────────────────────────────────
-  const inputStyle = {
-    background: 'var(--surface-container-lowest)',
-    border: '1px solid rgba(196,198,207,0.3)',
-    borderRadius: '4px',
-    color: 'var(--on-surface)',
-    outline: 'none',
-    fontSize: '13px',
-    padding: '8px 12px',
-    width: '100%',
-    fontFamily: 'Manrope, sans-serif',
+  const cardStyle: React.CSSProperties = {
+    background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.15)',
+    boxShadow: '0px 2px 12px rgba(2,36,72,0.05)',
   };
 
-  const labelStyle = {
-    display: 'block',
-    fontSize: '10px',
-    fontWeight: '700',
-    color: 'var(--on-surface-variant)',
-    letterSpacing: '0.06em',
-    marginBottom: '5px',
-    textTransform: 'uppercase' as const,
-  };
-
-  const btnPrimary = {
-    background: 'var(--primary)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    padding: '8px 16px',
-    fontSize: '12px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    fontFamily: 'Manrope, sans-serif',
-  };
-
-  const btnGhost = {
-    background: 'transparent',
-    color: 'var(--on-surface-variant)',
-    border: '1px solid rgba(196,198,207,0.3)',
-    borderRadius: '4px',
-    padding: '8px 16px',
-    fontSize: '12px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontFamily: 'Manrope, sans-serif',
+  const sectionHeader: React.CSSProperties = {
+    padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)',
+    fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: '#74777f', textTransform: 'uppercase',
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
 
-      {/* ── Case Header ─────────────────────────────────────── */}
-      <div className="rounded-2xl p-6 mb-6 fade-up"
-        style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', boxShadow: 'var(--shadow-tonal)' }}>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            {/* Type badge */}
-            <div className="flex items-center gap-2 mb-3 flex-wrap">
-              <span style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.1em', color: 'var(--secondary)', textTransform: 'uppercase' }}>
+      {/* ── Case Header ─────────────────────────────────── */}
+      <div style={{ ...cardStyle, padding: '24px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '9px', fontWeight: 800, color: '#735c00', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 {c.case_type?.replace(/_/g, ' ')}
               </span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ background: statusStyle.bg, color: statusStyle.color, fontSize: '10px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '99px', background: ss.bg, color: ss.color }}>
                 {c.status?.replace(/_/g, ' ')}
               </span>
               {c.priority !== 'normal' && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                  style={{
-                    background: c.priority === 'urgent' ? 'var(--error-container)' : 'var(--tertiary-fixed)',
-                    color: c.priority === 'urgent' ? 'var(--on-error-container)' : 'var(--tertiary)',
-                    fontSize: '10px',
-                  }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '99px',
+                  background: c.priority === 'urgent' ? '#ffdad6' : '#fdddb9',
+                  color: c.priority === 'urgent' ? '#93000a' : '#322109' }}>
                   {c.priority?.toUpperCase()}
                 </span>
               )}
             </div>
-            {/* Title */}
-            <h1 className="font-serif font-bold mb-2" style={{ fontSize: '1.6rem', color: 'var(--primary)', lineHeight: '1.25' }}>
+            <h1 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: '0 0 8px', lineHeight: 1.25 }}>
               {c.title}
             </h1>
-            {/* Court + CNR */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5" style={{ color: 'var(--on-surface-variant)', fontSize: '13px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>location_on</span>
-                {c.court}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#43474e', fontSize: '13px', flexWrap: 'wrap' }}>
+              <MapPin size={13} />
+              <span>{c.court}</span>
               {c.cnr_number && (
-                <>
-                  <span style={{ color: 'var(--outline-variant)' }}>·</span>
-                  <span className="font-mono" style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
-                    {c.cnr_number}
-                  </span>
-                </>
+                <><span style={{ color: '#c4c6cf' }}>·</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{c.cnr_number}</span></>
               )}
             </div>
           </div>
-
-          {/* Next hearing spotlight */}
           {c.next_hearing_date && (
-            <div className="flex-shrink-0 rounded-xl p-4 text-center"
-              style={{ background: 'var(--primary)', minWidth: '100px' }}>
-              <p style={{ fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.08em' }}>NEXT HEARING</p>
-              <p className="font-serif font-bold text-2xl mt-1" style={{ color: 'var(--secondary-fixed)', lineHeight: 1 }}>
+            <div style={{ background: '#022448', borderRadius: '12px', padding: '14px 18px', textAlign: 'center', flexShrink: 0 }}>
+              <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.08em', margin: '0 0 2px' }}>NEXT HEARING</p>
+              <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.8rem', color: '#ffe088', lineHeight: 1, margin: 0 }}>
                 {new Date(c.next_hearing_date).getDate()}
               </p>
-              <p style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.8)', margin: 0 }}>
                 {new Date(c.next_hearing_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
               </p>
             </div>
@@ -268,130 +254,122 @@ export default function CaseDetailPage() {
         </div>
       </div>
 
-      {/* ── Tabs ─────────────────────────────────────────────── */}
-      <div className="flex gap-1 mb-6 overflow-x-auto pb-1 fade-up fade-up-1">
-        {TABS.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap transition-all"
-            style={{
-              background: activeTab === tab.key ? 'var(--primary)' : 'var(--surface-container-lowest)',
-              color: activeTab === tab.key ? '#fff' : 'var(--on-surface-variant)',
-              fontWeight: activeTab === tab.key ? '700' : '500',
-              borderRadius: '6px',
-              border: activeTab === tab.key ? 'none' : '1px solid rgba(196,198,207,0.2)',
-              fontSize: '13px',
-            }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>{tab.icon}</span>
-            {tab.label}
+      {/* ── Tabs ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
+        {TABS.map(({ key, Icon, label }) => (
+          <button key={key} onClick={() => setActiveTab(key)} style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '9px 14px', border: 'none', borderRadius: '8px',
+            background: activeTab === key ? '#022448' : '#fff',
+            color: activeTab === key ? '#fff' : '#74777f',
+            fontWeight: activeTab === key ? 700 : 500, fontSize: '13px',
+            cursor: 'pointer', whiteSpace: 'nowrap',
+            border: activeTab === key ? 'none' : '1px solid rgba(196,198,207,0.25)',
+            fontFamily: 'Manrope, sans-serif',
+          } as any}>
+            <Icon size={14} />
+            {label}
           </button>
         ))}
       </div>
 
+      {/* Error banner */}
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-xl flex items-center gap-2 fade-up"
-          style={{ background: 'var(--error-container)', color: 'var(--on-error-container)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
-          <p className="text-sm font-medium">{error}</p>
-          <button onClick={() => setError('')} className="ml-auto">
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', marginBottom: '16px', color: '#93000a' }}>
+          <AlertCircle size={16} />
+          <span style={{ fontSize: '13px', fontWeight: 500 }}>{error}</span>
+          <button onClick={() => setError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#93000a' }}>✕</button>
         </div>
       )}
 
-      {/* ──────────── OVERVIEW TAB ────────────────────────── */}
+      {/* ─── OVERVIEW ───────────────────────────────────── */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 fade-up">
-          {/* Case details */}
-          <div className="rounded-2xl p-6"
-            style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-            <h3 className="font-serif font-bold text-base mb-4" style={{ color: 'var(--primary)' }}>Case Details</h3>
-            <div className="space-y-3">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div style={{ ...cardStyle, padding: '20px', gridColumn: 'span 2' }}>
+            <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 16px' }}>Case Details</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
               {[
-                { label: 'Court Level', value: c.court_level?.replace(/_/g, ' ') },
-                { label: 'Perspective', value: c.perspective },
-                { label: 'Judge', value: c.judge_name },
-                { label: 'Filed Date', value: c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : null },
-                { label: 'Priority', value: c.priority },
-              ].filter(item => item.value).map(item => (
-                <div key={item.label} className="flex justify-between items-start gap-4">
-                  <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {item.label}
-                  </span>
-                  <span className="text-sm font-medium text-right capitalize" style={{ color: 'var(--on-surface)' }}>
-                    {item.value}
-                  </span>
+                ['Court Level', c.court_level?.replace(/_/g, ' ')],
+                ['Perspective', c.perspective],
+                ['Judge', c.judge_name],
+                ['Priority', c.priority],
+                ['Filed Date', c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : null],
+                ['Status', c.status?.replace(/_/g, ' ')],
+              ].filter(([, v]) => v).map(([label, value]) => (
+                <div key={label as string}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 3px' }}>{label as string}</p>
+                  <p style={{ fontSize: '14px', color: '#191c1e', margin: 0, fontWeight: 500, textTransform: 'capitalize' }}>{value as string}</p>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Quick stats */}
-          <div className="space-y-3">
-            {[
-              { icon: 'description', label: 'Documents',  value: c._count?.documents || 0, href: null, color: 'var(--primary-fixed)', iconColor: 'var(--primary)' },
-              { icon: 'gavel',       label: 'Hearings',   value: hearings.length,           href: null, color: 'var(--secondary-fixed)', iconColor: 'var(--secondary)' },
-              { icon: 'task_alt',    label: 'Active Tasks', value: activeTasks.length,      href: null, color: 'var(--tertiary-fixed)', iconColor: 'var(--tertiary)' },
-              { icon: 'smart_toy',   label: 'Agent Runs', value: agents.length,             href: null, color: 'var(--surface-container)', iconColor: 'var(--on-surface-variant)' },
-            ].map(stat => (
-              <div key={stat.label} className="flex items-center gap-4 rounded-xl p-4"
-                style={{ background: stat.color }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: stat.iconColor }}>{stat.icon}</span>
-                <div>
-                  <p style={{ fontSize: '10px', fontWeight: '700', color: stat.iconColor, letterSpacing: '0.06em' }}>{stat.label.toUpperCase()}</p>
-                  <p className="font-serif font-bold text-xl" style={{ color: stat.iconColor }}>{stat.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {[
+            { label: 'Documents', value: c._count?.documents || 0, bg: '#d5e3ff', color: '#001c3b' },
+            { label: 'Hearings', value: hearings.length, bg: '#ffe088', color: '#745c00' },
+            { label: 'Active Tasks', value: activeTasks.length, bg: '#fdddb9', color: '#322109' },
+            { label: 'Agent Runs', value: agents.length, bg: '#edeef0', color: '#43474e' },
+          ].map(item => (
+            <div key={item.label} style={{ background: item.bg, borderRadius: '14px', padding: '18px', textAlign: 'center' }}>
+              <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '2.2rem', color: item.color, margin: 0 }}>{item.value}</p>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: item.color, opacity: 0.7, margin: '4px 0 0', letterSpacing: '0.06em' }}>{item.label.toUpperCase()}</p>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* ──────────── DOCUMENTS TAB ────────────────────────── */}
+      {/* ─── DOCUMENTS ──────────────────────────────────── */}
       {activeTab === 'documents' && (
-        <div className="fade-up">
+        <div>
           {/* Upload zone */}
-          <div className="rounded-2xl p-8 text-center mb-5"
-            style={{ border: '1.5px dashed rgba(196,198,207,0.4)', background: 'var(--surface-container-lowest)' }}>
-            <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>upload_file</span>
-            <p className="font-bold text-sm mb-1" style={{ color: 'var(--primary)' }}>Upload Documents</p>
-            <p className="text-xs mb-4" style={{ color: 'var(--on-surface-variant)' }}>FIR, Charge Sheet, Evidence, Deposition — PDF or Image, up to 50MB</p>
-            <label className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 cursor-pointer transition-all hover:opacity-80"
-              style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>attach_file</span>
-              Choose File
-              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
+          <div style={{ border: '2px dashed rgba(196,198,207,0.5)', borderRadius: '16px', padding: '40px', textAlign: 'center', marginBottom: '16px', background: '#fff' }}>
+            <Upload size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
+            <p style={{ fontWeight: 700, fontSize: '14px', color: '#022448', margin: '0 0 6px' }}>Upload Documents</p>
+            <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 16px' }}>FIR, Charge Sheet, Evidence, Deposition — PDF or Image up to 50MB</p>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', ...btnPrimary }}>
+              <Upload size={14} /> Choose File
+              <input type="file" style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !c) return;
+                setError('');
+                try {
+                  // Get presigned URL
+                  const presignRes = await fetch(`${BASE}/v1/documents/presign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ filename: file.name, mime_type: file.type, case_id: id, file_size_bytes: file.size }),
+                  });
+                  if (!presignRes.ok) throw new Error('Failed to get upload URL');
+                  const { data: { upload_url, s3_key } } = await presignRes.json();
+                  // Upload to S3
+                  await fetch(upload_url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+                  // Register document
+                  await apiCall('/v1/documents', 'POST', {
+                    case_id: id, filename: file.name, s3_key,
+                    mime_type: file.type, file_size_bytes: file.size,
+                  });
+                  refresh();
+                } catch (err: any) { setError(err.message); }
+              }} />
             </label>
           </div>
-
-          {/* Documents list */}
+          {/* Document list */}
           {(c.documents || []).length === 0 ? (
-            <div className="rounded-2xl p-8 text-center"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No documents uploaded yet</p>
+            <div style={{ ...cardStyle, padding: '32px', textAlign: 'center' }}>
+              <p style={{ color: '#74777f', fontSize: '14px' }}>No documents uploaded yet</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {(c.documents || []).map((doc: any) => (
-                <div key={doc.id} className="flex items-center gap-4 rounded-xl p-4"
-                  style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-                  <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '22px', color: 'var(--primary)' }}>
-                    {doc.mime_type?.includes('image') ? 'image' : 'description'}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate" style={{ color: 'var(--on-surface)' }}>{doc.filename}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {doc.doc_category && (
-                        <span className="text-xs" style={{ color: 'var(--secondary)', fontWeight: '700', fontSize: '10px' }}>
-                          {doc.doc_category?.replace(/_/g, ' ').toUpperCase()}
-                        </span>
-                      )}
-                      <span style={{ color: 'var(--outline-variant)', fontSize: '10px' }}>·</span>
-                      <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>
-                        {doc.processing_status === 'ready' ? '✓ Processed' :
-                         doc.processing_status === 'processing' ? '⟳ Processing...' :
-                         doc.processing_status === 'pending' ? '○ Pending OCR' : '⚠ Failed'}
+            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+              {(c.documents || []).map((doc: any, i: number) => (
+                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', borderBottom: i < c.documents.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
+                  <FileText size={20} color="#022448" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#191c1e', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.filename}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                      {doc.doc_category && <span style={{ fontSize: '9px', fontWeight: 800, color: '#735c00', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{doc.doc_category.replace(/_/g, ' ')}</span>}
+                      <span style={{ fontSize: '11px', color: doc.processing_status === 'ready' ? '#15803d' : doc.processing_status === 'processing' ? '#735c00' : '#74777f' }}>
+                        {doc.processing_status === 'ready' ? '✓ Processed' : doc.processing_status === 'processing' ? '⟳ Processing...' : doc.processing_status === 'pending' ? '○ Pending OCR' : '⚠ ' + doc.processing_status}
                       </span>
-                      {doc.page_count && <span style={{ fontSize: '11px', color: 'var(--outline)' }}>{doc.page_count}pp</span>}
+                      {doc.page_count && <span style={{ fontSize: '11px', color: '#74777f' }}>{doc.page_count}pp</span>}
                     </div>
                   </div>
                 </div>
@@ -401,98 +379,85 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ──────────── HEARINGS TAB ─────────────────────────── */}
+      {/* ─── HEARINGS ───────────────────────────────────── */}
       {activeTab === 'hearings' && (
-        <div className="space-y-4 fade-up">
-          <div className="flex items-center justify-between">
-            <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-              {upcomingHearings.length} upcoming · {pastHearings.length} past
-            </p>
-            <button onClick={() => setShowHearingForm(!showHearingForm)}
-              className="flex items-center gap-1.5 text-sm font-bold px-4 py-2 transition-all hover:opacity-80"
-              style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-              Schedule Hearing
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <p style={{ color: '#74777f', fontSize: '13px', margin: 0 }}>{upcomingHearings.length} upcoming · {pastHearings.length} past</p>
+            <button onClick={() => setShowHearingForm(!showHearingForm)} style={btnPrimary}>
+              <Plus size={14} /> Schedule Hearing
             </button>
           </div>
 
           {showHearingForm && (
-            <form onSubmit={handleAddHearing} className="rounded-2xl p-6 space-y-4"
-              style={{ background: 'var(--primary-fixed)', border: '1px solid rgba(2,36,72,0.1)' }}>
-              <h3 className="font-serif font-bold" style={{ color: 'var(--primary)' }}>New Hearing</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label style={labelStyle}>Date *</label><input type="date" required value={hearingForm.date} onChange={e => setHearingForm({ ...hearingForm, date: e.target.value })} style={inputStyle} /></div>
-                <div><label style={labelStyle}>Time (IST)</label><input type="time" value={hearingForm.time} onChange={e => setHearingForm({ ...hearingForm, time: e.target.value })} style={inputStyle} /></div>
+            <form onSubmit={handleAddHearing} style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 16px' }}>New Hearing</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div><label style={lbl}>Date *</label><input type="date" required value={hf.date} onChange={e => setHf({ ...hf, date: e.target.value })} style={inp()} /></div>
+                <div><label style={lbl}>Time (IST)</label><input type="time" value={hf.time} onChange={e => setHf({ ...hf, time: e.target.value })} style={inp()} /></div>
                 <div>
-                  <label style={labelStyle}>Purpose *</label>
-                  <select value={hearingForm.purpose} onChange={e => setHearingForm({ ...hearingForm, purpose: e.target.value })} style={{ ...inputStyle, appearance: 'none' }}>
+                  <label style={lbl}>Purpose *</label>
+                  <select value={hf.purpose} onChange={e => setHf({ ...hf, purpose: e.target.value })} style={inp({ appearance: 'none' } as any)}>
                     {HEARING_PURPOSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                 </div>
-                <div><label style={labelStyle}>Court Room</label><input type="text" value={hearingForm.court_room} onChange={e => setHearingForm({ ...hearingForm, court_room: e.target.value })} placeholder="e.g. Court No. 5" style={inputStyle} /></div>
-                <div><label style={labelStyle}>Judge Name</label><input type="text" value={hearingForm.judge_name} onChange={e => setHearingForm({ ...hearingForm, judge_name: e.target.value })} placeholder="Hon. Justice..." style={inputStyle} /></div>
-                <div><label style={labelStyle}>Client Instruction</label><input type="text" value={hearingForm.client_instruction} onChange={e => setHearingForm({ ...hearingForm, client_instruction: e.target.value })} placeholder="e.g. Bring originals" style={inputStyle} /></div>
+                <div><label style={lbl}>Court Room</label><input type="text" value={hf.court_room} onChange={e => setHf({ ...hf, court_room: e.target.value })} placeholder="e.g. Court No. 5" style={inp()} /></div>
+                <div><label style={lbl}>Judge Name</label><input type="text" value={hf.judge_name} onChange={e => setHf({ ...hf, judge_name: e.target.value })} placeholder="Hon. Justice..." style={inp()} /></div>
+                <div><label style={lbl}>Client Instruction</label><input type="text" value={hf.client_instruction} onChange={e => setHf({ ...hf, client_instruction: e.target.value })} placeholder="e.g. Bring originals" style={inp()} /></div>
               </div>
-              <div className="flex gap-2 pt-1">
+              <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
                 <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
-                  {saving ? 'Scheduling...' : 'Schedule Hearing'}
+                  {saving ? <><Loader2 size={13} className="animate-spin" /> Saving...</> : 'Schedule Hearing'}
                 </button>
                 <button type="button" onClick={() => setShowHearingForm(false)} style={btnGhost}>Cancel</button>
               </div>
             </form>
           )}
 
-          {/* Upcoming hearings */}
+          {/* Upcoming */}
           {upcomingHearings.length > 0 && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>UPCOMING</p>
-              </div>
+            <div style={{ ...cardStyle, overflow: 'hidden', marginBottom: '12px' }}>
+              <p style={sectionHeader}>UPCOMING</p>
               {upcomingHearings.map((h: any) => {
                 const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
                 const isUrgent = daysUntil <= 1;
                 return (
-                  <div key={h.id} className="px-5 py-4" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="font-bold text-sm" style={{ color: isUrgent ? 'var(--error)' : 'var(--on-surface)' }}>
+                  <div key={h.id} style={{ padding: '16px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, fontSize: '13px', color: isUrgent ? '#ba1a1a' : '#191c1e' }}>
                             {new Date(h.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                            {h.time && <span className="font-normal ml-2 text-xs" style={{ color: 'var(--on-surface-variant)' }}>{h.time} IST</span>}
                           </span>
-                          <span className="text-xs font-bold px-2 py-0.5"
-                            style={{ background: isUrgent ? 'var(--error)' : 'var(--primary)', color: '#fff', borderRadius: '2px', fontSize: '9px' }}>
+                          {h.time && <span style={{ fontSize: '12px', color: '#74777f' }}>{h.time} IST</span>}
+                          <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: isUrgent ? '#ba1a1a' : '#022448', color: '#fff', borderRadius: '2px', letterSpacing: '0.04em' }}>
                             {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TOMORROW' : `in ${daysUntil}d`}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--on-surface-variant)' }}>
-                          <span className="capitalize">{h.purpose?.replace(/_/g, ' ')}</span>
-                          {h.court_room && <><span>·</span><span>{h.court_room}</span></>}
-                          {h.judge_name && <><span>·</span><span>{h.judge_name}</span></>}
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#74777f', flexWrap: 'wrap' }}>
+                          <span style={{ textTransform: 'capitalize' }}>{h.purpose?.replace(/_/g, ' ')}</span>
+                          {h.court_room && <span>Room: {h.court_room}</span>}
+                          {h.judge_name && <span>{h.judge_name}</span>}
                         </div>
-                        {h.client_instruction && (
-                          <p className="text-xs mt-1" style={{ color: 'var(--secondary)' }}>
-                            📋 {h.client_instruction}
-                          </p>
-                        )}
+                        {h.client_instruction && <p style={{ fontSize: '12px', color: '#735c00', margin: '4px 0 0' }}>📋 {h.client_instruction}</p>}
                       </div>
                       {showOutcome !== h.id && (
-                        <button onClick={() => { setShowOutcome(h.id); setOutcomeForm({ outcome: '', order_summary: '', next_hearing_date: '' }); }}
-                          className="flex-shrink-0 text-xs font-bold px-3 py-1.5 transition-all hover:opacity-80"
-                          style={{ background: 'var(--primary)', color: '#fff', borderRadius: '4px' }}>
+                        <button onClick={() => { setShowOutcome(h.id); setOf_({ outcome: '', order_summary: '', next_hearing_date: '' }); }}
+                          style={{ ...btnPrimary, flexShrink: 0 }}>
                           Record Outcome
                         </button>
                       )}
                     </div>
                     {showOutcome === h.id && (
-                      <form onSubmit={handleOutcome} className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid rgba(196,198,207,0.1)' }}>
-                        <div><label style={labelStyle}>What happened? *</label><input type="text" required value={outcomeForm.outcome} onChange={e => setOutcomeForm({ ...outcomeForm, outcome: e.target.value })} placeholder="e.g. Arguments heard, next date given" style={inputStyle} /></div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div><label style={labelStyle}>Order Summary</label><input type="text" value={outcomeForm.order_summary} onChange={e => setOutcomeForm({ ...outcomeForm, order_summary: e.target.value })} placeholder="Brief summary" style={inputStyle} /></div>
-                          <div><label style={labelStyle}>Next Hearing Date</label><input type="date" value={outcomeForm.next_hearing_date} onChange={e => setOutcomeForm({ ...outcomeForm, next_hearing_date: e.target.value })} style={inputStyle} /></div>
+                      <form onSubmit={handleOutcome} style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(196,198,207,0.15)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                          <div><label style={lbl}>What happened? *</label><input type="text" required value={of_.outcome} onChange={e => setOf_({ ...of_, outcome: e.target.value })} placeholder="e.g. Arguments heard, next date given" style={inp()} /></div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div><label style={lbl}>Order Summary</label><input type="text" value={of_.order_summary} onChange={e => setOf_({ ...of_, order_summary: e.target.value })} placeholder="Brief summary" style={inp()} /></div>
+                            <div><label style={lbl}>Next Hearing Date</label><input type="date" value={of_.next_hearing_date} onChange={e => setOf_({ ...of_, next_hearing_date: e.target.value })} style={inp()} /></div>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                           <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
                             {saving ? 'Saving...' : 'Save Outcome'}
                           </button>
@@ -506,22 +471,19 @@ export default function CaseDetailPage() {
             </div>
           )}
 
-          {/* Past hearings */}
+          {/* Past */}
           {pastHearings.length > 0 && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', opacity: 0.7 }}>
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>PAST</p>
-              </div>
+            <div style={{ ...cardStyle, overflow: 'hidden', opacity: 0.75 }}>
+              <p style={sectionHeader}>PAST</p>
               {[...pastHearings].reverse().map((h: any) => (
-                <div key={h.id} className="flex items-start gap-3 px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
-                  <span className="material-symbols-outlined flex-shrink-0 mt-0.5" style={{ fontSize: '16px', color: '#16a34a' }}>check_circle</span>
+                <div key={h.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                  <CheckCircle2 size={16} color="#15803d" style={{ marginTop: '2px', flexShrink: 0 }} />
                   <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--on-surface-variant)' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#43474e', margin: 0 }}>
                       {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      <span className="ml-2 capitalize text-xs" style={{ color: 'var(--outline)' }}>{h.purpose?.replace(/_/g, ' ')}</span>
+                      <span style={{ marginLeft: '8px', fontSize: '11px', color: '#74777f', fontWeight: 400, textTransform: 'capitalize' }}>{h.purpose?.replace(/_/g, ' ')}</span>
                     </p>
-                    {h.outcome && <p className="text-xs mt-0.5" style={{ color: 'var(--on-surface-variant)' }}>{h.outcome}</p>}
+                    {h.outcome && <p style={{ fontSize: '12px', color: '#74777f', margin: '2px 0 0' }}>{h.outcome}</p>}
                   </div>
                 </div>
               ))}
@@ -529,45 +491,38 @@ export default function CaseDetailPage() {
           )}
 
           {hearings.length === 0 && !showHearingForm && (
-            <div className="rounded-2xl p-10 text-center"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>gavel</span>
-              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No hearings scheduled yet</p>
+            <div style={{ ...cardStyle, padding: '40px', textAlign: 'center' }}>
+              <Gavel size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
+              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>No hearings scheduled yet</p>
             </div>
           )}
         </div>
       )}
 
-      {/* ──────────── TASKS TAB ─────────────────────────────── */}
+      {/* ─── TASKS ──────────────────────────────────────── */}
       {activeTab === 'tasks' && (
-        <div className="space-y-4 fade-up">
-          <div className="flex items-center justify-between">
-            <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-              {activeTasks.length} active · {doneTasks.length} done
-            </p>
-            <button onClick={() => setShowTaskForm(!showTaskForm)}
-              className="flex items-center gap-1.5 text-sm font-bold px-4 py-2"
-              style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-              Add Task
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <p style={{ color: '#74777f', fontSize: '13px', margin: 0 }}>{activeTasks.length} active · {doneTasks.length} done</p>
+            <button onClick={() => setShowTaskForm(!showTaskForm)} style={btnPrimary}>
+              <Plus size={14} /> Add Task
             </button>
           </div>
 
           {showTaskForm && (
-            <form onSubmit={handleAddTask} className="rounded-2xl p-6 space-y-4"
-              style={{ background: 'var(--primary-fixed)', border: '1px solid rgba(2,36,72,0.1)' }}>
-              <h3 className="font-serif font-bold" style={{ color: 'var(--primary)' }}>New Task</h3>
-              <div><label style={labelStyle}>Title *</label><input type="text" required value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} placeholder="e.g. File written arguments" style={inputStyle} /></div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleAddTask} style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 16px' }}>New Task</h3>
+              <div style={{ marginBottom: '12px' }}><label style={lbl}>Title *</label><input type="text" required value={tf.title} onChange={e => setTf({ ...tf, title: e.target.value })} placeholder="e.g. File written arguments" style={inp()} /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
-                  <label style={labelStyle}>Priority</label>
-                  <select value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} style={{ ...inputStyle, appearance: 'none' }}>
-                    {['low','normal','high','urgent'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                  <label style={lbl}>Priority</label>
+                  <select value={tf.priority} onChange={e => setTf({ ...tf, priority: e.target.value })} style={inp({ appearance: 'none' } as any)}>
+                    {['low', 'normal', 'high', 'urgent'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
                   </select>
                 </div>
-                <div><label style={labelStyle}>Due Date</label><input type="date" value={taskForm.due_date} onChange={e => setTaskForm({ ...taskForm, due_date: e.target.value })} style={inputStyle} /></div>
+                <div><label style={lbl}>Due Date</label><input type="date" value={tf.due_date} onChange={e => setTf({ ...tf, due_date: e.target.value })} style={inp()} /></div>
               </div>
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Adding...' : 'Add Task'}
                 </button>
@@ -577,25 +532,22 @@ export default function CaseDetailPage() {
           )}
 
           {activeTasks.length > 0 && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
+            <div style={{ ...cardStyle, overflow: 'hidden', marginBottom: '12px' }}>
               {activeTasks.map((task: any) => {
                 const isOverdue = task.due_date && new Date(task.due_date) < new Date();
-                const prioColor = task.priority === 'urgent' ? 'var(--error)' : task.priority === 'high' ? '#c2410c' : task.priority === 'low' ? '#16a34a' : 'var(--on-surface-variant)';
+                const prioColor = task.priority === 'urgent' ? '#ba1a1a' : task.priority === 'high' ? '#c2410c' : task.priority === 'low' ? '#15803d' : '#74777f';
                 return (
-                  <div key={task.id} className="flex items-start gap-4 px-5 py-4" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
-                    <button onClick={() => handleToggleTask(task)} className="mt-0.5 flex-shrink-0 transition-opacity hover:opacity-70">
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--outline-variant)' }}>check_box_outline_blank</span>
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                    <button onClick={() => handleToggleTask(task)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0 }}>
+                      <Square size={18} color="#c4c6cf" />
                     </button>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold" style={{ color: isOverdue ? 'var(--error)' : 'var(--on-surface)' }}>{task.title}</p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span style={{ fontSize: '10px', fontWeight: '700', color: prioColor, textTransform: 'uppercase' }}>
-                          {task.priority}
-                        </span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: isOverdue ? '#ba1a1a' : '#191c1e', margin: '0 0 4px' }}>{task.title}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: prioColor, textTransform: 'uppercase' }}>{task.priority}</span>
                         {task.due_date && (
-                          <span style={{ fontSize: '11px', color: isOverdue ? 'var(--error)' : 'var(--on-surface-variant)', fontWeight: '600' }}>
-                            {isOverdue ? '⚠ ' : ''}Due {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          <span style={{ fontSize: '11px', color: isOverdue ? '#ba1a1a' : '#74777f', fontWeight: isOverdue ? 700 : 400 }}>
+                            {isOverdue ? '⚠ Overdue · ' : ''}Due {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                           </span>
                         )}
                       </div>
@@ -607,90 +559,76 @@ export default function CaseDetailPage() {
           )}
 
           {doneTasks.length > 0 && (
-            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', opacity: 0.55 }}>
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
-                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>COMPLETED ({doneTasks.length})</p>
-              </div>
+            <div style={{ ...cardStyle, overflow: 'hidden', opacity: 0.55 }}>
+              <p style={sectionHeader}>COMPLETED ({doneTasks.length})</p>
               {doneTasks.slice(0, 5).map((task: any) => (
-                <div key={task.id} className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.04)' }}>
-                  <button onClick={() => handleToggleTask(task)}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#16a34a' }}>check_box</span>
+                <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                  <button onClick={() => handleToggleTask(task)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
+                    <CheckCircle2 size={18} color="#15803d" />
                   </button>
-                  <p className="text-sm line-through" style={{ color: 'var(--outline)' }}>{task.title}</p>
+                  <p style={{ fontSize: '13px', color: '#74777f', textDecoration: 'line-through', margin: 0 }}>{task.title}</p>
                 </div>
               ))}
             </div>
           )}
 
           {tasks.length === 0 && !showTaskForm && (
-            <div className="rounded-2xl p-10 text-center"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>task_alt</span>
-              <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No tasks yet</p>
+            <div style={{ ...cardStyle, padding: '40px', textAlign: 'center' }}>
+              <CheckSquare size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
+              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>No tasks yet</p>
             </div>
           )}
         </div>
       )}
 
-      {/* ──────────── AGENTS TAB ─────────────────────────────── */}
+      {/* ─── AGENTS ─────────────────────────────────────── */}
       {activeTab === 'agents' && (
-        <div className="fade-up">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {AGENTS.map(agent => {
-              const isRunning = runningAgent === agent.type;
-              const lastRun = agents.find((j: any) => j.agent_type === agent.type);
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+            {AGENTS.map(({ type, Icon, label, desc }) => {
+              const isRunning = runningAgent === type;
+              const lastRun = agents.find((j: any) => j.agent_type === type);
               return (
-                <div key={agent.type} className="rounded-2xl p-5"
-                  style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', boxShadow: 'var(--shadow-tonal)' }}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'var(--primary-fixed)' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{agent.icon}</span>
+                <div key={type} style={{ ...cardStyle, padding: '18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={18} color="#022448" />
                     </div>
                     {lastRun?.status === 'completed' && (
-                      <span className="text-xs font-bold px-2 py-0.5" style={{ background: '#dcfce7', color: '#15803d', borderRadius: '2px', fontSize: '9px' }}>DONE</span>
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>
                     )}
                   </div>
-                  <h3 className="font-serif font-bold text-base mb-1" style={{ color: 'var(--primary)' }}>{agent.label}</h3>
-                  <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--on-surface-variant)' }}>{agent.desc}</p>
-                  <button onClick={() => handleRunAgent(agent.type)} disabled={!!runningAgent}
-                    className="w-full py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                    style={{ background: isRunning ? 'var(--surface-container)' : 'var(--primary)', color: isRunning ? 'var(--on-surface-variant)' : '#fff', borderRadius: '6px', opacity: runningAgent && !isRunning ? 0.5 : 1 }}>
-                    {isRunning ? (
-                      <><span className="material-symbols-outlined animate-spin" style={{ fontSize: '16px' }}>refresh</span> Running...</>
-                    ) : (
-                      <><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>play_arrow</span> Run Agent</>
-                    )}
+                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 4px' }}>{label}</h3>
+                  <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px', lineHeight: 1.5 }}>{desc}</p>
+                  <button onClick={() => handleRunAgent(type)} disabled={!!runningAgent} style={{
+                    ...btnPrimary, width: '100%', justifyContent: 'center',
+                    opacity: runningAgent && !isRunning ? 0.4 : 1,
+                    background: isRunning ? '#edeef0' : '#022448',
+                    color: isRunning ? '#43474e' : '#fff',
+                  }}>
+                    {isRunning ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Running...</> : <><Play size={13} /> Run Agent</>}
                   </button>
                 </div>
               );
             })}
           </div>
 
-          {/* Agent history */}
           {agents.length > 0 && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--on-surface-variant)' }}>RUN HISTORY</p>
-              </div>
-              {agents.slice(0, 10).map((job: any) => (
-                <div key={job.id} className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold capitalize" style={{ color: 'var(--on-surface)' }}>
-                      {job.agent_type} Analysis
-                    </p>
-                    <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+              <p style={sectionHeader}>RUN HISTORY</p>
+              {agents.slice(0, 8).map((job: any) => (
+                <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
+                    <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
                       {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      {job.cost_inr && ` · ₹${Number(job.cost_inr).toFixed(2)}`}
+                      {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
                     </p>
                   </div>
-                  <span className="text-xs font-bold px-2 py-0.5"
-                    style={{
-                      background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? 'var(--error-container)' : 'var(--secondary-fixed)',
-                      color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? 'var(--on-error-container)' : 'var(--on-secondary-container)',
-                      borderRadius: '2px', fontSize: '9px',
-                    }}>
+                  <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
+                    background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
+                    color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
+                  }}>
                     {job.status.toUpperCase()}
                   </span>
                 </div>
@@ -700,17 +638,12 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ──────────── DRAFTS TAB ─────────────────────────────── */}
+      {/* ─── DRAFTS ─────────────────────────────────────── */}
       {activeTab === 'drafts' && (
-        <div className="fade-up">
-          <div className="rounded-2xl p-10 text-center"
-            style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-            <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>history_edu</span>
-            <p className="font-serif font-bold text-lg mb-1" style={{ color: 'var(--primary)' }}>Drafting Workspace</p>
-            <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-              Run an AI agent and click "To Draft" to create an editable document with TipTap
-            </p>
-          </div>
+        <div style={{ ...cardStyle, padding: '48px', textAlign: 'center' }}>
+          <BookOpen size={36} color="#c4c6cf" style={{ marginBottom: '14px' }} />
+          <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>Drafting Workspace</p>
+          <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 20px' }}>Run an AI agent above, then click "To Draft" to create an editable legal document</p>
         </div>
       )}
     </div>

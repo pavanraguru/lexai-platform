@@ -4,18 +4,19 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
+import { FolderOpen, Plus, Search, FileText, CheckSquare, ChevronRight } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  intake:          { bg: 'var(--surface-container)',      color: 'var(--on-surface-variant)' },
-  filed:           { bg: 'var(--primary-fixed)',          color: 'var(--on-primary-fixed)' },
-  pending_hearing: { bg: 'var(--secondary-fixed)',        color: 'var(--on-secondary-container)' },
-  arguments:       { bg: '#ede9fe',                       color: '#5b21b6' },
-  reserved:        { bg: '#fff7ed',                       color: '#c2410c' },
-  decided:         { bg: '#dcfce7',                       color: '#15803d' },
-  appeal:          { bg: 'var(--error-container)',        color: 'var(--on-error-container)' },
-  closed:          { bg: 'var(--surface-container-high)', color: 'var(--outline)' },
+  intake:          { bg: '#edeef0', color: '#43474e' },
+  filed:           { bg: '#d5e3ff', color: '#001c3b' },
+  pending_hearing: { bg: '#ffe088', color: '#745c00' },
+  arguments:       { bg: '#ede9fe', color: '#5b21b6' },
+  reserved:        { bg: '#fff7ed', color: '#c2410c' },
+  decided:         { bg: '#dcfce7', color: '#15803d' },
+  appeal:          { bg: '#ffdad6', color: '#93000a' },
+  closed:          { bg: '#e7e8ea', color: '#74777f' },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -26,7 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const CASE_TYPE_LABELS: Record<string, string> = {
   criminal_sessions: 'Criminal', criminal_magistrate: 'Criminal (Mag)',
-  civil_district: 'Civil', writ_hc: 'Writ (HC)', corporate_nclt: 'Corporate (NCLT)',
+  civil_district: 'Civil', writ_hc: 'Writ (HC)', corporate_nclt: 'Corporate',
   family: 'Family', labour: 'Labour', ip: 'IP', tax: 'Tax',
   arbitration: 'Arbitration', consumer: 'Consumer',
 };
@@ -44,65 +45,70 @@ export default function CasesPage() {
       const res = await fetch(`${BASE}/v1/cases?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) return [];
       return (await res.json()).data || [];
     },
     enabled: !!token,
   });
 
   const cases: any[] = (data || []).filter((c: any) =>
-    !search || c.title?.toLowerCase().includes(search.toLowerCase()) ||
+    !search ||
+    c.title?.toLowerCase().includes(search.toLowerCase()) ||
     c.cnr_number?.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
+  const s: React.CSSProperties = {};
 
-      {/* ── Header ─────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-8 fade-up">
+  return (
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', fontFamily: 'Manrope, sans-serif' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 className="font-serif font-bold mb-1" style={{ fontSize: '2rem', color: 'var(--primary)' }}>
+          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: 0 }}>
             My Cases
           </h1>
-          <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-            {cases.length} matter{cases.length !== 1 ? 's' : ''}
+          <p style={{ color: '#74777f', fontSize: '14px', margin: '4px 0 0' }}>
+            {isLoading ? '...' : `${cases.length} matter${cases.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Link href="/cases/new"
-          className="flex items-center gap-2 text-sm font-bold px-4 py-2.5 transition-all hover:opacity-80"
-          style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+        <Link href="/cases/new" style={{
+          display: 'inline-flex', alignItems: 'center', gap: '6px',
+          background: '#022448', color: '#fff', fontWeight: 700, fontSize: '13px',
+          padding: '10px 18px', borderRadius: '6px', textDecoration: 'none',
+        }}>
+          <Plus size={15} />
           New Case
         </Link>
       </div>
 
-      {/* ── Filters ────────────────────────────────────────── */}
-      <div className="flex gap-3 mb-6 flex-wrap fade-up fade-up-1">
-        {/* Search */}
-        <div className="relative flex-1 min-w-48">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2"
-            style={{ fontSize: '18px', color: 'var(--outline)' }}>search</span>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <Search size={15} color="#74777f" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             placeholder="Search cases or CNR..."
-            className="w-full pl-10 pr-4 py-2.5 text-sm transition-colors"
             style={{
-              background: 'var(--surface-container-lowest)',
-              border: '1px solid rgba(196,198,207,0.3)',
-              borderRadius: '6px',
-              color: 'var(--on-surface)',
-              outline: 'none',
-            }} />
+              width: '100%', paddingLeft: '36px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '10px',
+              border: '1px solid rgba(196,198,207,0.4)', borderRadius: '8px',
+              fontSize: '13px', color: '#191c1e', background: '#fff', outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
         </div>
-
-        {/* Status filter */}
-        <select value={status} onChange={e => setStatus(e.target.value)}
-          className="text-sm font-medium py-2.5 px-3 transition-colors"
+        <select
+          value={status}
+          onChange={e => setStatus(e.target.value)}
           style={{
-            background: 'var(--surface-container-lowest)',
-            border: '1px solid rgba(196,198,207,0.3)',
-            borderRadius: '6px',
-            color: status ? 'var(--primary)' : 'var(--on-surface-variant)',
-            outline: 'none',
-          }}>
+            padding: '10px 12px', border: '1px solid rgba(196,198,207,0.4)',
+            borderRadius: '8px', fontSize: '13px', color: status ? '#022448' : '#74777f',
+            background: '#fff', outline: 'none', fontWeight: status ? 600 : 400,
+            fontFamily: 'Manrope, sans-serif',
+          }}
+        >
           <option value="">All Status</option>
           {Object.entries(STATUS_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
@@ -110,94 +116,101 @@ export default function CasesPage() {
         </select>
       </div>
 
-      {/* ── Cases List ─────────────────────────────────────── */}
+      {/* Cases list */}
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ background: 'var(--surface-container-low)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ height: '84px', borderRadius: '16px', background: '#edeef0' }} />
           ))}
         </div>
       ) : cases.length === 0 ? (
-        <div className="rounded-2xl p-12 text-center"
-          style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-          <span className="material-symbols-outlined mb-4 block" style={{ fontSize: '40px', color: 'var(--outline-variant)' }}>folder_shared</span>
-          <p className="font-serif font-bold text-lg mb-1" style={{ color: 'var(--primary)' }}>
+        <div style={{ background: '#fff', borderRadius: '20px', padding: '60px 24px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
+          <FolderOpen size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
+          <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>
             {search ? 'No matching cases' : 'No cases yet'}
           </p>
-          <p className="text-sm mb-5" style={{ color: 'var(--on-surface-variant)' }}>
+          <p style={{ color: '#74777f', fontSize: '14px', margin: '0 0 24px' }}>
             {search ? 'Try a different search term' : 'Create your first matter to get started'}
           </p>
           {!search && (
-            <Link href="/cases/new"
-              className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5"
-              style={{ background: 'var(--primary)', color: '#fff', borderRadius: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-              Create Case
+            <Link href="/cases/new" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              background: '#022448', color: '#fff', fontWeight: 700,
+              fontSize: '13px', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none',
+            }}>
+              <Plus size={15} /> Create Case
             </Link>
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {cases.map((c: any, i: number) => {
-            const statusStyle = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {cases.map((c: any) => {
+            const ss = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
             return (
-              <Link key={c.id} href={`/cases/${c.id}`}
-                className={`block rounded-2xl p-5 transition-all hover:shadow-lg group fade-up fade-up-${Math.min(i + 1, 5)}`}
-                style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)', boxShadow: 'var(--shadow-tonal)' }}>
-                <div className="flex items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* Type + Status row */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.08em', color: 'var(--secondary)', textTransform: 'uppercase' }}>
+              <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
+                <div style={{
+                  background: '#fff', borderRadius: '16px', padding: '18px 20px',
+                  border: '1px solid rgba(196,198,207,0.15)',
+                  boxShadow: '0px 2px 12px rgba(2,36,72,0.05)',
+                  display: 'flex', alignItems: 'flex-start', gap: '12px',
+                  cursor: 'pointer', transition: 'box-shadow 0.15s ease',
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Type + status row */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         {CASE_TYPE_LABELS[c.case_type] || c.case_type?.replace(/_/g, ' ')}
                       </span>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: statusStyle.bg, color: statusStyle.color, fontSize: '10px' }}>
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, padding: '2px 8px',
+                        borderRadius: '99px', background: ss.bg, color: ss.color,
+                      }}>
                         {STATUS_LABELS[c.status] || c.status}
                       </span>
                     </div>
                     {/* Title */}
-                    <h3 className="font-serif font-bold group-hover:opacity-80 transition-opacity"
-                      style={{ color: 'var(--primary)', fontSize: '17px', lineHeight: '1.3' }}>
+                    <div style={{
+                      fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '16px',
+                      color: '#022448', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
                       {c.title}
-                    </h3>
-                    {/* Metadata */}
-                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    </div>
+                    {/* Court + CNR */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '12px', color: '#43474e' }}>{c.court}</span>
                       {c.cnr_number && (
-                        <span className="font-mono" style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>
-                          CNR: {c.cnr_number}
-                        </span>
+                        <>
+                          <span style={{ color: '#c4c6cf', fontSize: '10px' }}>·</span>
+                          <span style={{ fontSize: '11px', color: '#74777f', fontFamily: 'monospace' }}>{c.cnr_number}</span>
+                        </>
                       )}
-                      <span style={{ fontSize: '11px', color: 'var(--outline)' }}>·</span>
-                      <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>{c.court}</span>
                     </div>
                   </div>
-                  {/* Right: next hearing + doc count */}
-                  <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                  {/* Right side */}
+                  <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                     {c.next_hearing_date && (
-                      <div className="text-right">
-                        <p style={{ fontSize: '9px', fontWeight: '700', color: 'var(--on-surface-variant)', letterSpacing: '0.06em' }}>NEXT HEARING</p>
-                        <p className="font-bold" style={{ color: 'var(--primary)', fontSize: '13px' }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '9px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', margin: 0 }}>NEXT</p>
+                        <p style={{ fontWeight: 800, fontSize: '13px', color: '#022448', margin: 0 }}>
                           {new Date(c.next_hearing_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </p>
                       </div>
                     )}
-                    {c._count && (
-                      <div className="flex items-center gap-3">
-                        {c._count.documents > 0 && (
-                          <div className="flex items-center gap-1" style={{ color: 'var(--outline)' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>description</span>
-                            <span style={{ fontSize: '11px' }}>{c._count.documents}</span>
-                          </div>
-                        )}
-                        {c._count.tasks > 0 && (
-                          <div className="flex items-center gap-1" style={{ color: 'var(--outline)' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>task_alt</span>
-                            <span style={{ fontSize: '11px' }}>{c._count.tasks}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {c._count?.documents > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#74777f' }}>
+                          <FileText size={12} />
+                          <span style={{ fontSize: '11px' }}>{c._count.documents}</span>
+                        </div>
+                      )}
+                      {c._count?.tasks > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#74777f' }}>
+                          <CheckSquare size={12} />
+                          <span style={{ fontSize: '11px' }}>{c._count.tasks}</span>
+                        </div>
+                      )}
+                      <ChevronRight size={16} color="#c4c6cf" />
+                    </div>
                   </div>
                 </div>
               </Link>

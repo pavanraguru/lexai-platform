@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Calendar, ExternalLink, FileText, RotateCcw } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -96,7 +97,7 @@ export default function CalendarPage() {
         <button onClick={() => setCurrent(new Date(year, month - 1, 1))}
           className="p-2 rounded-full transition-colors hover:opacity-70"
           style={{ background: 'var(--surface-container-low)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>chevron_left</span>
+          <ChevronLeft size={18} color="#022448" />
         </button>
         <span className="font-serif font-bold text-base" style={{ color: 'var(--primary)', minWidth: '140px', textAlign: 'center' }}>
           {MONTHS[month]} {year}
@@ -104,7 +105,7 @@ export default function CalendarPage() {
         <button onClick={() => setCurrent(new Date(year, month + 1, 1))}
           className="p-2 rounded-full transition-colors hover:opacity-70"
           style={{ background: 'var(--surface-container-low)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>chevron_right</span>
+          <ChevronRight size={18} color="#022448" />
         </button>
         <button onClick={() => { setCurrent(new Date()); setSelectedDate(today); }}
           className="ml-auto text-xs font-bold px-3 py-1.5 transition-all hover:opacity-80"
@@ -206,9 +207,7 @@ export default function CalendarPage() {
           {!selectedItems?.hearings.length && !selectedItems?.tasks.length ? (
             <div className="rounded-2xl p-10 text-center"
               style={{ background: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}>
-              <span className="material-symbols-outlined mb-3 block" style={{ fontSize: '36px', color: 'var(--outline-variant)' }}>
-                event_available
-              </span>
+              <Calendar size={36} color="#c4c6cf" style={{ marginBottom: '12px' }} />
               <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>No hearings on this date</p>
               <p style={{ fontSize: '12px', color: 'var(--outline)', marginTop: '4px' }}>Select a date on the calendar above</p>
             </div>
@@ -252,13 +251,13 @@ export default function CalendarPage() {
                         <Link href={`/cases/${h.case?.id}`}
                           className="flex items-center gap-1 text-xs font-bold transition-colors hover:opacity-70"
                           style={{ color: 'var(--primary)' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+                          <ExternalLink size={13} />
                           VIEW CASE FILE
                         </Link>
                         <Link href={`/cases/${h.case?.id}?tab=drafts`}
                           className="flex items-center gap-1 text-xs font-bold transition-colors hover:opacity-70"
                           style={{ color: 'var(--primary)' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>description</span>
+                          <FileText size={13} />
                           BRIEFING NOTE
                         </Link>
                       </div>
@@ -320,7 +319,7 @@ export default function CalendarPage() {
             </p>
             <button className="w-full py-3 font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-80"
               style={{ background: 'var(--surface-container-lowest)', color: 'var(--primary)', border: '1px solid rgba(196,198,207,0.2)', borderRadius: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>sync</span>
+              <RotateCcw size={16} />
               SYNC NOW
             </button>
           </div>
