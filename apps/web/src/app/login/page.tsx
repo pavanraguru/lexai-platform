@@ -1,16 +1,32 @@
 'use client';
-// ============================================================
-// LexAI India — Login Page
-// PRD v1.1 Section 6.1 — Authentication (OTP + Email)
-// ============================================================
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/lib/supabase';
 import { useAuthStore } from '@/hooks/useAuth';
-import { Scale, Phone, Mail, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
+import { Scale, Phone, Mail, ArrowRight, Loader2, FileText, Calendar, Bot, Receipt, Check } from 'lucide-react';
 
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 type Step = 'method' | 'email' | 'otp-phone' | 'otp-verify';
+
+const FEATURES = [
+  { Icon: FileText,  text: 'Evidence extraction from FIRs, chargesheets and depositions' },
+  { Icon: Calendar,  text: 'eCourts sync — hearing dates updated automatically' },
+  { Icon: Phone,     text: 'Client reminders via WhatsApp, 7 and 2 days before hearings' },
+  { Icon: Bot,       text: 'Opening statements and bench Q&A generated in seconds' },
+  { Icon: Receipt,   text: 'Professional invoices with GST, UPI QR code, payment tracking' },
+];
+
+const inp: React.CSSProperties = {
+  width: '100%', padding: '12px 14px', border: '1px solid rgba(196,198,207,0.5)',
+  borderRadius: '10px', fontSize: '15px', color: '#191c1e', background: '#fff',
+  outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box',
+};
+
+const lbl: React.CSSProperties = {
+  display: 'block', fontSize: '11px', fontWeight: 700, color: '#43474e',
+  letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px',
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,265 +40,209 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+
+  const finishAuth = async (supabaseToken: string) => {
+    const res = await fetch(`${BASE}/v1/auth/token`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supabase_token: supabaseToken }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Failed to authenticate. Check your account is registered.');
+    }
+    const data = await res.json();
+    const { token, user } = data.data;
+    setUser({ id: user.id, email: user.email, full_name: user.full_name, role: user.role, tenant_id: user.tenant_id, tenant_name: user.tenant?.name || '', tenant_plan: user.tenant?.plan || 'starter' }, token);
+    router.push('/dashboard');
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault(); setLoading(true); setError('');
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      if (data.session) {
-        // TODO: fetch user profile from our API
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
+      if (data.session?.access_token) await finishAuth(data.session.access_token);
+    } catch (err: any) { setError(err.message || 'Login failed'); }
+    setLoading(false);
   };
 
   const handleSendOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault(); setLoading(true); setError('');
     try {
-      // Format Indian phone number
-      const formatted = phone.startsWith('+91') ? phone : `+91${phone.replace(/^0/, '')}`;
+      const formatted = phone.startsWith('+') ? phone : `+91${phone.replace(/\D/g, '')}`;
       const { error } = await supabase.auth.signInWithOtp({ phone: formatted });
       if (error) throw error;
-      setOtpSent(true);
       setStep('otp-verify');
-    } catch (err: any) {
-      setError(err.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { setError(err.message || 'Failed to send OTP'); }
+    setLoading(false);
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault(); setLoading(true); setError('');
     try {
-      const formatted = phone.startsWith('+91') ? phone : `+91${phone.replace(/^0/, '')}`;
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: formatted, token: otp, type: 'sms',
-      });
+      const formatted = phone.startsWith('+') ? phone : `+91${phone.replace(/\D/g, '')}`;
+      const { data, error } = await supabase.auth.verifyOtp({ phone: formatted, token: otp, type: 'sms' });
       if (error) throw error;
-      if (data.session) {
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Invalid OTP');
-    } finally {
-      setLoading(false);
-    }
+      if (data.session?.access_token) await finishAuth(data.session.access_token);
+    } catch (err: any) { setError(err.message || 'Invalid OTP'); }
+    setLoading(false);
+  };
+
+  const handleGoogle = async () => {
+    setLoading(true); setError('');
+    try {
+      await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback` } });
+    } catch (err: any) { setError(err.message); setLoading(false); }
+  };
+
+  const btnPrimary: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+    padding: '14px', background: '#022448', border: 'none', borderRadius: '10px',
+    fontSize: '15px', fontWeight: 700, color: '#fff', cursor: loading ? 'not-allowed' : 'pointer',
+    fontFamily: 'Manrope, sans-serif', width: '100%', opacity: loading ? 0.7 : 1,
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F4F7FF' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh', fontFamily: 'Manrope, sans-serif', background: '#f8f9fb' }}>
 
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12"
-        style={{ background: 'linear-gradient(135deg, #1E3A5F 0%, #2E5F8A 100%)' }}>
-        <div className="flex items-center gap-3">
-          <Scale size={32} color="#D4AF37" />
-          <span className="text-white font-bold text-2xl">LexAI India</span>
-        </div>
-
-        <div>
-          <h1 className="text-4xl font-bold text-white leading-tight mb-6">
-            The AI operating system<br />for Indian advocates.
+      {/* Left — Brand panel */}
+      <div style={{ width: '50%', background: 'linear-gradient(160deg, #022448 0%, #1a4b7a 100%)', flexDirection: 'column', justifyContent: 'center', padding: '60px 56px', position: 'relative', overflow: 'hidden' }} className="hidden md:flex">
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)', backgroundSize: '32px 32px' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '56px' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Scale size={24} color="#ffe088" />
+            </div>
+            <span style={{ fontFamily: 'Newsreader, serif', fontSize: '20px', fontWeight: 700, color: '#fff' }}>Sovereign Counsel</span>
+          </div>
+          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2.6rem', fontWeight: 700, color: '#fff', lineHeight: 1.15, margin: '0 0 20px' }}>
+            The AI operating system for Indian advocates.
           </h1>
-          <div className="space-y-4">
-            {[
-              { icon: '⚖', text: 'Evidence extraction from FIRs, chargesheets and depositions' },
-              { icon: '📅', text: 'eCourts sync — hearing dates updated automatically' },
-              { icon: '📱', text: 'Client reminders via WhatsApp, 7 days and 2 days before hearings' },
-              { icon: '📄', text: 'Opening statements and bench Q&A generated in seconds' },
-              { icon: '💰', text: 'Professional invoices with GST, UPI QR code, payment tracking' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <span className="text-xl">{item.icon}</span>
-                <p className="text-blue-100 text-sm leading-relaxed">{item.text}</p>
+          <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.65)', margin: '0 0 48px', lineHeight: 1.7 }}>
+            From FIR to final arguments — manage your entire practice with AI-powered precision.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {FEATURES.map(({ Icon, text }, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size={16} color="#ffe088" />
+                </div>
+                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{text}</span>
               </div>
             ))}
           </div>
-        </div>
-
-        <div>
-          <p className="text-blue-200 text-sm">
-            Compliant with Advocates Act 1961 · Bar Council of India Rules · DPDP Act 2023
-          </p>
-          <p className="text-blue-300 text-xs mt-1">Data stored in AWS Mumbai (ap-south-1)</p>
+          <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '0 0 10px', letterSpacing: '0.06em' }}>COMPLIANT WITH</p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {['Advocates Act 1961', 'Bar Council Rules', 'DPDP Act 2023', 'AWS Mumbai (ap-south-1)'].map(b => (
+                <span key={b} style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.15)' }}>{b}</span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Right panel — login form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+      {/* Right — Auth form */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', overflowY: 'auto' }}>
+        <div style={{ width: '100%', maxWidth: '400px' }}>
 
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <Scale size={24} style={{ color: '#1E3A5F' }} />
-            <span className="font-bold text-xl" style={{ color: '#1E3A5F' }}>LexAI India</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }} className="md:hidden">
+            <Scale size={20} color="#022448" />
+            <span style={{ fontFamily: 'Newsreader, serif', fontSize: '17px', fontWeight: 700, color: '#022448' }}>Sovereign Counsel</span>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <h2 className="text-2xl font-bold mb-2" style={{ color: '#1E3A5F' }}>
-              {step === 'otp-verify' ? 'Enter OTP' : 'Sign in to LexAI'}
-            </h2>
-            <p className="text-gray-500 text-sm mb-8">
-              {step === 'otp-verify'
-                ? `We sent a 6-digit code to +91${phone}`
-                : 'Welcome back. Access your legal workspace.'}
-            </p>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontSize: '1.7rem', fontWeight: 700, color: '#022448', margin: '0 0 6px' }}>
+            {step === 'method' ? 'Sign in to LexAI' : step === 'email' ? 'Sign in with email' : step === 'otp-phone' ? 'Sign in with mobile' : 'Enter verification code'}
+          </h2>
+          <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 28px' }}>
+            {step === 'method' ? 'Welcome back. Access your legal workspace.' :
+             step === 'email' ? 'Enter your registered email and password.' :
+             step === 'otp-phone' ? "We'll send a 6-digit code to your number." :
+             `Code sent to +91 ${phone}. Check your SMS.`}
+          </p>
 
-            {/* Method selection */}
-            {step === 'method' && (
-              <div className="space-y-3">
-                <button
-                  onClick={() => setStep('otp-phone')}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 hover:border-[#1E3A5F] hover:bg-blue-50 transition-all text-left">
-                  <Phone size={20} style={{ color: '#1E3A5F' }} />
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: '#1E3A5F' }}>Mobile OTP</p>
-                    <p className="text-xs text-gray-400">Sign in with your +91 number</p>
+          {error && (
+            <div style={{ padding: '12px 14px', background: '#ffdad6', borderRadius: '10px', marginBottom: '20px', fontSize: '13px', color: '#93000a', fontWeight: 500 }}>
+              {error}
+            </div>
+          )}
+
+          {step === 'method' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                { icon: <Phone size={18} color="#022448" />, title: 'Mobile OTP', desc: 'Sign in with your +91 number', action: () => setStep('otp-phone') },
+                { icon: <Mail size={18} color="#022448" />, title: 'Email & Password', desc: 'Sign in with your email address', action: () => setStep('email') },
+              ].map(item => (
+                <button key={item.title} onClick={item.action} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: '#fff', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '12px', cursor: 'pointer', width: '100%', fontFamily: 'Manrope, sans-serif' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</div>
+                    <div style={{ textAlign: 'left' }}>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: '#022448', margin: 0 }}>{item.title}</p>
+                      <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{item.desc}</p>
+                    </div>
                   </div>
-                  <ArrowRight size={16} className="ml-auto text-gray-400" />
+                  <ArrowRight size={16} color="#74777f" />
                 </button>
+              ))}
 
-                <button
-                  onClick={() => setStep('email')}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 hover:border-[#1E3A5F] hover:bg-blue-50 transition-all text-left">
-                  <Mail size={20} style={{ color: '#1E3A5F' }} />
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: '#1E3A5F' }}>Email & Password</p>
-                    <p className="text-xs text-gray-400">Sign in with your email address</p>
-                  </div>
-                  <ArrowRight size={16} className="ml-auto text-gray-400" />
-                </button>
-
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-white px-3 text-gray-400">or</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={async () => {
-                    const { error } = await supabase.auth.signInWithOAuth({
-                      provider: 'google',
-                      options: { redirectTo: `${window.location.origin}/auth/callback` },
-                    });
-                    if (error) setError(error.message);
-                  }}
-                  className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-gray-200 hover:bg-gray-50 transition-all">
-                  <svg width="18" height="18" viewBox="0 0 18 18">
-                    <path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z" fill="#4285F4"/>
-                    <path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z" fill="#34A853"/>
-                    <path d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18z" fill="#FBBC05"/>
-                    <path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z" fill="#EA4335"/>
-                  </svg>
-                  <span className="text-sm font-medium text-gray-700">Continue with Google</span>
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0' }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(196,198,207,0.4)' }} />
+                <span style={{ fontSize: '12px', color: '#74777f' }}>or</span>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(196,198,207,0.4)' }} />
               </div>
-            )}
 
-            {/* Email login */}
-            {step === 'email' && (
-              <form onSubmit={handleEmailLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-                  <input
-                    type="email" value={email} onChange={e => setEmail(e.target.value)}
-                    placeholder="advocate@firm.in" required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <input
-                    type="password" value={password} onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••" required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-                </div>
-                {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-                <button type="submit" disabled={loading}
-                  className="w-full py-3 px-4 rounded-xl text-white font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-                  style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-                  Sign In
-                </button>
-                <button type="button" onClick={() => setStep('method')}
-                  className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
-                  ← Back
-                </button>
-              </form>
-            )}
+              <button onClick={handleGoogle} disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '13px 18px', background: '#fff', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '12px', cursor: 'pointer', width: '100%', fontSize: '14px', fontWeight: 700, color: '#022448', fontFamily: 'Manrope, sans-serif' }}>
+                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+                Continue with Google
+              </button>
+            </div>
+          )}
 
-            {/* Phone OTP - send */}
-            {step === 'otp-phone' && (
-              <form onSubmit={handleSendOTP} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile number</label>
-                  <div className="flex gap-2">
-                    <span className="flex items-center px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-600">
-                      🇮🇳 +91
-                    </span>
-                    <input
-                      type="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="9876543210" required maxLength={10}
-                      className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-                  </div>
-                </div>
-                {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-                <button type="submit" disabled={loading || phone.length !== 10}
-                  className="w-full py-3 px-4 rounded-xl text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-                  style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Phone size={18} />}
-                  Send OTP
-                </button>
-                <button type="button" onClick={() => setStep('method')}
-                  className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
-                  ← Back
-                </button>
-              </form>
-            )}
+          {step === 'email' && (
+            <form onSubmit={handleEmailLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div><label style={lbl}>Email Address</label><input type="email" required autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="advocate@example.com" style={inp} /></div>
+              <div><label style={lbl}>Password</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={inp} /></div>
+              <button type="submit" disabled={loading} style={{ ...btnPrimary, marginTop: '4px' }}>
+                {loading && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+              <button type="button" onClick={() => { setStep('method'); setError(''); }} style={{ background: 'none', border: 'none', color: '#74777f', fontSize: '13px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', textDecoration: 'underline' }}>← Back</button>
+            </form>
+          )}
 
-            {/* OTP verify */}
-            {step === 'otp-verify' && (
-              <form onSubmit={handleVerifyOTP} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">6-digit OTP</label>
-                  <input
-                    type="text" inputMode="numeric" value={otp}
-                    onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="000000" maxLength={6} required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest font-mono" />
+          {step === 'otp-phone' && (
+            <form onSubmit={handleSendOTP} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={lbl}>Mobile Number</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ ...inp, width: 'auto', padding: '12px 14px', background: '#edeef0', borderRadius: '10px', fontWeight: 700, color: '#022448', flexShrink: 0 }}>+91</div>
+                  <input type="tel" required autoFocus value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="9876543210" style={{ ...inp, flex: 1 }} />
                 </div>
-                {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-                <button type="submit" disabled={loading || otp.length !== 6}
-                  className="w-full py-3 px-4 rounded-xl text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-                  style={{ backgroundColor: '#1E3A5F', color: '#fff' }}>
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
-                  Verify & Sign In
-                </button>
-                <button type="button" onClick={() => { setStep('otp-phone'); setOtp(''); }}
-                  className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
-                  ← Resend OTP
-                </button>
-              </form>
-            )}
-          </div>
+              </div>
+              <button type="submit" disabled={loading || phone.length < 10} style={{ ...btnPrimary, opacity: loading || phone.length < 10 ? 0.6 : 1 }}>
+                {loading && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+                {loading ? 'Sending...' : 'Send OTP →'}
+              </button>
+              <button type="button" onClick={() => { setStep('method'); setError(''); }} style={{ background: 'none', border: 'none', color: '#74777f', fontSize: '13px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', textDecoration: 'underline' }}>← Back</button>
+            </form>
+          )}
 
-          <p className="text-center text-xs text-gray-400 mt-6">
-            By signing in you agree to our Terms of Service and Privacy Policy.<br />
+          {step === 'otp-verify' && (
+            <form onSubmit={handleVerifyOTP} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={lbl}>6-Digit OTP</label>
+                <input type="text" required autoFocus value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="••••••" style={{ ...inp, fontSize: '22px', letterSpacing: '0.3em', textAlign: 'center', fontWeight: 800 }} />
+              </div>
+              <button type="submit" disabled={loading || otp.length < 6} style={{ ...btnPrimary, opacity: loading || otp.length < 6 ? 0.6 : 1 }}>
+                {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={16} />}
+                {loading ? 'Verifying...' : 'Verify & Sign In'}
+              </button>
+              <button type="button" onClick={() => { setStep('otp-phone'); setOtp(''); setError(''); }} style={{ background: 'none', border: 'none', color: '#74777f', fontSize: '13px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', textDecoration: 'underline' }}>← Resend OTP</button>
+            </form>
+          )}
+
+          <p style={{ fontSize: '12px', color: '#74777f', textAlign: 'center', marginTop: '28px', lineHeight: 1.7 }}>
+            By signing in you agree to our <a href="#" style={{ color: '#022448', fontWeight: 700 }}>Terms of Service</a> and <a href="#" style={{ color: '#022448', fontWeight: 700 }}>Privacy Policy</a>.<br />
             Protected under DPDP Act 2023 · Bar Council of India Rules.
           </p>
         </div>
