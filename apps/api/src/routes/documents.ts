@@ -217,6 +217,51 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ data: { preview_url: url, mime_type: document.mime_type, expires_in: 900 } });
   });
 
+
+  // POST /v1/documents/:id/retry-ocr — manually retry OCR processing
+  // Used when Redis/BullMQ queue is unavailable (Upstash over limit)
+  fastify.post('/:id/retry-ocr', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    const { id } = request.params as { id: string };
+
+    const document = await fastify.prisma.document.findFirst({
+      where: { id, tenant_id },
+    });
+    if (!document) {
+      return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Document not found' } });
+    }
+
+    // Try to queue via Redis first
+    try {
+      const ocrQueue = new Queue('document-ocr', { connection: fastify.redis });
+      await ocrQueue.add('process-document', {
+        document_id: document.id,
+        s3_key: document.s3_key,
+        mime_type: document.mime_type || 'application/pdf',
+        tenant_id,
+        case_id: document.case_id,
+      }, { attempts: 3, backoff: { type: 'exponential', delay: 2000 } });
+
+      await fastify.prisma.document.update({
+        where: { id },
+        data: { processing_status: 'pending' },
+      });
+
+      return reply.send({ data: { status: 'queued', message: 'OCR job queued successfully' } });
+    } catch (queueErr: any) {
+      // Redis unavailable — return helpful error with upgrade instructions
+      fastify.log.warn(`[Documents] OCR retry queue failed: ${queueErr.message}`);
+      return reply.status(503).send({
+        error: {
+          code: 'QUEUE_UNAVAILABLE',
+          message: 'OCR queue unavailable. Please upgrade Upstash Redis at console.upstash.com to resume processing.',
+        },
+      });
+    }
+  });
+
   // GET /v1/documents/search — semantic + keyword search across all case docs
   // PRD DM-03 — Instant Document Search
   fastify.get('/search', {

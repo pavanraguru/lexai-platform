@@ -340,9 +340,12 @@ export default function CaseDetailPage() {
                     body: JSON.stringify({ filename: file.name, mime_type: file.type, case_id: id, file_size_bytes: file.size }),
                   });
                   if (!presignRes.ok) throw new Error('Failed to get upload URL');
-                  const { data: { upload_url, s3_key } } = await presignRes.json();
-                  // Upload to S3
-                  await fetch(upload_url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+                  const presignJson = await presignRes.json();
+                  const { presigned_url, s3_key } = presignJson.data;
+                  if (!presigned_url) throw new Error('No upload URL returned from server');
+                  // Upload directly to S3
+                  const uploadRes = await fetch(presigned_url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+                  if (!uploadRes.ok) throw new Error('Failed to upload file to S3');
                   // Register document
                   await apiCall('/v1/documents', 'POST', {
                     case_id: id, filename: file.name, s3_key,
@@ -370,6 +373,22 @@ export default function CaseDetailPage() {
                       <span style={{ fontSize: '11px', color: doc.processing_status === 'ready' ? '#15803d' : doc.processing_status === 'processing' ? '#735c00' : '#74777f' }}>
                         {doc.processing_status === 'ready' ? '✓ Processed' : doc.processing_status === 'processing' ? '⟳ Processing...' : doc.processing_status === 'pending' ? '○ Pending OCR' : '⚠ ' + doc.processing_status}
                       </span>
+                      {(doc.processing_status === 'pending' || doc.processing_status === 'failed') && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`${BASE}/v1/documents/${doc.id}/retry-ocr`, {
+                                method: 'POST', headers: { Authorization: `Bearer ${token}` },
+                              });
+                              const json = await res.json();
+                              if (!res.ok) { setError(json.error?.message || 'Retry failed'); return; }
+                              refresh();
+                            } catch { setError('Retry failed'); }
+                          }}
+                          style={{ fontSize: '10px', fontWeight: 700, color: '#022448', background: 'transparent', border: '1px solid rgba(2,36,72,0.2)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                          ↺ Retry OCR
+                        </button>
+                      )}
                       {doc.page_count && <span style={{ fontSize: '11px', color: '#74777f' }}>{doc.page_count}pp</span>}
                     </div>
                   </div>
