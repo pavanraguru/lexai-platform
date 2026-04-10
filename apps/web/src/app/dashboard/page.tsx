@@ -137,7 +137,7 @@ export default function DashboardPage() {
               return (
                 <Link key={h.id} href={`/cases/${h.case?.id}`} style={{ textDecoration: 'none' }}>
                   <div style={{
-                    background: '#fff', borderRadius: '10px', padding: '14px 16px',
+                    background: '#fff', borderRadius: '10px', padding: '18px 16px',
                     border: '1px solid rgba(196,198,207,0.18)',
                     boxShadow: '0px 1px 4px rgba(2,36,72,0.05)',
                     display: 'flex', gap: '16px', alignItems: 'center',
@@ -225,7 +225,7 @@ export default function DashboardPage() {
               const statusStyle = STATUS_STYLES[c.status] || STATUS_STYLES.intake;
               return (
                 <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ background: '#fff', borderRadius: '10px', padding: '14px 16px', border: '1px solid rgba(196,198,207,0.18)', boxShadow: '0px 1px 4px rgba(2,36,72,0.05)', cursor: 'pointer', maxWidth: '780px' }}>
+                  <div style={{ background: '#fff', borderRadius: '10px', padding: '18px 16px', border: '1px solid rgba(196,198,207,0.18)', boxShadow: '0px 1px 4px rgba(2,36,72,0.05)', cursor: 'pointer', maxWidth: '780px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
