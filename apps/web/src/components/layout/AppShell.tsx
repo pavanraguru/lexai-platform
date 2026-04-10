@@ -84,6 +84,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ background: '#f8f9fb', minHeight: '100dvh', fontFamily: 'Manrope, sans-serif' }}>
+      <style>{`
+        @media (min-width: 768px) {
+          #main-content-area { margin-left: 220px; }
+        }
+      `}</style>
 
       {/* ── Desktop Sidebar ─────────────────────────────────── */}
       <aside className="hidden md:flex" style={{
@@ -188,6 +193,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
+      {/* Main area — offset right of sidebar on desktop */}
+      <div id="main-content-area" style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
       {/* ── Top Bar ─────────────────────────────────────────── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 30, width: '100%',
@@ -318,9 +325,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ── Main Content ─────────────────────────────────────── */}
-      <main className="md:pl-[220px] pb-20 md:pb-0">
-        {children}
-      </main>
+      {/* Right column — header + content, offset by sidebar on desktop */}
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
+        {/* Sidebar spacer */}
+        <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+          <div className="hidden md:block" style={{ width: '220px', minWidth: '220px', flexShrink: 0 }} />
+          <main style={{ flex: 1, minWidth: 0, paddingBottom: '80px' }}>
+            {children}
+          </main>
+        </div>
+      </div>
+
+      </div>
 
       {/* ── Mobile Bottom Nav ─────────────────────────────────── */}
       <nav className="md:hidden" style={{
