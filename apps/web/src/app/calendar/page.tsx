@@ -249,7 +249,7 @@ export default function CalendarPage() {
           {/* Upcoming hearings quick list */}
           {upcomingHearings.length > 0 && (
             <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
+              <div style={{ padding: '20px', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
                 <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: 0 }}>NEXT HEARINGS</p>
               </div>
               {upcomingHearings.map((h: any) => {
@@ -288,7 +288,7 @@ export default function CalendarPage() {
 
       {/* ── Agenda Section ──────────────────────────────────── */}
       <div style={{ marginTop: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px', maxWidth: '700px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: 0 }}>
             Agenda: {selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
           </h2>
@@ -310,7 +310,7 @@ export default function CalendarPage() {
             {selectedItems?.hearings.map((h: any) => {
               const colors = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
               return (
-                <div key={h.id} style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 1px 4px rgba(2,36,72,0.05)', cursor: 'pointer', maxWidth: '700px' }}>
+                <div key={h.id} style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 1px 4px rgba(2,36,72,0.05)', cursor: 'pointer', maxWidth: '700px' }}>
                   <div style={{ display: 'flex', gap: '20px' }}>
                     {/* Time column */}
                     <div style={{ flexShrink: 0, textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '20px', minWidth: '52px' }}>
@@ -350,7 +350,7 @@ export default function CalendarPage() {
             })}
             {/* Tasks on this day */}
             {selectedItems?.tasks.map((t: any) => (
-              <div key={t.id} style={{ background: '#fffbeb', borderRadius: '16px', padding: '16px 20px', border: '1px solid rgba(202,138,4,0.2)' }}>
+              <div key={t.id} style={{ background: '#fffbeb', borderRadius: '16px', padding: '20px', border: '1px solid rgba(202,138,4,0.2)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
                   <div>

@@ -130,7 +130,7 @@ export default function ClientsPage() {
       ) : (
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', display: 'inline-block', width: '100%', maxWidth: '640px' }}>
           {clients.map((client: any, i: number) => (
-            <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderBottom: i < clients.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
+            <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '20px', borderBottom: i < clients.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
               <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#ffe088', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: '#022448', flexShrink: 0 }}>
                 {client.full_name?.charAt(0)}
               </div>

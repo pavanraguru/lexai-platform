@@ -195,7 +195,7 @@ export default function BillingPage() {
             {(invoices as any[]).map((inv: any, i: number) => {
               const ss = STATUS_STYLE[inv.status] || STATUS_STYLE.draft;
               return (
-                <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderBottom: i < (invoices as any[]).length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
+                <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '20px', borderBottom: i < (invoices as any[]).length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '13px', fontWeight: 700, color: '#022448' }}>{inv.invoice_number}</span>

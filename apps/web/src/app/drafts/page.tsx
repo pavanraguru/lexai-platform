@@ -79,7 +79,7 @@ export default function DraftsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {drafts.map((draft: any) => (
             <Link key={draft.id} href={`/cases/${draft.case_id}?tab=drafts&draft=${draft.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{ background: '#fff', borderRadius: '10px', padding: '12px 16px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 1px 3px rgba(2,36,72,0.04)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', maxWidth: '720px' }}>
+              <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 1px 3px rgba(2,36,72,0.04)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', maxWidth: '720px' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <FileText size={18} color="#022448" />
                 </div>

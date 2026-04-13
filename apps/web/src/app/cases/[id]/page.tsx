@@ -282,7 +282,7 @@ export default function CaseDetailPage() {
 
       {/* Error banner */}
       {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', marginBottom: '16px', color: '#93000a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '20px', background: '#ffdad6', borderRadius: '10px', marginBottom: '16px', color: '#93000a' }}>
           <AlertCircle size={16} />
           <span style={{ fontSize: '13px', fontWeight: 500 }}>{error}</span>
           <button onClick={() => setError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#93000a' }}>✕</button>
@@ -484,7 +484,7 @@ export default function CaseDetailPage() {
                 const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
                 const isUrgent = daysUntil <= 1;
                 return (
-                  <div key={h.id} style={{ padding: '16px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                  <div key={h.id} style={{ padding: '20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
@@ -651,7 +651,7 @@ export default function CaseDetailPage() {
               const isRunning = runningAgent === type;
               const lastRun = agents.find((j: any) => j.agent_type === type);
               return (
-                <div key={type} style={{ ...cardStyle, padding: '16px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px' }}>
+                <div key={type} style={{ ...cardStyle, padding: '20px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon size={18} color="#022448" />

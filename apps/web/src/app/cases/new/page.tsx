@@ -157,7 +157,7 @@ export default function NewCasePage() {
 
   const selectedChip = (active: boolean): React.CSSProperties => ({
     border: `2px solid ${active ? '#022448' : 'rgba(196,198,207,0.4)'}`,
-    borderRadius: '12px', padding: '14px 16px', cursor: 'pointer',
+    borderRadius: '12px', padding: '20px', cursor: 'pointer',
     background: active ? 'rgba(2,36,72,0.04)' : '#fff',
     transition: 'all 0.15s ease',
   });
@@ -294,7 +294,7 @@ export default function NewCasePage() {
           </div>
 
           {isCriminal && (
-            <div style={{ padding: '16px', background: '#ffdad610', border: '1px solid rgba(186,26,26,0.15)', borderRadius: '10px' }}>
+            <div style={{ padding: '20px', background: '#ffdad610', border: '1px solid rgba(186,26,26,0.15)', borderRadius: '10px' }}>
               <p style={{ fontSize: '11px', fontWeight: 800, color: '#93000a', letterSpacing: '0.06em', margin: '0 0 12px' }}>CRIMINAL MATTER DETAILS</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
@@ -358,7 +358,7 @@ export default function NewCasePage() {
 
       {/* Error */}
       {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', marginTop: '16px', color: '#93000a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '20px', background: '#ffdad6', borderRadius: '10px', marginTop: '16px', color: '#93000a' }}>
           <AlertCircle size={16} />
           <span style={{ fontSize: '13px', fontWeight: 500 }}>{error}</span>
         </div>

@@ -17,7 +17,7 @@ const card: React.CSSProperties = {
 
 const row: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  padding: '16px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)',
+  padding: '20px', borderBottom: '1px solid rgba(196,198,207,0.08)',
   cursor: 'pointer',
 };
 
