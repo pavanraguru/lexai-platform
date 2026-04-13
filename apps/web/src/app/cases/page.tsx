@@ -149,7 +149,7 @@ export default function CasesPage() {
             return (
               <Link key={c.id} href={`/cases/${c.id}`} style={{ textDecoration: 'none' }}>
                 <div style={{
-                  background: '#fff', borderRadius: '10px', padding: '18px 16px',
+                  background: '#fff', borderRadius: '10px', padding: '20px 16px',
                   border: '1px solid rgba(196,198,207,0.18)',
                   boxShadow: '0px 1px 4px rgba(2,36,72,0.05)',
                   display: 'flex', alignItems: 'center', gap: '12px',
