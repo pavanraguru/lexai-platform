@@ -350,13 +350,11 @@ export default function CalendarPage() {
             })}
             {/* Tasks on this day */}
             {selectedItems?.tasks.map((t: any) => (
-              <div key={t.id} style={{ background: '#fffbeb', borderRadius: '16px', padding: '20px', border: '1px solid rgba(202,138,4,0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#854d0e', margin: 0 }}>{t.title}</p>
-                    <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0' }}>Task due · {t.case?.title}</p>
-                  </div>
+              <div key={t.id} style={{ background: '#fffbeb', borderRadius: '10px', padding: '12px 16px', border: '1px solid rgba(202,138,4,0.2)', maxWidth: '700px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#854d0e', margin: 0 }}>{t.title}</p>
+                  <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0' }}>Task due · {t.case?.title}</p>
                 </div>
               </div>
             ))}
