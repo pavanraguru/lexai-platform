@@ -291,7 +291,7 @@ export default function CaseDetailPage() {
 
       {/* ─── OVERVIEW ───────────────────────────────────── */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'flex-start' }}>
           <div style={{ ...cardStyle, padding: '20px', gridColumn: 'span 2' }}>
             <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 16px' }}>Case Details</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
@@ -316,8 +316,8 @@ export default function CaseDetailPage() {
             { label: 'Active Tasks', value: activeTasks.length, bg: '#fdddb9', color: '#322109' },
             { label: 'Agent Runs', value: agents.length, bg: '#edeef0', color: '#43474e' },
           ].map(item => (
-            <div key={item.label} style={{ background: item.bg, borderRadius: '10px', padding: '14px 18px', textAlign: 'center', minWidth: '110px' }}>
-              <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '2.2rem', color: item.color, margin: 0 }}>{item.value}</p>
+            <div key={item.label} style={{ background: item.bg, borderRadius: '10px', padding: '14px 16px', textAlign: 'center', width: '110px', flexShrink: 0 }}>
+              <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.8rem', color: item.color, margin: 0, lineHeight: 1 }}>{item.value}</p>
               <p style={{ fontSize: '11px', fontWeight: 700, color: item.color, opacity: 0.7, margin: '4px 0 0', letterSpacing: '0.06em' }}>{item.label.toUpperCase()}</p>
             </div>
           ))}
