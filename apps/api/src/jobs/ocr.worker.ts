@@ -262,11 +262,12 @@ const worker = new Worker('document-ocr', async (job: Job) => {
   }
 }, {
   connection: redis,
-  concurrency: 5,
-  limiter: {
-    max: 20,
-    duration: 60000, // 20 OCR jobs per minute
-  },
+  concurrency: 2,           // reduced from 5
+  stalledInterval: 300000,  // check for stalled jobs every 5 min (default 30s) — saves ~90% Redis polls
+  lockDuration: 300000,     // 5 min lock (matches stalledInterval)
+  lockRenewTime: 150000,    // renew lock every 2.5 min
+  drainDelay: 5000,         // wait 5s between polling for new jobs (default 5ms!) — massive saving
+  maxStalledCount: 2,
 });
 
 worker.on('completed', (job) => {

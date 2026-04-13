@@ -498,9 +498,14 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
   }
 }, {
   connection: redis,
-  concurrency: 1, // single job at a time to avoid rate limits
+  concurrency: 1,
+  stalledInterval: 600000,  // check stalled every 10 min — agents are long-running
+  lockDuration: 600000,     // 10 min lock
+  lockRenewTime: 300000,    // renew every 5 min
+  drainDelay: 10000,        // poll for new jobs every 10s (default 5ms)
+  maxStalledCount: 1,
   limiter: {
-    max: 2,        // max 2 jobs per 60 seconds (rate limit protection)
+    max: 2,
     duration: 60000,
   },
 });

@@ -6,13 +6,11 @@
 // ============================================================
 
 import 'dotenv/config';
-import { Worker, Queue, Job } from 'bullmq';
-import { Redis } from 'ioredis';
 import { PrismaClient } from '@prisma/client';
+import * as cron from 'node-cron';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
+// Redis only used for agent/ocr queues when explicitly triggered
+// Scheduler itself uses node-cron — ZERO Redis calls for scheduling
 });
 
 const prisma = new PrismaClient();
@@ -666,7 +664,7 @@ async function sendHearingReminderEmail(opts: {
 }
 
 // ── Worker setup ──────────────────────────────────────────────
-const worker = new Worker('scheduler', async (job: Job) => {
+async function schedulerHandler(job: { data: { task: string } }) {
   const { task } = job.data;
   console.log(`[Scheduler] Running task: ${task}`);
 
@@ -680,43 +678,49 @@ const worker = new Worker('scheduler', async (job: Job) => {
     default:
       console.warn(`[Scheduler] Unknown task: ${task}`);
   }
-}, { connection: redis, concurrency: 1 });
-
-// ── Schedule recurring jobs ───────────────────────────────────
-async function setupSchedule() {
-  const schedulerQueue = new Queue('scheduler', { connection: redis });
-
-  const JOBS = [
-    { name: 'hearing_reminders', cron: '0 8 * * *',  tz: 'Asia/Kolkata' },  // 8:00 AM IST
-    { name: 'day_of_briefing',   cron: '0 7 * * *',  tz: 'Asia/Kolkata' },  // 7:00 AM IST
-    { name: 'task_reminders',    cron: '0 8 * * *',  tz: 'Asia/Kolkata' },  // 8:00 AM IST
-    { name: 'client_reminders',  cron: '0 6 * * *',  tz: 'Asia/Kolkata' },  // 6:00 AM IST
-    { name: 'invoice_reminders', cron: '0 9 * * *',  tz: 'Asia/Kolkata' },  // 9:00 AM IST
-    { name: 'ecourts_sync',      cron: '0 2 * * *',  tz: 'Asia/Kolkata' },  // 2:00 AM IST
-    { name: 'cause_list',        cron: '30 6 * * *', tz: 'Asia/Kolkata' },  // 6:30 AM IST (build + send by 7)
-  ];
-
-  for (const job of JOBS) {
-    await schedulerQueue.upsertJobScheduler(
-      job.name,
-      { pattern: job.cron },
-      { name: job.name, data: { task: job.name } }
-    );
-    console.log(`[Scheduler] Scheduled: ${job.name} @ ${job.cron} IST`);
-  }
-
-  console.log('✅ All scheduled jobs registered');
 }
 
-setupSchedule().catch(console.error);
+// ── Schedule recurring jobs with node-cron (NO Redis calls) ──
+// node-cron runs in-process — zero Upstash cost for scheduling
+// Times are IST (UTC+5:30)
 
-worker.on('completed', (job) => console.log(`[Scheduler] ✅ ${job.data.task} done`));
-worker.on('failed', (job, err) => console.error(`[Scheduler] ❌ ${job?.data?.task} failed:`, err.message));
+// 8:00 AM IST = 2:30 AM UTC
+cron.schedule('30 2 * * *', () => runTask('hearing_reminders'), { timezone: 'Asia/Kolkata' });
 
-console.log('⏰ LexAI Scheduler Worker started...');
+// 7:00 AM IST = 1:30 AM UTC
+cron.schedule('30 1 * * *', () => runTask('day_of_briefing'), { timezone: 'Asia/Kolkata' });
+
+// 8:00 AM IST = 2:30 AM UTC (combined with hearing_reminders above)
+cron.schedule('35 2 * * *', () => runTask('task_reminders'), { timezone: 'Asia/Kolkata' });
+
+// 6:00 AM IST = 12:30 AM UTC
+cron.schedule('30 0 * * *', () => runTask('client_reminders'), { timezone: 'Asia/Kolkata' });
+
+// 9:00 AM IST = 3:30 AM UTC
+cron.schedule('30 3 * * *', () => runTask('invoice_reminders'), { timezone: 'Asia/Kolkata' });
+
+// 2:00 AM IST = 8:30 PM UTC previous day
+cron.schedule('30 20 * * *', () => runTask('ecourts_sync'), { timezone: 'Asia/Kolkata' });
+
+// 6:30 AM IST = 1:00 AM UTC
+cron.schedule('0 1 * * *', () => runTask('cause_list'), { timezone: 'Asia/Kolkata' });
+
+console.log('⏰ LexAI Scheduler started (node-cron, no Redis polling)');
+
+// Wrapper to run tasks directly without BullMQ queue
+async function runTask(task: string) {
+  console.log(`[Scheduler] Running: ${task}`);
+  try {
+    // Call the handler function directly — no Redis involved
+    const job = { data: { task } } as any;
+    await schedulerHandler(job);
+    console.log(`[Scheduler] ✅ ${task} done`);
+  } catch (err: any) {
+    console.error(`[Scheduler] ❌ ${task} failed:`, err.message);
+  }
+}
 
 process.on('SIGTERM', async () => {
-  await worker.close();
   await prisma.$disconnect();
   process.exit(0);
 });
