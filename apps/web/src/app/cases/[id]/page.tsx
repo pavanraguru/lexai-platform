@@ -97,12 +97,13 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
     }).catch(() => {});
   }, [doc.id, token]);
 
-  const trigger = async () => {
+  const trigger = async (force = false) => {
     setStatus('loading');
+    setResult(null);
     await fetch(`${BASE}/v1/documents/${doc.id}/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ force }),
     });
     const poll = setInterval(async () => {
       const r = await fetch(`${BASE}/v1/documents/${doc.id}/translation`, {
@@ -158,7 +159,7 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
                   The OCR extracted garbled text from this document. This happens with low-quality scans or handwritten text.
                   Try uploading a clearer scan or a digital (not scanned) version of the document.
                 </p>
-                <button onClick={() => { setShowModal(false); trigger(); }} style={{ fontSize: '12px', fontWeight: 700, color: '#022448', background: '#d5e3ff', border: 'none', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer' }}>
+                <button onClick={() => { setShowModal(false); trigger(true); }} style={{ fontSize: '12px', fontWeight: 700, color: '#022448', background: '#d5e3ff', border: 'none', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer' }}>
                   ↺ Retry with Vision OCR
                 </button>
               </div>
@@ -178,7 +179,7 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
                 </div>
               </div>
             )}
-            {result.translation && (
+            {result.translation && !result.detected_language?.toLowerCase().includes('unknown') && (
               <div>
                 <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>FULL TRANSLATION</p>
                 <div style={{ fontSize: '13px', color: '#191c1e', lineHeight: 1.8, whiteSpace: 'pre-wrap', background: '#f8fafc', borderRadius: '8px', padding: '16px' }}>
