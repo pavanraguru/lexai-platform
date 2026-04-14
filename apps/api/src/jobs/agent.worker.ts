@@ -277,8 +277,11 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
     }
 
     // Build document context string — cap per-doc and total to stay within rate limits
-    const MAX_CHARS_PER_DOC = 8000;  // ~2000 tokens per doc
-    const MAX_TOTAL_CHARS = 20000;   // ~5000 tokens total for docs
+    // Token limits tuned for Anthropic free tier (30K tokens/min)
+    // System prompt ~3K tokens + doc context ~6K = ~9K total, well under 30K limit
+    // Increase these if you upgrade to a higher Anthropic tier
+    const MAX_CHARS_PER_DOC = 4000;  // ~1000 tokens per doc
+    const MAX_TOTAL_CHARS = 12000;   // ~3000 tokens total for docs
     let totalChars = 0;
     const docContext = documents
       .filter(d => d.extracted_text)
@@ -334,7 +337,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
         break;
       case 'strategy':
         systemPrompt = getStrategyPrompt(caseData, priorOutputs);
-        userMessage = `Develop court strategy based on all prior analysis:\n\nEVIDENCE OUTPUT: ${JSON.stringify(priorOutputs.evidence || {}, null, 2).substring(0, 5000)}\n\nRESEARCH OUTPUT: ${JSON.stringify(priorOutputs.research || {}, null, 2).substring(0, 3000)}\n\nDOCUMENTS:\n${docContext.substring(0, 15000)}`;
+        userMessage = `Develop court strategy based on all prior analysis:\n\nEVIDENCE OUTPUT: ${JSON.stringify(priorOutputs.evidence || {}, null, 2).substring(0, 3000)}\n\nRESEARCH OUTPUT: ${JSON.stringify(priorOutputs.research || {}, null, 2).substring(0, 2000)}\n\nDOCUMENTS:\n${docContext.substring(0, 6000)}`;
         break;
       default:
         throw new Error(`Unknown agent type: ${agent_type}`);
@@ -348,7 +351,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
       try {
         response = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: agent_type === 'strategy' ? 6000 : 3000,
+          max_tokens: agent_type === 'strategy' ? 4000 : 2000,
           system: systemPrompt,
           messages: [{ role: 'user', content: userMessage }],
         });
@@ -356,8 +359,8 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
       } catch (err: any) {
         if (err.status === 429 && retries < MAX_RETRIES) {
           retries++;
-          const waitMs = retries * 30000; // 30s, 60s, 90s
-          console.warn(`[Agent Worker] Rate limited. Retry ${retries}/${MAX_RETRIES} in ${waitMs/1000}s...`);
+          const waitMs = 65000; // always wait 65s — Anthropic rate limit resets per minute
+          console.warn(`[Agent Worker] Rate limited (429). Retry ${retries}/${MAX_RETRIES} in ${waitMs/1000}s...`);
           await new Promise(r => setTimeout(r, waitMs));
         } else {
           throw err;
@@ -397,41 +400,55 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
       },
     });
 
-    // Store structured evidence items from evidence agent output
-    if (agent_type === 'evidence' && parsedOutput.exhibits) {
-      for (const exhibit of parsedOutput.exhibits) {
-        await prisma.evidenceItem.create({
-          data: {
-            case_id,
-            agent_job_id: job_id,
-            exhibit_number: exhibit.number,
-            description: exhibit.description,
-            source_doc_id: exhibit.doc_id,
-            source_page: exhibit.page,
-            category: exhibit.number.split('-')[0] + '-',
-            extracted_by_agent: true,
-          },
-        }).catch(() => {}); // ignore duplicates
+    // Store structured evidence items — wrapped in own try/catch so DB errors
+    // do NOT corrupt the job status (Claude already succeeded at this point)
+    if (agent_type === 'evidence' && Array.isArray(parsedOutput.exhibits)) {
+      try {
+        for (const exhibit of parsedOutput.exhibits) {
+          if (!exhibit?.number || !exhibit?.description) continue;
+          await prisma.evidenceItem.create({
+            data: {
+              case_id,
+              agent_job_id: job_id,
+              exhibit_number: String(exhibit.number),
+              description: String(exhibit.description),
+              source_doc_id: exhibit.doc_id || null,
+              source_page: typeof exhibit.page === 'number' ? exhibit.page : null,
+              category: String(exhibit.number).split('-')[0] + '-',
+              extracted_by_agent: true,
+            },
+          }).catch(() => {});
+        }
+        console.log(`[Agent Worker] Saved ${parsedOutput.exhibits.length} evidence items`);
+      } catch (evidenceErr: any) {
+        // Non-fatal — log and continue, job is already marked completed above
+        console.warn(`[Agent Worker] Evidence save warning (non-fatal): ${evidenceErr.message}`);
       }
     }
 
-    // Store timeline events
-    if (agent_type === 'timeline' && parsedOutput.events) {
-      for (const event of parsedOutput.events) {
-        await prisma.timelineEvent.create({
-          data: {
-            case_id,
-            agent_job_id: job_id,
-            event_date: new Date(event.date),
-            event_time: event.time,
-            description: event.description,
-            source_doc_id: event.source_doc_id,
-            source_page: event.source_page,
-            event_type: event.event_type,
-            importance_score: event.importance_score,
-            gap_after_minutes: event.gap_after_minutes,
-          },
-        }).catch(() => {});
+    // Store timeline events — same non-fatal pattern
+    if (agent_type === 'timeline' && Array.isArray(parsedOutput.events)) {
+      try {
+        for (const event of parsedOutput.events) {
+          if (!event?.date || !event?.description) continue;
+          await prisma.timelineEvent.create({
+            data: {
+              case_id,
+              agent_job_id: job_id,
+              event_date: new Date(event.date),
+              event_time: event.time || null,
+              description: String(event.description),
+              source_doc_id: event.source_doc_id || null,
+              source_page: typeof event.source_page === 'number' ? event.source_page : null,
+              event_type: event.event_type || 'other',
+              importance_score: typeof event.importance_score === 'number' ? event.importance_score : null,
+              gap_after_minutes: typeof event.gap_after_minutes === 'number' ? event.gap_after_minutes : null,
+            },
+          }).catch(() => {});
+        }
+        console.log(`[Agent Worker] Saved ${parsedOutput.events.length} timeline events`);
+      } catch (timelineErr: any) {
+        console.warn(`[Agent Worker] Timeline save warning (non-fatal): ${timelineErr.message}`);
       }
     }
 
@@ -463,11 +480,18 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
   } catch (error: any) {
     console.error(`[Agent Worker] ❌ ${agent_type} failed:`, error.message);
 
+    // Sanitise error_message — never store raw JSON output as the error
+    // (this was the original bug: parsedOutput stringified as error_message)
+    const rawMsg = String(error.message || 'Unknown error');
+    const safeErrorMsg = rawMsg.startsWith('{') || rawMsg.startsWith('"exhibits"')
+      ? 'Agent completed but failed during post-processing. Check output field.'
+      : rawMsg.substring(0, 500);
+
     await prisma.agentJob.update({
       where: { id: job_id },
       data: {
         status: 'failed',
-        error_message: error.message,
+        error_message: safeErrorMsg,
         completed_at: new Date(),
       },
     });
