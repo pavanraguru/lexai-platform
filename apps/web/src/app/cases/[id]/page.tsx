@@ -137,7 +137,7 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
         {result.detected_language} → EN
       </span>
       <button onClick={() => setShowModal(true)} style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', background: '#ede9fe', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}>
-        View Translation
+        📄 View Translation
       </button>
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
@@ -524,7 +524,9 @@ export default function CaseDetailPage() {
             </div>
           ) : (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              {(c.documents || []).map((doc: any, i: number) => (
+              {(c.documents || [])
+                .filter((doc: any) => !doc.filename?.includes('— English Translation'))
+                .map((doc: any, i: number, arr: any[]) => (
                 <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', borderBottom: i < c.documents.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
                   <FileText size={20} color="#022448" style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
