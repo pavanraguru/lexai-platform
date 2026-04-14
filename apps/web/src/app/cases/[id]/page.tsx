@@ -22,6 +22,7 @@ const TABS = [
   { key: 'agents',        Icon: Bot,         label: 'Agents' },
   { key: 'drafts',        Icon: BookOpen,    label: 'Drafts' },
   { key: 'presentations', Icon: Monitor,     label: 'Presentations' },
+  { key: 'timeline',      Icon: Clock,       label: 'Case Timeline' },
 ] as const;
 
 const HEARING_PURPOSES = [
@@ -881,6 +882,301 @@ export default function CaseDetailPage() {
           <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 20px' }}>Run an AI agent above, then click "To Draft" to create an editable legal document</p>
         </div>
       )}
+
+      {/* ─── CASE TIMELINE ──────────────────────────────── */}
+      {activeTab === 'timeline' && (() => {
+        // Build unified timeline from all data sources
+        type TimelineEntry = {
+          id: string;
+          date: Date;
+          category: 'filing' | 'hearing' | 'document' | 'task' | 'agent' | 'status' | 'ecourts';
+          title: string;
+          description?: string;
+          meta?: string;
+          outcome?: string;
+          icon: string;
+          color: string;
+          bg: string;
+          future?: boolean;
+        };
+
+        const entries: TimelineEntry[] = [];
+        const now = new Date();
+
+        // ── Case Filed ──
+        if (c.filed_date) {
+          entries.push({
+            id: 'filed',
+            date: new Date(c.filed_date),
+            category: 'filing',
+            title: 'Case Filed',
+            description: `${c.case_type?.replace(/_/g, ' ')} filed at ${c.court}`,
+            meta: c.cnr_number ? `CNR: ${c.cnr_number}` : undefined,
+            icon: '⚖️', color: '#022448', bg: '#d5e3ff',
+          });
+        }
+
+        // ── Case Created in LexAI ──
+        entries.push({
+          id: 'created',
+          date: new Date(c.created_at),
+          category: 'status',
+          title: 'Case Added to LexAI',
+          description: `Registered by ${c.perspective} team`,
+          icon: '📋', color: '#43474e', bg: '#edeef0',
+        });
+
+        // ── Documents ──
+        (c.documents || [])
+          .filter((d: any) => !d.filename?.includes('English Translation'))
+          .forEach((doc: any) => {
+            const categoryLabels: Record<string, string> = {
+              fir: 'FIR Filed', chargesheet: 'Chargesheet Uploaded',
+              bail_order: 'Bail Order', judgment: 'Judgment',
+              affidavit: 'Affidavit Filed', plaint: 'Plaint Filed',
+              written_statement: 'Written Statement', order: 'Court Order',
+              deposition: 'Deposition Transcript', evidence_exhibit: 'Evidence Exhibit',
+            };
+            const label = categoryLabels[doc.doc_category] || 'Document Uploaded';
+            entries.push({
+              id: `doc-${doc.id}`,
+              date: new Date(doc.created_at),
+              category: 'document',
+              title: label,
+              description: doc.filename,
+              meta: doc.page_count ? `${doc.page_count} pages` : undefined,
+              icon: '📄', color: '#735c00', bg: '#ffe08840',
+            });
+          });
+
+        // ── Hearings ──
+        (c.hearings || []).forEach((h: any) => {
+          const purposeLabels: Record<string, string> = {
+            bail: 'Bail Application', arguments: 'Arguments Heard',
+            judgment: 'Judgment Pronounced', framing_of_charges: 'Charges Framed',
+            evidence: 'Evidence Recorded', examination: 'Witness Examination',
+            cross_examination: 'Cross Examination', interim_order: 'Interim Order',
+            return_of_summons: 'Return of Summons', misc: 'Miscellaneous Hearing',
+          };
+          const isFuture = new Date(h.date) > now;
+          entries.push({
+            id: `hearing-${h.id}`,
+            date: new Date(h.date),
+            category: 'hearing',
+            title: purposeLabels[h.purpose] || 'Hearing',
+            description: [h.court_room && `Court Room: ${h.court_room}`, h.judge_name && `Before: ${h.judge_name}`].filter(Boolean).join(' · ') || undefined,
+            outcome: h.outcome,
+            meta: h.time ? `${h.time} IST` : undefined,
+            icon: isFuture ? '📅' : h.outcome ? '✅' : '🏛',
+            color: isFuture ? '#5b21b6' : h.outcome ? '#15803d' : '#022448',
+            bg: isFuture ? '#ede9fe' : h.outcome ? '#dcfce7' : '#d5e3ff',
+            future: isFuture,
+          });
+        });
+
+        // ── Tasks (completed only — show as milestones) ──
+        (c.tasks || [])
+          .filter((t: any) => t.status === 'done' && t.completed_at)
+          .forEach((t: any) => {
+            entries.push({
+              id: `task-${t.id}`,
+              date: new Date(t.completed_at || t.updated_at),
+              category: 'task',
+              title: 'Task Completed',
+              description: t.title,
+              icon: '✔️', color: '#15803d', bg: '#dcfce7',
+            });
+          });
+
+        // ── Agent Completions ──
+        (c.agent_jobs || [])
+          .filter((j: any) => j.status === 'completed')
+          .forEach((j: any) => {
+            const labels: Record<string, string> = {
+              evidence: 'Evidence Analysis Complete', timeline: 'AI Timeline Reconstructed',
+              research: 'Legal Research Complete', strategy: 'Court Strategy Generated',
+              deposition: 'Deposition Analysis Complete',
+            };
+            entries.push({
+              id: `agent-${j.id}`,
+              date: new Date(j.completed_at || j.created_at),
+              category: 'agent',
+              title: labels[j.agent_type] || 'AI Analysis Complete',
+              description: j.cost_inr ? `Cost: ₹${Number(j.cost_inr).toFixed(2)}` : undefined,
+              icon: '🤖', color: '#5b21b6', bg: '#ede9fe',
+            });
+          });
+
+        // ── Status changes (inferred from current status) ──
+        if (c.status === 'decided' || c.status === 'closed') {
+          entries.push({
+            id: 'decided',
+            date: new Date(c.updated_at),
+            category: 'status',
+            title: c.status === 'decided' ? 'Case Decided' : 'Case Closed',
+            description: 'Final status recorded',
+            icon: '🔒', color: '#15803d', bg: '#dcfce7',
+          });
+        }
+
+        // Sort chronologically
+        entries.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        const past = entries.filter(e => !e.future);
+        const future = entries.filter(e => e.future);
+
+        const formatDate = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const formatRelative = (d: Date) => {
+          const diffDays = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+          if (diffDays === 0) return 'Today';
+          if (diffDays === 1) return 'Tomorrow';
+          if (diffDays === -1) return 'Yesterday';
+          if (diffDays > 0) return `In ${diffDays} days`;
+          return `${Math.abs(diffDays)} days ago`;
+        };
+
+        return (
+          <div style={{ maxWidth: '720px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 4px' }}>
+                  Case Timeline
+                </h2>
+                <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
+                  {past.length} recorded events · {future.length} upcoming
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { color: '#022448', bg: '#d5e3ff', label: 'Filing' },
+                  { color: '#15803d', bg: '#dcfce7', label: 'Hearing' },
+                  { color: '#735c00', bg: '#ffe08840', label: 'Document' },
+                  { color: '#5b21b6', bg: '#ede9fe', label: 'Upcoming' },
+                ].map(item => (
+                  <span key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, color: item.color }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {entries.length === 0 ? (
+              <div style={{ ...cardStyle, padding: '48px', textAlign: 'center' }}>
+                <Clock size={36} color="#c4c6cf" style={{ marginBottom: '14px' }} />
+                <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', margin: '0 0 8px' }}>No Timeline Events Yet</p>
+                <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 16px' }}>
+                  Add a filing date in the case overview, schedule hearings, or upload documents to build the timeline.
+                </p>
+                <button onClick={() => setActiveTab('hearings')} style={btnPrimary}>
+                  + Schedule First Hearing
+                </button>
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                {/* Vertical line */}
+                <div style={{ position: 'absolute', left: '19px', top: '8px', bottom: '8px', width: '2px', background: 'rgba(196,198,207,0.3)', borderRadius: '1px' }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                  {/* Past events */}
+                  {past.map((entry, i) => (
+                    <div key={entry.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '0' }}>
+                      {/* Timeline dot */}
+                      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '16px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: entry.bg, border: `2px solid ${entry.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', zIndex: 1, position: 'relative', flexShrink: 0 }}>
+                          {entry.icon}
+                        </div>
+                      </div>
+                      {/* Content card */}
+                      <div style={{ flex: 1, background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.15)', padding: '14px 16px', marginBottom: '12px', boxShadow: '0 1px 4px rgba(2,36,72,0.04)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: entry.bg, color: entry.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                {entry.category === 'hearing' ? 'HEARING' : entry.category === 'document' ? 'DOCUMENT' : entry.category === 'agent' ? 'AI ANALYSIS' : entry.category === 'task' ? 'TASK' : entry.category === 'filing' ? 'FILING' : 'STATUS'}
+                              </span>
+                              {entry.meta && <span style={{ fontSize: '11px', color: '#74777f', fontWeight: 600 }}>{entry.meta}</span>}
+                            </div>
+                            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 2px' }}>{entry.title}</p>
+                            {entry.description && <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 4px', lineHeight: 1.5 }}>{entry.description}</p>}
+                            {entry.outcome && (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: '#f0fdf4', borderRadius: '6px', padding: '6px 10px', marginTop: '6px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#15803d', flexShrink: 0 }}>OUTCOME</span>
+                                <span style={{ fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>{entry.outcome}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#43474e', margin: 0 }}>{formatDate(entry.date)}</p>
+                            <p style={{ fontSize: '10px', color: '#74777f', margin: '2px 0 0' }}>{formatRelative(entry.date)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* "TODAY" marker */}
+                  {future.length > 0 && (
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '12px' }}>
+                      <div style={{ width: '40px', display: 'flex', justifyContent: 'center' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffe088', border: '3px solid #735c00', zIndex: 1 }} />
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ flex: 1, height: '1px', background: '#ffe088' }} />
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', background: '#ffe08830', padding: '3px 10px', borderRadius: '99px', whiteSpace: 'nowrap' }}>
+                          TODAY · {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                        <div style={{ flex: 1, height: '1px', background: '#ffe088' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Future events */}
+                  {future.map((entry) => (
+                    <div key={entry.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '16px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: entry.bg, border: `2px dashed ${entry.color}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', zIndex: 1, position: 'relative', flexShrink: 0, opacity: 0.85 }}>
+                          {entry.icon}
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, background: '#fafbff', borderRadius: '12px', border: `1px dashed rgba(91,33,182,0.2)`, padding: '14px 16px', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                              <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: '#ede9fe', color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>UPCOMING</span>
+                              {entry.meta && <span style={{ fontSize: '11px', color: '#74777f', fontWeight: 600 }}>{entry.meta}</span>}
+                            </div>
+                            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#5b21b6', margin: '0 0 2px' }}>{entry.title}</p>
+                            {entry.description && <p style={{ fontSize: '12px', color: '#74777f', margin: 0, lineHeight: 1.5 }}>{entry.description}</p>}
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6', margin: 0 }}>{formatDate(entry.date)}</p>
+                            <p style={{ fontSize: '10px', color: '#74777f', margin: '2px 0 0', fontWeight: 600 }}>{formatRelative(entry.date)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add event prompt */}
+                <div style={{ marginTop: '8px', padding: '16px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed rgba(196,198,207,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>Add more events by scheduling hearings or uploading documents</p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => setActiveTab('hearings')} style={{ ...btnGhost, fontSize: '12px', padding: '6px 12px' }}>
+                      + Hearing
+                    </button>
+                    <button onClick={() => setActiveTab('documents')} style={{ ...btnGhost, fontSize: '12px', padding: '6px 12px' }}>
+                      + Document
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ─── PRESENTATIONS ──────────────────────────────── */}
       {activeTab === 'presentations' && (
