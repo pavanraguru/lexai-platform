@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -9,18 +9,19 @@ import {
   MapPin, FileText, Gavel, CheckSquare, Square, Bot, BookOpen,
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
-  Eye, Download
+  Eye, Download, Monitor, Languages, Sparkles,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const TABS = [
-  { key: 'overview',   Icon: Info,        label: 'Overview' },
-  { key: 'documents',  Icon: FileText,    label: 'Documents' },
-  { key: 'hearings',   Icon: Gavel,       label: 'Hearings' },
-  { key: 'tasks',      Icon: CheckSquare, label: 'Tasks' },
-  { key: 'agents',     Icon: Bot,         label: 'Agents' },
-  { key: 'drafts',     Icon: BookOpen,    label: 'Drafts' },
+  { key: 'overview',      Icon: Info,        label: 'Overview' },
+  { key: 'documents',     Icon: FileText,    label: 'Documents' },
+  { key: 'hearings',      Icon: Gavel,       label: 'Hearings' },
+  { key: 'tasks',         Icon: CheckSquare, label: 'Tasks' },
+  { key: 'agents',        Icon: Bot,         label: 'Agents' },
+  { key: 'drafts',        Icon: BookOpen,    label: 'Drafts' },
+  { key: 'presentations', Icon: Monitor,     label: 'Presentations' },
 ] as const;
 
 const HEARING_PURPOSES = [
@@ -78,9 +79,127 @@ const lbl: React.CSSProperties = {
   color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px',
 };
 
+
+// ── Translate Button Component ────────────────────────────────
+function TranslateButton({ doc, token }: { doc: any; token: string }) {
+  const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'|'english'>('idle');
+  const [result, setResult] = useState<any>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    fetch(`${BASE}/v1/documents/${doc.id}/translation`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json()).then(j => {
+      if (j.data?.status === 'done') {
+        setResult(j.data);
+        setStatus(j.data.is_already_english ? 'english' : 'done');
+      }
+    }).catch(() => {});
+  }, [doc.id, token]);
+
+  const trigger = async () => {
+    setStatus('loading');
+    await fetch(`${BASE}/v1/documents/${doc.id}/translate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    const poll = setInterval(async () => {
+      const r = await fetch(`${BASE}/v1/documents/${doc.id}/translation`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const j = await r.json();
+      if (j.data?.status === 'done') {
+        clearInterval(poll);
+        setResult(j.data);
+        setStatus(j.data.is_already_english ? 'english' : 'done');
+      } else if (j.data?.status === 'failed') {
+        clearInterval(poll);
+        setStatus('error');
+      }
+    }, 3000);
+    setTimeout(() => clearInterval(poll), 180000);
+  };
+
+  if (status === 'english') return (
+    <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', padding: '3px 8px', background: '#dcfce7', borderRadius: '4px' }}>✓ English</span>
+  );
+
+  if (status === 'loading') return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#735c00', fontWeight: 600 }}>
+      <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Translating...
+    </span>
+  );
+
+  if (status === 'done' && result) return (
+    <>
+      <span style={{ fontSize: '10px', fontWeight: 700, color: '#022448', padding: '3px 8px', background: '#d5e3ff', borderRadius: '4px' }}>
+        {result.detected_language} → EN
+      </span>
+      <button onClick={() => setShowModal(true)} style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', background: '#ede9fe', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}>
+        View Translation
+      </button>
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+          onClick={() => setShowModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '680px', width: '100%', maxHeight: '80vh', overflow: 'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 4px' }}>English Translation</h3>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Detected: {result.detected_language} · Confidence: {result.translation_confidence}</p>
+              </div>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#74777f' }}>✕</button>
+            </div>
+            {result.summary && (
+              <div style={{ background: '#d5e3ff30', borderRadius: '8px', padding: '12px', marginBottom: '16px', border: '1px solid rgba(2,36,72,0.1)' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 4px' }}>SUMMARY</p>
+                <p style={{ fontSize: '13px', color: '#191c1e', margin: 0, lineHeight: 1.6 }}>{result.summary}</p>
+              </div>
+            )}
+            {result.legal_terms?.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY LEGAL TERMS</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {result.legal_terms.map((t: string, i: number) => (
+                    <span key={i} style={{ fontSize: '11px', fontWeight: 600, color: '#735c00', background: '#ffe08850', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {result.translation && (
+              <div>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>FULL TRANSLATION</p>
+                <div style={{ fontSize: '13px', color: '#191c1e', lineHeight: 1.8, whiteSpace: 'pre-wrap', background: '#f8fafc', borderRadius: '8px', padding: '16px' }}>
+                  {result.translation}
+                </div>
+                <button onClick={() => navigator.clipboard.writeText(result.translation)}
+                  style={{ marginTop: '12px', padding: '8px 16px', background: 'transparent', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', color: '#43474e' }}>
+                  Copy Translation
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  if (status === 'error') return (
+    <button onClick={trigger} style={{ fontSize: '11px', fontWeight: 700, color: '#93000a', background: 'transparent', border: '1px solid rgba(186,26,26,0.3)', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}>↺ Retry</button>
+  );
+
+  return (
+    <button onClick={trigger} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', background: '#ede9fe', border: 'none', borderRadius: '5px', fontSize: '11px', fontWeight: 700, color: '#5b21b6', cursor: 'pointer' }}>
+      <Languages size={12} /> Translate
+    </button>
+  );
+}
+
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useAuthStore();
+  const router = useRouter();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [error, setError] = useState('');
@@ -99,6 +218,11 @@ export default function CaseDetailPage() {
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
 
+  // Presentation state
+  const [creatingPresentation, setCreatingPresentation] = useState(false);
+  const [newPresTitle, setNewPresTitle] = useState('');
+  const [showNewPresForm, setShowNewPresForm] = useState(false);
+
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['case', id],
     queryFn: async () => {
@@ -109,7 +233,18 @@ export default function CaseDetailPage() {
     enabled: !!token && !!id,
   });
 
+  const { data: presData, refetch: refreshPres } = useQuery({
+    queryKey: ['presentations', id],
+    queryFn: async () => {
+      const res = await fetch(\`\${BASE}/v1/presentations?case_id=\${id}\`, { headers: { Authorization: \`Bearer \${token}\` } });
+      if (!res.ok) return [];
+      return (await res.json()).data;
+    },
+    enabled: !!token && !!id && activeTab === 'presentations',
+  });
+
   const c = caseData as any;
+  const presentations: any[] = presData || [];
   const refresh = () => qc.invalidateQueries({ queryKey: ['case', id] });
 
   const apiCall = async (url: string, method: string, body?: any) => {
@@ -177,6 +312,24 @@ export default function CaseDetailPage() {
       refresh();
     } catch (err: any) { setError(err.message); }
     setRunningAgent(null);
+  };
+
+  const handleCreatePresentation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingPresentation(true);
+    try {
+      const res = await fetch(\`\${BASE}/v1/presentations\`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: \`Bearer \${token}\` },
+        body: JSON.stringify({ case_id: id, title: newPresTitle || c?.title }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error('Failed to create presentation');
+      setShowNewPresForm(false);
+      setNewPresTitle('');
+      router.push(\`/presentations/\${json.data.id}\`);
+    } catch (err: any) { setError(err.message); }
+    setCreatingPresentation(false);
   };
 
   if (isLoading) return (
@@ -400,6 +553,10 @@ export default function CaseDetailPage() {
                       {doc.page_count && <span style={{ fontSize: '11px', color: '#74777f' }}>{doc.page_count}pp</span>}
                     </div>
                   </div>
+                  {/* Translate button */}
+                  {doc.processing_status === 'ready' && (
+                    <TranslateButton doc={doc} token={token!} />
+                  )}
                   {/* Preview + Download buttons */}
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                     <button
@@ -710,7 +867,81 @@ export default function CaseDetailPage() {
           <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 20px' }}>Run an AI agent above, then click "To Draft" to create an editable legal document</p>
         </div>
       )}
+
+      {/* ─── PRESENTATIONS ──────────────────────────────── */}
+      {activeTab === 'presentations' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <p style={{ color: '#74777f', fontSize: '13px', margin: 0 }}>
+              {presentations.length} presentation{presentations.length !== 1 ? 's' : ''} for this case
+            </p>
+            <button onClick={() => setShowNewPresForm(!showNewPresForm)} style={btnPrimary}>
+              <Plus size={14} /> New Presentation
+            </button>
+          </div>
+
+          {showNewPresForm && (
+            <form onSubmit={handleCreatePresentation} style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 12px' }}>New Presentation</h3>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={lbl}>Title</label>
+                <input type="text" value={newPresTitle} onChange={e => setNewPresTitle(e.target.value)}
+                  placeholder={c?.title + ' — Presentation'} style={inp()} />
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="submit" disabled={creatingPresentation} style={{ ...btnPrimary, opacity: creatingPresentation ? 0.6 : 1 }}>
+                  {creatingPresentation ? <><Loader2 size={13} /> Creating...</> : 'Create & Open Builder'}
+                </button>
+                <button type="button" onClick={() => setShowNewPresForm(false)} style={btnGhost}>Cancel</button>
+              </div>
+            </form>
+          )}
+
+          {presentations.length === 0 && !showNewPresForm ? (
+            <div style={{ ...cardStyle, padding: '56px', textAlign: 'center' }}>
+              <Monitor size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
+              <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No Presentations Yet</p>
+              <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 20px', maxWidth: '380px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+                Create a presentation deck for this case. AI can generate a full deck from your Strategy agent output.
+              </p>
+              <button onClick={() => setShowNewPresForm(true)} style={btnPrimary}>
+                <Sparkles size={14} /> Create First Presentation
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {presentations.map((pres: any) => (
+                <div key={pres.id} style={{ ...cardStyle, padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#022448', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Monitor size={22} color="#ffe088" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {pres.title}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '11px', color: '#74777f' }}>
+                        {Array.isArray(pres.slides) ? pres.slides.length : 0} slides
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#74777f' }}>
+                        {new Date(pres.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <Link href={'/presentations/' + pres.id} style={{ ...btnPrimary, textDecoration: 'none', fontSize: '12px' }}>
+                      <FileText size={13} /> Edit
+                    </Link>
+                    <Link href={'/presentations/' + pres.id + '/present'} style={{ ...btnGhost, textDecoration: 'none', fontSize: '12px' }}>
+                      <Play size={13} /> Present
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
-
