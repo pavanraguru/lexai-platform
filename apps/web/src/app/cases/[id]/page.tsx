@@ -236,7 +236,7 @@ export default function CaseDetailPage() {
   const { data: presData, refetch: refreshPres } = useQuery({
     queryKey: ['presentations', id],
     queryFn: async () => {
-      const res = await fetch(\`\${BASE}/v1/presentations?case_id=\${id}\`, { headers: { Authorization: \`Bearer \${token}\` } });
+      const res = await fetch(`${BASE}/v1/presentations?case_id=${id}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return [];
       return (await res.json()).data;
     },
@@ -318,16 +318,16 @@ export default function CaseDetailPage() {
     e.preventDefault();
     setCreatingPresentation(true);
     try {
-      const res = await fetch(\`\${BASE}/v1/presentations\`, {
+      const res = await fetch(`${BASE}/v1/presentations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: \`Bearer \${token}\` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ case_id: id, title: newPresTitle || c?.title }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error('Failed to create presentation');
       setShowNewPresForm(false);
       setNewPresTitle('');
-      router.push(\`/presentations/\${json.data.id}\`);
+      router.push(`/presentations/${json.data.id}`);
     } catch (err: any) { setError(err.message); }
     setCreatingPresentation(false);
   };
