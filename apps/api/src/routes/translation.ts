@@ -155,12 +155,14 @@ export const translationRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         let result: any = null;
 
-        const hasText = doc.extracted_text && doc.extracted_text.trim().length > 80;
         const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(doc.filename);
+        // For images: always use Claude Vision — LlamaParse OCR output is often garbled
+        // for handwritten/scanned Indian language documents
+        const hasGoodText = !isImage && doc.extracted_text && doc.extracted_text.trim().length > 80;
 
-        if (hasText) {
+        if (hasGoodText) {
           // ── Text-based translation ──────────────────────
-          console.log(`[Translation] Text translation for ${doc.filename} (${doc.extracted_text!.length} chars)`);
+          console.log(`[Translation] Text translation for ${doc.filename} (${doc.extracted_text?.length} chars)`);
 
           const res = await anthropic.messages.create({
             model: 'claude-sonnet-4-6',

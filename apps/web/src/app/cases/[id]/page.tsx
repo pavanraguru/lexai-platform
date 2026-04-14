@@ -151,7 +151,18 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
               </div>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#74777f' }}>✕</button>
             </div>
-            {result.summary && (
+            {result.detected_language?.toLowerCase().includes('unknown') ? (
+              <div style={{ background: '#fff7ed', borderRadius: '8px', padding: '14px', marginBottom: '16px', border: '1px solid #fdba74' }}>
+                <p style={{ fontSize: '13px', color: '#c2410c', fontWeight: 600, margin: '0 0 6px' }}>⚠ Document could not be read clearly</p>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 10px', lineHeight: 1.6 }}>
+                  The OCR extracted garbled text from this document. This happens with low-quality scans or handwritten text.
+                  Try uploading a clearer scan or a digital (not scanned) version of the document.
+                </p>
+                <button onClick={() => { setShowModal(false); trigger(); }} style={{ fontSize: '12px', fontWeight: 700, color: '#022448', background: '#d5e3ff', border: 'none', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer' }}>
+                  ↺ Retry with Vision OCR
+                </button>
+              </div>
+            ) : result.summary && (
               <div style={{ background: '#d5e3ff30', borderRadius: '8px', padding: '12px', marginBottom: '16px', border: '1px solid rgba(2,36,72,0.1)' }}>
                 <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 4px' }}>SUMMARY</p>
                 <p style={{ fontSize: '13px', color: '#191c1e', margin: 0, lineHeight: 1.6 }}>{result.summary}</p>
