@@ -9,7 +9,7 @@ import {
   MapPin, FileText, Gavel, CheckSquare, Square, Bot, BookOpen,
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
-  Eye, Download, Monitor, Languages, Sparkles,
+  Eye, Download, Monitor, Languages, Sparkles, Clock,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -81,71 +81,177 @@ const lbl: React.CSSProperties = {
 };
 
 
-// ── Translate Button Component ────────────────────────────────
+
+// ── Case Timeline Component ───────────────────────────────────
+function CaseTimeline({ c, cardStyle, btnPrimary, btnGhost, setActiveTab }: {
+  c: any; cardStyle: any; btnPrimary: any; btnGhost: any; setActiveTab: (t: any) => void;
+}) {
+  const now = new Date();
+
+  type TEntry = {
+    id: string; date: Date; category: string;
+    title: string; description?: string; meta?: string;
+    outcome?: string; icon: string; color: string; bg: string; future?: boolean;
+  };
+
+  const entries: TEntry[] = [];
+
+  if (c.filed_date) entries.push({ id: 'filed', date: new Date(c.filed_date), category: 'filing', title: 'Case Filed', description: `${(c.case_type || '').replace(/_/g, ' ')} filed at ${c.court}`, meta: c.cnr_number ? `CNR: ${c.cnr_number}` : undefined, icon: '⚖️', color: '#022448', bg: '#d5e3ff' });
+  entries.push({ id: 'created', date: new Date(c.created_at), category: 'status', title: 'Case Added to LexAI', description: `Registered by ${c.perspective || ''} team`, icon: '📋', color: '#43474e', bg: '#edeef0' });
+
+  const catLabels: Record<string, string> = { fir: 'FIR Filed', chargesheet: 'Chargesheet Uploaded', bail_order: 'Bail Order', judgment: 'Judgment', affidavit: 'Affidavit Filed', plaint: 'Plaint Filed', written_statement: 'Written Statement', order: 'Court Order', deposition: 'Deposition Transcript', evidence_exhibit: 'Evidence Exhibit' };
+  (c.documents || []).filter((d: any) => !d.filename?.includes('English Translation')).forEach((doc: any) => {
+    entries.push({ id: `doc-${doc.id}`, date: new Date(doc.created_at), category: 'document', title: catLabels[doc.doc_category] || 'Document Uploaded', description: doc.filename, meta: doc.page_count ? `${doc.page_count}pp` : undefined, icon: '📄', color: '#735c00', bg: '#ffe08840' });
+  });
+
+  const purposeLabels: Record<string, string> = { bail: 'Bail Application', arguments: 'Arguments Heard', judgment: 'Judgment Pronounced', framing_of_charges: 'Charges Framed', evidence: 'Evidence Recorded', examination: 'Witness Examination', cross_examination: 'Cross Examination', interim_order: 'Interim Order', return_of_summons: 'Return of Summons', misc: 'Miscellaneous Hearing' };
+  (c.hearings || []).forEach((h: any) => {
+    const isFuture = new Date(h.date) > now;
+    entries.push({ id: `h-${h.id}`, date: new Date(h.date), category: 'hearing', title: purposeLabels[h.purpose] || 'Hearing', description: [h.court_room && `Room: ${h.court_room}`, h.judge_name && `Before: ${h.judge_name}`].filter(Boolean).join(' · ') || undefined, outcome: h.outcome, meta: h.time ? `${h.time} IST` : undefined, icon: isFuture ? '📅' : h.outcome ? '✅' : '🏛', color: isFuture ? '#5b21b6' : h.outcome ? '#15803d' : '#022448', bg: isFuture ? '#ede9fe' : h.outcome ? '#dcfce7' : '#d5e3ff', future: isFuture });
+  });
+
+  (c.agent_jobs || []).filter((j: any) => j.status === 'completed').forEach((j: any) => {
+    const al: Record<string, string> = { evidence: 'Evidence Analysis Complete', timeline: 'AI Timeline Reconstructed', research: 'Legal Research Complete', strategy: 'Court Strategy Generated', deposition: 'Deposition Analysis Complete' };
+    entries.push({ id: `ag-${j.id}`, date: new Date(j.completed_at || j.created_at), category: 'agent', title: al[j.agent_type] || 'AI Analysis Complete', description: j.cost_inr ? `Cost: ₹${Number(j.cost_inr).toFixed(2)}` : undefined, icon: '🤖', color: '#5b21b6', bg: '#ede9fe' });
+  });
+
+  if (c.status === 'decided' || c.status === 'closed') entries.push({ id: 'closed', date: new Date(c.updated_at), category: 'status', title: c.status === 'decided' ? 'Case Decided' : 'Case Closed', description: 'Final status recorded', icon: '🔒', color: '#15803d', bg: '#dcfce7' });
+
+  entries.sort((a, b) => a.date.getTime() - b.date.getTime());
+  const past = entries.filter(e => !e.future);
+  const future = entries.filter(e => e.future);
+
+  const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const rel = (d: Date) => { const diff = Math.ceil((d.getTime() - now.getTime()) / 86400000); if (diff === 0) return 'Today'; if (diff === 1) return 'Tomorrow'; if (diff === -1) return 'Yesterday'; if (diff > 0) return `In ${diff} days`; return `${Math.abs(diff)} days ago`; };
+
+  const catLabel = (cat: string) => ({ hearing: 'HEARING', document: 'DOCUMENT', agent: 'AI', task: 'TASK', filing: 'FILING', status: 'STATUS' }[cat] || 'EVENT');
+
+  const EventCard = ({ entry, upcoming = false }: { entry: TEntry; upcoming?: boolean }) => (
+    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+      <div style={{ flexShrink: 0, paddingTop: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: entry.bg, border: `2px ${upcoming ? 'dashed' : 'solid'} ${entry.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', position: 'relative', zIndex: 1, opacity: upcoming ? 0.85 : 1 }}>
+          {entry.icon}
+        </div>
+      </div>
+      <div style={{ flex: 1, background: upcoming ? '#fafbff' : '#fff', borderRadius: '12px', border: upcoming ? `1px dashed rgba(91,33,182,0.2)` : '1px solid rgba(196,198,207,0.15)', padding: '14px 16px', marginBottom: '12px', boxShadow: upcoming ? 'none' : '0 1px 4px rgba(2,36,72,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: upcoming ? '#ede9fe' : entry.bg, color: upcoming ? '#5b21b6' : entry.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{upcoming ? 'UPCOMING' : catLabel(entry.category)}</span>
+              {entry.meta && <span style={{ fontSize: '11px', color: '#74777f', fontWeight: 600 }}>{entry.meta}</span>}
+            </div>
+            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: upcoming ? '#5b21b6' : '#022448', margin: '0 0 2px' }}>{entry.title}</p>
+            {entry.description && <p style={{ fontSize: '12px', color: '#74777f', margin: '0', lineHeight: 1.5 }}>{entry.description}</p>}
+            {entry.outcome && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: '#f0fdf4', borderRadius: '6px', padding: '6px 10px', marginTop: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#15803d', flexShrink: 0 }}>OUTCOME</span>
+                <span style={{ fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>{entry.outcome}</span>
+              </div>
+            )}
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: upcoming ? '#5b21b6' : '#43474e', margin: 0 }}>{fmt(entry.date)}</p>
+            <p style={{ fontSize: '10px', color: '#74777f', margin: '2px 0 0' }}>{rel(entry.date)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (entries.length === 0) return (
+    <div style={{ ...cardStyle, padding: '48px', textAlign: 'center', maxWidth: '720px' }}>
+      <Clock size={36} color="#c4c6cf" style={{ marginBottom: '14px' }} />
+      <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', margin: '0 0 8px' }}>No Timeline Events Yet</p>
+      <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 16px' }}>Add a filing date, schedule hearings, or upload documents to build the timeline.</p>
+      <button onClick={() => setActiveTab('hearings')} style={btnPrimary}>+ Schedule First Hearing</button>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: '720px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 4px' }}>Case Timeline</h2>
+          <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>{past.length} recorded events · {future.length} upcoming</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {[{ color: '#022448', label: 'Filing' }, { color: '#15803d', label: 'Hearing' }, { color: '#735c00', label: 'Document' }, { color: '#5b21b6', label: 'Upcoming' }].map(item => (
+            <span key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, color: item.color }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />{item.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', left: '19px', top: '8px', bottom: '8px', width: '2px', background: 'rgba(196,198,207,0.25)', borderRadius: '1px' }} />
+        {past.map(e => <EventCard key={e.id} entry={e} />)}
+        {future.length > 0 && (
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ width: '40px', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffe088', border: '3px solid #735c00', zIndex: 1, position: 'relative' }} />
+            </div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ flex: 1, height: '1px', background: '#ffe088' }} />
+              <span style={{ fontSize: '10px', fontWeight: 800, color: '#735c00', background: '#ffe08830', padding: '3px 10px', borderRadius: '99px', whiteSpace: 'nowrap' }}>TODAY · {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              <div style={{ flex: 1, height: '1px', background: '#ffe088' }} />
+            </div>
+          </div>
+        )}
+        {future.map(e => <EventCard key={e.id} entry={e} upcoming />)}
+      </div>
+
+      <div style={{ marginTop: '8px', padding: '16px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed rgba(196,198,207,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+        <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>Add more events by scheduling hearings or uploading documents</p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => setActiveTab('hearings')} style={{ ...btnGhost, fontSize: '12px', padding: '6px 12px' }}>+ Hearing</button>
+          <button onClick={() => setActiveTab('documents')} style={{ ...btnGhost, fontSize: '12px', padding: '6px 12px' }}>+ Document</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Translate Button ──────────────────────────────────────────
 function TranslateButton({ doc, token }: { doc: any; token: string }) {
   const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'|'english'>('idle');
   const [result, setResult] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
-    fetch(`${BASE}/v1/documents/${doc.id}/translation`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.json()).then(j => {
-      if (j.data?.status === 'done') {
-        setResult(j.data);
-        setStatus(j.data.is_already_english ? 'english' : 'done');
-      }
-    }).catch(() => {});
+    fetch(`${BASE_URL}/v1/documents/${doc.id}/translation`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(j => {
+        if (j.data?.status === 'done') { setResult(j.data); setStatus(j.data.is_already_english ? 'english' : 'done'); }
+      }).catch(() => {});
   }, [doc.id, token]);
 
   const trigger = async (force = false) => {
-    setStatus('loading');
-    setResult(null);
-    await fetch(`${BASE}/v1/documents/${doc.id}/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    setStatus('loading'); setResult(null);
+    await fetch(`${BASE_URL}/v1/documents/${doc.id}/translate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ force }),
     });
     const poll = setInterval(async () => {
-      const r = await fetch(`${BASE}/v1/documents/${doc.id}/translation`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const r = await fetch(`${BASE_URL}/v1/documents/${doc.id}/translation`, { headers: { Authorization: `Bearer ${token}` } });
       const j = await r.json();
-      if (j.data?.status === 'done') {
-        clearInterval(poll);
-        setResult(j.data);
-        setStatus(j.data.is_already_english ? 'english' : 'done');
-      } else if (j.data?.status === 'failed') {
-        clearInterval(poll);
-        setStatus('error');
-      }
+      if (j.data?.status === 'done') { clearInterval(poll); setResult(j.data); setStatus(j.data.is_already_english ? 'english' : 'done'); }
+      else if (j.data?.status === 'failed') { clearInterval(poll); setStatus('error'); }
     }, 3000);
     setTimeout(() => clearInterval(poll), 180000);
   };
 
-  if (status === 'english') return (
-    <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', padding: '3px 8px', background: '#dcfce7', borderRadius: '4px' }}>✓ English</span>
-  );
-
-  if (status === 'loading') return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#735c00', fontWeight: 600 }}>
-      <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Translating...
-    </span>
-  );
+  if (status === 'english') return <span style={{ fontSize: '10px', fontWeight: 700, color: '#15803d', padding: '3px 8px', background: '#dcfce7', borderRadius: '4px' }}>✓ English</span>;
+  if (status === 'loading') return <span style={{ fontSize: '11px', color: '#735c00', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Translating...</span>;
+  if (status === 'error') return <button onClick={() => trigger()} style={{ fontSize: '11px', fontWeight: 700, color: '#93000a', background: 'transparent', border: '1px solid rgba(186,26,26,0.3)', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}>↺ Retry</button>;
 
   if (status === 'done' && result) return (
     <>
-      <span style={{ fontSize: '10px', fontWeight: 700, color: '#022448', padding: '3px 8px', background: '#d5e3ff', borderRadius: '4px' }}>
-        {result.detected_language} → EN
-      </span>
-      <button onClick={() => setShowModal(true)} style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', background: '#ede9fe', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}>
-        📄 View Translation
-      </button>
+      <span style={{ fontSize: '10px', fontWeight: 700, color: '#022448', padding: '3px 8px', background: '#d5e3ff', borderRadius: '4px' }}>{result.detected_language} → EN</span>
+      <button onClick={() => setShowModal(true)} style={{ fontSize: '11px', fontWeight: 700, color: '#5b21b6', background: '#ede9fe', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}>📄 View</button>
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
-          onClick={() => setShowModal(false)}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '680px', width: '100%', maxHeight: '80vh', overflow: 'auto' }}
-            onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }} onClick={() => setShowModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '680px', width: '100%', maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 4px' }}>English Translation</h3>
@@ -156,41 +262,33 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
             {result.detected_language?.toLowerCase().includes('unknown') ? (
               <div style={{ background: '#fff7ed', borderRadius: '8px', padding: '14px', marginBottom: '16px', border: '1px solid #fdba74' }}>
                 <p style={{ fontSize: '13px', color: '#c2410c', fontWeight: 600, margin: '0 0 6px' }}>⚠ Document could not be read clearly</p>
-                <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 10px', lineHeight: 1.6 }}>
-                  The OCR extracted garbled text from this document. This happens with low-quality scans or handwritten text.
-                  Try uploading a clearer scan or a digital (not scanned) version of the document.
-                </p>
-                <button onClick={() => { setShowModal(false); trigger(true); }} style={{ fontSize: '12px', fontWeight: 700, color: '#022448', background: '#d5e3ff', border: 'none', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer' }}>
-                  ↺ Retry with Vision OCR
-                </button>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 10px', lineHeight: 1.6 }}>The OCR extracted garbled text. Try uploading a clearer scan or a digital version.</p>
+                <button onClick={() => { setShowModal(false); trigger(true); }} style={{ fontSize: '12px', fontWeight: 700, color: '#022448', background: '#d5e3ff', border: 'none', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer' }}>↺ Retry with Vision OCR</button>
               </div>
-            ) : result.summary && (
-              <div style={{ background: '#d5e3ff30', borderRadius: '8px', padding: '12px', marginBottom: '16px', border: '1px solid rgba(2,36,72,0.1)' }}>
-                <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 4px' }}>SUMMARY</p>
-                <p style={{ fontSize: '13px', color: '#191c1e', margin: 0, lineHeight: 1.6 }}>{result.summary}</p>
-              </div>
-            )}
-            {result.legal_terms?.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY LEGAL TERMS</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {result.legal_terms.map((t: string, i: number) => (
-                    <span key={i} style={{ fontSize: '11px', fontWeight: 600, color: '#735c00', background: '#ffe08850', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {result.translation && !result.detected_language?.toLowerCase().includes('unknown') && (
-              <div>
-                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>FULL TRANSLATION</p>
-                <div style={{ fontSize: '13px', color: '#191c1e', lineHeight: 1.8, whiteSpace: 'pre-wrap', background: '#f8fafc', borderRadius: '8px', padding: '16px' }}>
-                  {result.translation}
-                </div>
-                <button onClick={() => navigator.clipboard.writeText(result.translation)}
-                  style={{ marginTop: '12px', padding: '8px 16px', background: 'transparent', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', color: '#43474e' }}>
-                  Copy Translation
-                </button>
-              </div>
+            ) : (
+              <>
+                {result.summary && (
+                  <div style={{ background: '#d5e3ff30', borderRadius: '8px', padding: '12px', marginBottom: '16px', border: '1px solid rgba(2,36,72,0.1)' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 4px' }}>SUMMARY</p>
+                    <p style={{ fontSize: '13px', color: '#191c1e', margin: 0, lineHeight: 1.6 }}>{result.summary}</p>
+                  </div>
+                )}
+                {result.legal_terms?.length > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY LEGAL TERMS</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {result.legal_terms.map((t: string, i: number) => <span key={i} style={{ fontSize: '11px', fontWeight: 600, color: '#735c00', background: '#ffe08850', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>)}
+                    </div>
+                  </div>
+                )}
+                {result.translation && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>FULL TRANSLATION</p>
+                    <div style={{ fontSize: '13px', color: '#191c1e', lineHeight: 1.8, whiteSpace: 'pre-wrap', background: '#f8fafc', borderRadius: '8px', padding: '16px' }}>{result.translation}</div>
+                    <button onClick={() => navigator.clipboard.writeText(result.translation)} style={{ marginTop: '12px', padding: '8px 16px', background: 'transparent', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', color: '#43474e' }}>Copy Translation</button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -198,12 +296,8 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
     </>
   );
 
-  if (status === 'error') return (
-    <button onClick={trigger} style={{ fontSize: '11px', fontWeight: 700, color: '#93000a', background: 'transparent', border: '1px solid rgba(186,26,26,0.3)', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}>↺ Retry</button>
-  );
-
   return (
-    <button onClick={trigger} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', background: '#ede9fe', border: 'none', borderRadius: '5px', fontSize: '11px', fontWeight: 700, color: '#5b21b6', cursor: 'pointer' }}>
+    <button onClick={() => trigger()} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', background: '#ede9fe', border: 'none', borderRadius: '5px', fontSize: '11px', fontWeight: 700, color: '#5b21b6', cursor: 'pointer' }}>
       <Languages size={12} /> Translate
     </button>
   );
@@ -246,7 +340,7 @@ export default function CaseDetailPage() {
     enabled: !!token && !!id,
   });
 
-  const { data: presData, refetch: refreshPres } = useQuery({
+  const { data: presData } = useQuery({
     queryKey: ['presentations', id],
     queryFn: async () => {
       const res = await fetch(`${BASE}/v1/presentations?case_id=${id}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -537,9 +631,7 @@ export default function CaseDetailPage() {
             </div>
           ) : (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              {(c.documents || [])
-                .filter((doc: any) => !doc.filename?.includes('— English Translation'))
-                .map((doc: any, i: number, arr: any[]) => (
+              {(c.documents || []).filter((doc: any) => !doc.filename?.includes('English Translation')).map((doc: any, i: number) => (
                 <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', borderBottom: i < c.documents.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
                   <FileText size={20} color="#022448" style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -568,12 +660,11 @@ export default function CaseDetailPage() {
                       {doc.page_count && <span style={{ fontSize: '11px', color: '#74777f' }}>{doc.page_count}pp</span>}
                     </div>
                   </div>
-                  {/* Translate button */}
-                  {doc.processing_status === 'ready' && (
-                    <TranslateButton doc={doc} token={token!} />
-                  )}
-                  {/* Preview + Download buttons */}
-                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                  {/* Translate + Preview + Download */}
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
+                    {doc.processing_status === 'ready' && !doc.filename?.includes('English Translation') && (
+                      <TranslateButton doc={doc} token={token!} />
+                    )}
                     <button
                       title="Preview in browser"
                       onClick={async () => {
@@ -883,320 +974,19 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── CASE TIMELINE ──────────────────────────────── */}
-      {activeTab === 'timeline' && (() => {
-        // Build unified timeline from all data sources
-        type TimelineEntry = {
-          id: string;
-          date: Date;
-          category: 'filing' | 'hearing' | 'document' | 'task' | 'agent' | 'status' | 'ecourts';
-          title: string;
-          description?: string;
-          meta?: string;
-          outcome?: string;
-          icon: string;
-          color: string;
-          bg: string;
-          future?: boolean;
-        };
-
-        const entries: TimelineEntry[] = [];
-        const now = new Date();
-
-        // ── Case Filed ──
-        if (c.filed_date) {
-          entries.push({
-            id: 'filed',
-            date: new Date(c.filed_date),
-            category: 'filing',
-            title: 'Case Filed',
-            description: `${c.case_type?.replace(/_/g, ' ')} filed at ${c.court}`,
-            meta: c.cnr_number ? `CNR: ${c.cnr_number}` : undefined,
-            icon: '⚖️', color: '#022448', bg: '#d5e3ff',
-          });
-        }
-
-        // ── Case Created in LexAI ──
-        entries.push({
-          id: 'created',
-          date: new Date(c.created_at),
-          category: 'status',
-          title: 'Case Added to LexAI',
-          description: `Registered by ${c.perspective} team`,
-          icon: '📋', color: '#43474e', bg: '#edeef0',
-        });
-
-        // ── Documents ──
-        (c.documents || [])
-          .filter((d: any) => !d.filename?.includes('English Translation'))
-          .forEach((doc: any) => {
-            const categoryLabels: Record<string, string> = {
-              fir: 'FIR Filed', chargesheet: 'Chargesheet Uploaded',
-              bail_order: 'Bail Order', judgment: 'Judgment',
-              affidavit: 'Affidavit Filed', plaint: 'Plaint Filed',
-              written_statement: 'Written Statement', order: 'Court Order',
-              deposition: 'Deposition Transcript', evidence_exhibit: 'Evidence Exhibit',
-            };
-            const label = categoryLabels[doc.doc_category] || 'Document Uploaded';
-            entries.push({
-              id: `doc-${doc.id}`,
-              date: new Date(doc.created_at),
-              category: 'document',
-              title: label,
-              description: doc.filename,
-              meta: doc.page_count ? `${doc.page_count} pages` : undefined,
-              icon: '📄', color: '#735c00', bg: '#ffe08840',
-            });
-          });
-
-        // ── Hearings ──
-        (c.hearings || []).forEach((h: any) => {
-          const purposeLabels: Record<string, string> = {
-            bail: 'Bail Application', arguments: 'Arguments Heard',
-            judgment: 'Judgment Pronounced', framing_of_charges: 'Charges Framed',
-            evidence: 'Evidence Recorded', examination: 'Witness Examination',
-            cross_examination: 'Cross Examination', interim_order: 'Interim Order',
-            return_of_summons: 'Return of Summons', misc: 'Miscellaneous Hearing',
-          };
-          const isFuture = new Date(h.date) > now;
-          entries.push({
-            id: `hearing-${h.id}`,
-            date: new Date(h.date),
-            category: 'hearing',
-            title: purposeLabels[h.purpose] || 'Hearing',
-            description: [h.court_room && `Court Room: ${h.court_room}`, h.judge_name && `Before: ${h.judge_name}`].filter(Boolean).join(' · ') || undefined,
-            outcome: h.outcome,
-            meta: h.time ? `${h.time} IST` : undefined,
-            icon: isFuture ? '📅' : h.outcome ? '✅' : '🏛',
-            color: isFuture ? '#5b21b6' : h.outcome ? '#15803d' : '#022448',
-            bg: isFuture ? '#ede9fe' : h.outcome ? '#dcfce7' : '#d5e3ff',
-            future: isFuture,
-          });
-        });
-
-        // ── Tasks (completed only — show as milestones) ──
-        (c.tasks || [])
-          .filter((t: any) => t.status === 'done' && t.completed_at)
-          .forEach((t: any) => {
-            entries.push({
-              id: `task-${t.id}`,
-              date: new Date(t.completed_at || t.updated_at),
-              category: 'task',
-              title: 'Task Completed',
-              description: t.title,
-              icon: '✔️', color: '#15803d', bg: '#dcfce7',
-            });
-          });
-
-        // ── Agent Completions ──
-        (c.agent_jobs || [])
-          .filter((j: any) => j.status === 'completed')
-          .forEach((j: any) => {
-            const labels: Record<string, string> = {
-              evidence: 'Evidence Analysis Complete', timeline: 'AI Timeline Reconstructed',
-              research: 'Legal Research Complete', strategy: 'Court Strategy Generated',
-              deposition: 'Deposition Analysis Complete',
-            };
-            entries.push({
-              id: `agent-${j.id}`,
-              date: new Date(j.completed_at || j.created_at),
-              category: 'agent',
-              title: labels[j.agent_type] || 'AI Analysis Complete',
-              description: j.cost_inr ? `Cost: ₹${Number(j.cost_inr).toFixed(2)}` : undefined,
-              icon: '🤖', color: '#5b21b6', bg: '#ede9fe',
-            });
-          });
-
-        // ── Status changes (inferred from current status) ──
-        if (c.status === 'decided' || c.status === 'closed') {
-          entries.push({
-            id: 'decided',
-            date: new Date(c.updated_at),
-            category: 'status',
-            title: c.status === 'decided' ? 'Case Decided' : 'Case Closed',
-            description: 'Final status recorded',
-            icon: '🔒', color: '#15803d', bg: '#dcfce7',
-          });
-        }
-
-        // Sort chronologically
-        entries.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-        const past = entries.filter(e => !e.future);
-        const future = entries.filter(e => e.future);
-
-        const formatDate = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        const formatRelative = (d: Date) => {
-          const diffDays = Math.ceil((d.getTime() - now.getTime()) / 86400000);
-          if (diffDays === 0) return 'Today';
-          if (diffDays === 1) return 'Tomorrow';
-          if (diffDays === -1) return 'Yesterday';
-          if (diffDays > 0) return `In ${diffDays} days`;
-          return `${Math.abs(diffDays)} days ago`;
-        };
-
-        return (
-          <div style={{ maxWidth: '720px' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 4px' }}>
-                  Case Timeline
-                </h2>
-                <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
-                  {past.length} recorded events · {future.length} upcoming
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { color: '#022448', bg: '#d5e3ff', label: 'Filing' },
-                  { color: '#15803d', bg: '#dcfce7', label: 'Hearing' },
-                  { color: '#735c00', bg: '#ffe08840', label: 'Document' },
-                  { color: '#5b21b6', bg: '#ede9fe', label: 'Upcoming' },
-                ].map(item => (
-                  <span key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, color: item.color }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
-                    {item.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {entries.length === 0 ? (
-              <div style={{ ...cardStyle, padding: '48px', textAlign: 'center' }}>
-                <Clock size={36} color="#c4c6cf" style={{ marginBottom: '14px' }} />
-                <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', margin: '0 0 8px' }}>No Timeline Events Yet</p>
-                <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 16px' }}>
-                  Add a filing date in the case overview, schedule hearings, or upload documents to build the timeline.
-                </p>
-                <button onClick={() => setActiveTab('hearings')} style={btnPrimary}>
-                  + Schedule First Hearing
-                </button>
-              </div>
-            ) : (
-              <div style={{ position: 'relative' }}>
-                {/* Vertical line */}
-                <div style={{ position: 'absolute', left: '19px', top: '8px', bottom: '8px', width: '2px', background: 'rgba(196,198,207,0.3)', borderRadius: '1px' }} />
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                  {/* Past events */}
-                  {past.map((entry, i) => (
-                    <div key={entry.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '0' }}>
-                      {/* Timeline dot */}
-                      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '16px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: entry.bg, border: `2px solid ${entry.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', zIndex: 1, position: 'relative', flexShrink: 0 }}>
-                          {entry.icon}
-                        </div>
-                      </div>
-                      {/* Content card */}
-                      <div style={{ flex: 1, background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.15)', padding: '14px 16px', marginBottom: '12px', boxShadow: '0 1px 4px rgba(2,36,72,0.04)' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: entry.bg, color: entry.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                {entry.category === 'hearing' ? 'HEARING' : entry.category === 'document' ? 'DOCUMENT' : entry.category === 'agent' ? 'AI ANALYSIS' : entry.category === 'task' ? 'TASK' : entry.category === 'filing' ? 'FILING' : 'STATUS'}
-                              </span>
-                              {entry.meta && <span style={{ fontSize: '11px', color: '#74777f', fontWeight: 600 }}>{entry.meta}</span>}
-                            </div>
-                            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 2px' }}>{entry.title}</p>
-                            {entry.description && <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 4px', lineHeight: 1.5 }}>{entry.description}</p>}
-                            {entry.outcome && (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: '#f0fdf4', borderRadius: '6px', padding: '6px 10px', marginTop: '6px' }}>
-                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#15803d', flexShrink: 0 }}>OUTCOME</span>
-                                <span style={{ fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>{entry.outcome}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#43474e', margin: 0 }}>{formatDate(entry.date)}</p>
-                            <p style={{ fontSize: '10px', color: '#74777f', margin: '2px 0 0' }}>{formatRelative(entry.date)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* "TODAY" marker */}
-                  {future.length > 0 && (
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '12px' }}>
-                      <div style={{ width: '40px', display: 'flex', justifyContent: 'center' }}>
-                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffe088', border: '3px solid #735c00', zIndex: 1 }} />
-                      </div>
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ flex: 1, height: '1px', background: '#ffe088' }} />
-                        <span style={{ fontSize: '10px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', background: '#ffe08830', padding: '3px 10px', borderRadius: '99px', whiteSpace: 'nowrap' }}>
-                          TODAY · {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                        <div style={{ flex: 1, height: '1px', background: '#ffe088' }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Future events */}
-                  {future.map((entry) => (
-                    <div key={entry.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '16px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: entry.bg, border: `2px dashed ${entry.color}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', zIndex: 1, position: 'relative', flexShrink: 0, opacity: 0.85 }}>
-                          {entry.icon}
-                        </div>
-                      </div>
-                      <div style={{ flex: 1, background: '#fafbff', borderRadius: '12px', border: `1px dashed rgba(91,33,182,0.2)`, padding: '14px 16px', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                              <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: '#ede9fe', color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>UPCOMING</span>
-                              {entry.meta && <span style={{ fontSize: '11px', color: '#74777f', fontWeight: 600 }}>{entry.meta}</span>}
-                            </div>
-                            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#5b21b6', margin: '0 0 2px' }}>{entry.title}</p>
-                            {entry.description && <p style={{ fontSize: '12px', color: '#74777f', margin: 0, lineHeight: 1.5 }}>{entry.description}</p>}
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6', margin: 0 }}>{formatDate(entry.date)}</p>
-                            <p style={{ fontSize: '10px', color: '#74777f', margin: '2px 0 0', fontWeight: 600 }}>{formatRelative(entry.date)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add event prompt */}
-                <div style={{ marginTop: '8px', padding: '16px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed rgba(196,198,207,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                  <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>Add more events by scheduling hearings or uploading documents</p>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => setActiveTab('hearings')} style={{ ...btnGhost, fontSize: '12px', padding: '6px 12px' }}>
-                      + Hearing
-                    </button>
-                    <button onClick={() => setActiveTab('documents')} style={{ ...btnGhost, fontSize: '12px', padding: '6px 12px' }}>
-                      + Document
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {/* ─── PRESENTATIONS ──────────────────────────────── */}
       {activeTab === 'presentations' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <p style={{ color: '#74777f', fontSize: '13px', margin: 0 }}>
-              {presentations.length} presentation{presentations.length !== 1 ? 's' : ''} for this case
-            </p>
-            <button onClick={() => setShowNewPresForm(!showNewPresForm)} style={btnPrimary}>
-              <Plus size={14} /> New Presentation
-            </button>
+            <p style={{ color: '#74777f', fontSize: '13px', margin: 0 }}>{presentations.length} presentation{presentations.length !== 1 ? 's' : ''} for this case</p>
+            <button onClick={() => setShowNewPresForm(!showNewPresForm)} style={btnPrimary}><Plus size={14} /> New Presentation</button>
           </div>
-
           {showNewPresForm && (
             <form onSubmit={handleCreatePresentation} style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
               <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 12px' }}>New Presentation</h3>
               <div style={{ marginBottom: '14px' }}>
                 <label style={lbl}>Title</label>
-                <input type="text" value={newPresTitle} onChange={e => setNewPresTitle(e.target.value)}
-                  placeholder={c?.title + ' — Presentation'} style={inp()} />
+                <input type="text" value={newPresTitle} onChange={e => setNewPresTitle(e.target.value)} placeholder={c?.title + ' — Presentation'} style={inp()} />
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="submit" disabled={creatingPresentation} style={{ ...btnPrimary, opacity: creatingPresentation ? 0.6 : 1 }}>
@@ -1206,45 +996,30 @@ export default function CaseDetailPage() {
               </div>
             </form>
           )}
-
           {presentations.length === 0 && !showNewPresForm ? (
-            <div style={{ ...cardStyle, padding: '56px', textAlign: 'center' }}>
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', padding: '56px', textAlign: 'center' }}>
               <Monitor size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
               <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No Presentations Yet</p>
-              <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 20px', maxWidth: '380px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
-                Create a presentation deck for this case. AI can generate a full deck from your Strategy agent output.
-              </p>
-              <button onClick={() => setShowNewPresForm(true)} style={btnPrimary}>
-                <Sparkles size={14} /> Create First Presentation
-              </button>
+              <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 20px', lineHeight: 1.6 }}>Create a presentation deck for this case. AI can generate a full deck from your Strategy agent output.</p>
+              <button onClick={() => setShowNewPresForm(true)} style={btnPrimary}><Sparkles size={14} /> Create First Presentation</button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {presentations.map((pres: any) => (
-                <div key={pres.id} style={{ ...cardStyle, padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div key={pres.id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#022448', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Monitor size={22} color="#ffe088" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {pres.title}
-                    </h3>
+                    <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pres.title}</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '11px', color: '#74777f' }}>
-                        {Array.isArray(pres.slides) ? pres.slides.length : 0} slides
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#74777f' }}>
-                        {new Date(pres.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
+                      <span style={{ fontSize: '11px', color: '#74777f' }}>{Array.isArray(pres.slides) ? pres.slides.length : 0} slides</span>
+                      <span style={{ fontSize: '11px', color: '#74777f' }}>{new Date(pres.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <Link href={'/presentations/' + pres.id} style={{ ...btnPrimary, textDecoration: 'none', fontSize: '12px' }}>
-                      <FileText size={13} /> Edit
-                    </Link>
-                    <Link href={'/presentations/' + pres.id + '/present'} style={{ ...btnGhost, textDecoration: 'none', fontSize: '12px' }}>
-                      <Play size={13} /> Present
-                    </Link>
+                    <Link href={'/presentations/' + pres.id} style={{ ...btnPrimary, textDecoration: 'none', fontSize: '12px' }}><FileText size={13} /> Edit</Link>
+                    <Link href={'/presentations/' + pres.id + '/present'} style={{ ...btnGhost, textDecoration: 'none', fontSize: '12px' }}><Play size={13} /> Present</Link>
                   </div>
                 </div>
               ))}
@@ -1252,6 +1027,12 @@ export default function CaseDetailPage() {
           )}
         </div>
       )}
+
+      {/* ─── CASE TIMELINE ──────────────────────────────── */}
+      {activeTab === 'timeline' && (
+        <CaseTimeline c={c} cardStyle={cardStyle} btnPrimary={btnPrimary} btnGhost={btnGhost} setActiveTab={setActiveTab} />
+      )}
+
     </div>
   );
 }
