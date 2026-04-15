@@ -10,13 +10,8 @@ import {
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
   Eye, Download, Monitor, Languages, Sparkles, Clock,
-  BookMarked, Search, Copy, Scale,
+  BookMarked,
 } from 'lucide-react';
-
-import {
-  FILINGS, CASE_CATEGORIES, FILING_STAGES,
-  type Filing, type CaseCategory,
-} from '@/lib/filingRepository';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -245,486 +240,177 @@ const COURT_LEVEL_LABEL: Record<string, string> = {
   magistrate:    'Magistrate Court',
 };
 
-// ── Case Filings Components ───────────────────────────────────
-
-const CASE_TYPE_TO_CATS: Record<string, CaseCategory[]> = {
-  criminal_sessions:   ['criminal'],
-  criminal_magistrate: ['criminal'],
-  writ_hc:             ['constitutional', 'civil', 'labour'],
-  civil_district:      ['civil', 'family', 'motor_accident'],
-  corporate_nclt:      ['commercial'],
-  family:              ['family'],
-  labour:              ['labour', 'constitutional'],
-  ip:                  ['commercial', 'civil'],
-  tax:                 ['revenue', 'constitutional'],
-  arbitration:         ['commercial', 'civil'],
-  consumer:            ['civil', 'commercial'],
+// ── Case Filings Tab ─────────────────────────────────────────
+const CASE_TYPE_LABELS: Record<string, string> = {
+  criminal_sessions: 'Criminal (Sessions)',
+  criminal_magistrate: 'Criminal (Magistrate)',
+  writ_hc: 'Writ / Constitutional',
+  civil_district: 'Civil',
+  corporate_nclt: 'Commercial / NCLT',
+  family: 'Family',
+  labour: 'Labour',
+  ip: 'Intellectual Property',
+  tax: 'Revenue / Tax',
+  arbitration: 'Arbitration',
+  consumer: 'Consumer',
 };
 
-const LAW_DESCS: Record<string, string> = {
-  'Section 480 BNSS (Bail)': 'Grants court power to release accused on bail. Sets conditions and procedure.',
-  'Section 482 BNSS (Anticipatory Bail)': 'Pre-arrest bail when arrest is apprehended. Court may impose conditions.',
-  'Section 479 BNSS (Default Bail)': 'Statutory right to bail if chargesheet not filed within 60 or 90 days of arrest.',
-  'Section 528 BNSS': 'Inherent powers of High Court to quash FIR or proceedings to prevent abuse of process.',
-  'Section 250 BNSS': 'Accused may apply for discharge before framing of charges if no prima facie case exists.',
-  'Section 415 BNSS': 'Right of appeal against conviction, acquittal or sentence.',
-  'Section 442 BNSS': 'Revisional jurisdiction over orders of subordinate criminal courts.',
-  'Article 136 Constitution of India': 'Supreme Court discretionary power to grant special leave to appeal from any court in India.',
-  'Article 226 Constitution of India': 'High Court power to issue all writs — Habeas Corpus, Mandamus, Certiorari, Prohibition, Quo Warranto.',
-  'Article 32 Constitution of India': 'Right to approach Supreme Court directly for enforcement of fundamental rights.',
-  'Section 148A CPC': 'Caveat — person may lodge caveat so no ex-parte order is passed without hearing them. Valid for 90 days.',
-  'Order VII CPC': 'Mandatory contents of a plaint including parties, cause of action, relief, and verification.',
-  'Order VIII CPC': 'Written statement by defendant — must be filed within 30 days. Non-traversal of facts is deemed admission.',
-  'Order XXXIX Rules 1-2 CPC': 'Temporary injunction — court may restrain a party from causing irreparable injury during suit.',
-  'Order XXI CPC': 'Execution of decrees — attachment and sale of property, arrest of judgment debtor.',
-  'Section 13 Hindu Marriage Act 1955': 'Grounds for divorce — cruelty, desertion, conversion, unsoundness of mind, renunciation.',
-  'Section 125 BNSS': 'Magistrate may order maintenance for wife, children or parents. Applies to all religions.',
-  'Section 138 Negotiable Instruments Act': 'Criminal liability for dishonour of cheque — up to 2 years imprisonment or double the cheque amount as fine.',
-  'Section 7 IBC (Financial Creditor)': 'Financial creditor may initiate insolvency process before NCLT on default.',
-  'Section 9 IBC (Operational Creditor)': 'Operational creditor may apply for insolvency after demand notice if default is not disputed.',
-  'Section 166 Motor Vehicles Act 1988': 'Right to claim compensation for death or bodily injury from motor vehicle accident before MACT.',
-  'Section 5 Limitation Act 1963': 'Court may condone delay in filing if sufficient cause is shown.',
-  'Order III Rule 4 CPC': 'Advocate must file Vakalatnama — written authority signed by party — before appearing in court.',
-  'Contempt of Courts Act 1971': 'Defines civil and criminal contempt. Punishable with up to 6 months imprisonment.',
+const QUICK_FILINGS: Record<string, { name: string; stage: string }[]> = {
+  criminal_sessions: [
+    { name: 'Vakalatnama', stage: 'Initiation' },
+    { name: 'Bail Application', stage: 'Interim' },
+    { name: 'Anticipatory Bail Application', stage: 'Initiation' },
+    { name: 'Default Bail Application', stage: 'Interim' },
+    { name: 'Application for Discharge', stage: 'Initiation' },
+    { name: 'Petition to Quash FIR (Section 528 BNSS)', stage: 'Initiation' },
+    { name: 'Criminal Appeal', stage: 'Appeal' },
+    { name: 'Criminal Revision Petition', stage: 'Appeal' },
+    { name: 'Special Leave Petition (Criminal)', stage: 'Appeal' },
+    { name: 'Condonation of Delay Application', stage: 'Misc' },
+    { name: 'Stay / Suspension Application', stage: 'Interim' },
+  ],
+  criminal_magistrate: [
+    { name: 'Vakalatnama', stage: 'Initiation' },
+    { name: 'Bail Application', stage: 'Interim' },
+    { name: 'Default Bail Application', stage: 'Interim' },
+    { name: 'Application for Discharge', stage: 'Initiation' },
+    { name: 'Cheque Dishonour Complaint (Section 138 NI Act)', stage: 'Initiation' },
+  ],
+  writ_hc: [
+    { name: 'Vakalatnama', stage: 'Initiation' },
+    { name: 'Writ Petition (High Court)', stage: 'Initiation' },
+    { name: 'Caveat Petition', stage: 'Initiation' },
+    { name: 'Stay / Suspension Application', stage: 'Interim' },
+    { name: 'Application for Interim Injunction', stage: 'Interim' },
+    { name: 'Contempt Petition', stage: 'Misc' },
+  ],
+  civil_district: [
+    { name: 'Vakalatnama', stage: 'Initiation' },
+    { name: 'Civil Suit — Plaint', stage: 'Initiation' },
+    { name: 'Written Statement', stage: 'Initiation' },
+    { name: 'Application for Interim Injunction', stage: 'Interim' },
+    { name: 'Caveat Petition', stage: 'Initiation' },
+    { name: 'Execution Petition / Decree Execution', stage: 'Execution' },
+    { name: 'Amendment Application', stage: 'Misc' },
+    { name: 'Condonation of Delay Application', stage: 'Misc' },
+  ],
+  family: [
+    { name: 'Vakalatnama', stage: 'Initiation' },
+    { name: 'Divorce Petition', stage: 'Initiation' },
+    { name: 'Maintenance Application', stage: 'Interim' },
+    { name: 'Child Custody Petition', stage: 'Initiation' },
+    { name: 'Stay / Suspension Application', stage: 'Interim' },
+  ],
+  corporate_nclt: [
+    { name: 'Vakalatnama', stage: 'Initiation' },
+    { name: 'Insolvency Application (IBC)', stage: 'Initiation' },
+    { name: 'Caveat Petition', stage: 'Initiation' },
+  ],
+  labour: [
+    { name: 'Vakalatnama', stage: 'Initiation' },
+    { name: 'Writ Petition (High Court)', stage: 'Initiation' },
+    { name: 'Writ Petition — Service Matters', stage: 'Initiation' },
+    { name: 'Stay / Suspension Application', stage: 'Interim' },
+  ],
 };
 
-function CaseFilingDraftModal({ filing, caseData, token, onClose }: {
-  filing: Filing; caseData: any; token: string; onClose: () => void;
-}) {
-  const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [error, setError] = useState('');
+const STAGE_COLORS: Record<string, { bg: string; color: string }> = {
+  'Initiation': { bg: '#d5e3ff', color: '#022448' },
+  'Interim':    { bg: '#ffe088', color: '#745c00' },
+  'Appeal':     { bg: '#ede9fe', color: '#5b21b6' },
+  'Execution':  { bg: '#dcfce7', color: '#15803d' },
+  'Misc':       { bg: '#edeef0', color: '#43474e' },
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    const generate = async () => {
-      try {
-        const res = await fetch(BASE + '/v1/filings/ai-draft', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-          body: JSON.stringify({
-            filing_name: filing.name,
-            ai_prompt_hint: filing.ai_prompt_hint,
-            relevant_sections: filing.relevant_sections,
-            case_context: {
-              title: caseData.title,
-              court: caseData.court,
-              case_type: caseData.case_type,
-              perspective: caseData.perspective,
-              cnr_number: caseData.cnr_number,
-              filed_date: caseData.filed_date,
-              metadata: caseData.metadata,
-            },
-          }),
-        });
-        const data = await res.json();
-        if (!cancelled) {
-          if (!res.ok) throw new Error(data.error?.message || 'Failed to generate');
-          setDraft(data.data?.draft || '');
-          setLoading(false);
-        }
-      } catch (err: any) {
-        if (!cancelled) { setError(err.message); setLoading(false); }
-      }
-    };
-    generate();
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(draft);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+function CaseFilingsTab({ c }: { c: any }) {
+  const caseType = c.case_type || 'civil_district';
+  const filings = QUICK_FILINGS[caseType] || QUICK_FILINGS['civil_district'];
+  const caseLabel = CASE_TYPE_LABELS[caseType] || 'General';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
-      onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '820px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-        onClick={e => e.stopPropagation()}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(196,198,207,0.15)', background: 'linear-gradient(135deg, #022448, #1e3a5f)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-            <div>
-              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#fff', margin: '0 0 4px' }}>{filing.name}</h2>
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>AI Draft — pre-filled with case details</p>
-            </div>
-            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#fff' }}>
-              <X size={16} />
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '12px' }}>
-            {[caseData.title, caseData.court, caseData.cnr_number, caseData.perspective].filter(Boolean).map((chip: string, i: number) => (
-              <span key={i} style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)' }}>
-                {String(chip).slice(0, 30)}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
-          {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <Loader2 size={36} color="#5b21b6" style={{ animation: 'spin 1s linear infinite', marginBottom: '16px' }} />
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#022448', margin: '0 0 4px' }}>Drafting {filing.name}...</p>
-              <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Pre-filling with case details</p>
-            </div>
-          )}
-          {error && !loading && (
-            <div style={{ background: '#ffdad6', borderRadius: '10px', padding: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <AlertCircle size={16} color="#93000a" />
-              <span style={{ fontSize: '13px', color: '#93000a' }}>{error}</span>
-            </div>
-          )}
-          {draft && !loading && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CheckCircle2 size={15} color="#15803d" /> Draft ready — review before filing
-                </span>
-                <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 14px', background: copied ? '#dcfce7' : '#022448', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', color: copied ? '#15803d' : '#fff', fontFamily: 'Manrope, sans-serif' }}>
-                  <Copy size={12} /> {copied ? 'Copied!' : 'Copy Draft'}
-                </button>
-              </div>
-              <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '20px', border: '1px solid rgba(196,198,207,0.2)', fontSize: '13px', color: '#191c1e', lineHeight: 2, whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', maxHeight: '480px', overflowY: 'auto' }}>
-                {draft}
-              </div>
-              <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fff7ed', borderRadius: '8px', border: '1px solid rgba(202,138,4,0.15)', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                <AlertCircle size={13} color="#b45309" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <p style={{ fontSize: '11px', color: '#92400e', margin: 0, lineHeight: 1.5 }}>AI drafts are starting points. Always review citations and facts before filing in court.</p>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CaseFileFor({ c, token }: { c: any; token: string }) {
-  const [selectedFiling, setSelectedFiling] = useState<Filing | null>(null);
-  const [showDraft, setShowDraft] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStage, setSelectedStage] = useState<string | null>(null);
-  const [expandedLaw, setExpandedLaw] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState<'guide'|'docs'|'law'>('guide');
-
-  const caseType: string = c.case_type || '';
-  const relevantCats = useMemo<CaseCategory[]>(() => CASE_TYPE_TO_CATS[caseType] || ['general'], [caseType]);
-
-  const suggestedFilings = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return FILINGS.filter(f => {
-      if (!f.category.some(cat => relevantCats.includes(cat))) return false;
-      if (selectedStage && f.stage !== selectedStage) return false;
-      if (q && !f.name.toLowerCase().includes(q) && !f.description.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [relevantCats, selectedStage, searchQuery]);
-
-  const catConfig = CASE_CATEGORIES.find(cat => relevantCats.includes(cat.id));
-
-  const handleSelectFiling = (filing: Filing) => {
-    if (selectedFiling?.id === filing.id) {
-      setSelectedFiling(null);
-    } else {
-      setSelectedFiling(filing);
-      setDetailTab('guide');
-      setExpandedLaw(null);
-    }
-  };
-
-  const handleDownloadTemplate = (filing: Filing) => {
-    const lines = [
-      filing.name,
-      '='.repeat(50),
-      '',
-      'IN THE [COURT NAME]',
-      '',
-      'Case: ' + (c.title || '[CASE TITLE]'),
-      'Court: ' + (c.court || '[COURT]'),
-      'CNR: ' + (c.cnr_number || '[CNR NUMBER]'),
-      'Perspective: ' + (c.perspective || '[PERSPECTIVE]'),
-      '',
-      '[PETITIONER/PLAINTIFF NAME]     ...Petitioner',
-      'Versus',
-      '[RESPONDENT/DEFENDANT NAME]     ...Respondent',
-      '',
-      'PETITION FOR ' + filing.name.toUpperCase(),
-      '',
-      'MOST RESPECTFULLY SHOWETH:',
-      '',
-      '1. [State the first fact]',
-      '2. [State the second fact]',
-      '3. [Continue with relevant facts]',
-      '',
-      'GROUNDS',
-      '',
-      'A. [First ground]',
-      'B. [Second ground]',
-      '',
-      'PRAYER',
-      '',
-      "It is therefore most respectfully prayed that this Hon'ble Court may be pleased to:",
-      '',
-      '(i) [State first relief];',
-      '(ii) [State second relief];',
-      '(iii) Pass such other order as this Court deems fit.',
-      '',
-      'Filed by:',
-      'Advocate for Petitioner',
-      '',
-      'Date: ' + new Date().toLocaleDateString('en-IN'),
-      'Place: [CITY]',
-      '',
-      'Applicable Law: ' + (filing.relevant_sections || []).join(', '),
-    ];
-    const blob = new Blob([lines.join('
-')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const fname = filing.name.replace(/[^a-zA-Z0-9]/g, '_');
-    const cnr = (c.cnr_number || 'Template').replace(/[^a-zA-Z0-9]/g, '_');
-    a.download = fname + '_' + cnr + '.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const cardStyle: React.CSSProperties = {
-    background: '#fff', borderRadius: '12px',
-    border: '1px solid rgba(196,198,207,0.15)',
-    boxShadow: '0 1px 4px rgba(2,36,72,0.04)',
-  };
-
-  return (
-    <div style={{ maxWidth: '960px' }}>
+    <div style={{ maxWidth: '860px' }}>
       {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 6px' }}>
-          Filings — {c.title}
-        </h2>
-        <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
-          {suggestedFilings.length} relevant filings for{' '}
-          <span style={{ fontWeight: 700, color: catConfig?.color || '#022448' }}>
-            {catConfig?.emoji} {catConfig?.label}
-          </span>
-          {' '}matters in <strong>{c.court}</strong>
-        </p>
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 6px' }}>
+            Relevant Filings
+          </h2>
+          <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
+            Suggested filings for <strong>{caseLabel}</strong> matters · <strong>{c.court}</strong>
+          </p>
+        </div>
+        <Link href="/filings" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 16px', background: '#022448', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '12px', fontWeight: 700, fontFamily: 'Manrope, sans-serif' }}>
+          <BookMarked size={14} /> Full Filings Library →
+        </Link>
       </div>
 
-      {/* Chips */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
+      {/* Case context */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
         {[
-          { label: c.perspective?.replace(/_/g, ' '), color: '#022448', bg: '#d5e3ff' },
-          { label: c.court_level?.replace(/_/g, ' '), color: '#43474e', bg: '#edeef0' },
-          { label: c.status?.replace(/_/g, ' '), color: '#735c00', bg: '#ffe088' },
+          { label: c.perspective?.replace(/_/g, ' '), bg: '#d5e3ff', color: '#022448' },
+          { label: c.status?.replace(/_/g, ' '), bg: '#ffe088', color: '#745c00' },
+          { label: c.cnr_number, bg: '#edeef0', color: '#43474e' },
         ].filter(item => item.label).map((item, i) => (
-          <span key={i} style={{ fontSize: '10px', fontWeight: 800, padding: '3px 10px', borderRadius: '99px', background: item.bg, color: item.color, textTransform: 'capitalize' }}>
+          <span key={i} style={{ fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '99px', background: item.bg, color: item.color, textTransform: 'capitalize' }}>
             {item.label}
           </span>
         ))}
       </div>
 
-      {/* Search + Stage */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
-          <Search size={14} color="#74777f" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search filings..."
-            style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box' }} />
-        </div>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {FILING_STAGES.filter(s => FILINGS.some(f => f.category.some(cat => relevantCats.includes(cat)) && f.stage === s.id)).map(s => (
-            <button key={s.id} type="button" onClick={() => setSelectedStage(selectedStage === s.id ? null : s.id)} style={{
-              padding: '7px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 700,
-              background: selectedStage === s.id ? '#022448' : '#fff',
-              color: selectedStage === s.id ? '#fff' : '#43474e',
-              border: selectedStage === s.id ? '1px solid #022448' : '1px solid rgba(196,198,207,0.3)',
-              fontFamily: 'Manrope, sans-serif',
-            }}>
-              {s.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: selectedFiling ? 'minmax(0,1fr) 360px' : '1fr', gap: '16px', alignItems: 'start' }}>
-
-        {/* Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {suggestedFilings.length === 0 ? (
-            <div style={{ ...cardStyle, padding: '40px', textAlign: 'center' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#74777f', margin: 0 }}>No matching filings</p>
-            </div>
-          ) : suggestedFilings.map(filing => {
-            const isSel = selectedFiling?.id === filing.id;
-            const cc = CASE_CATEGORIES.find(cat => filing.category.includes(cat.id));
-            const sc = FILING_STAGES.find(s => s.id === filing.stage);
-            return (
-              <div key={filing.id} onClick={() => handleSelectFiling(filing)} style={{
-                background: isSel ? '#f0f4ff' : '#fff', borderRadius: '12px', padding: '16px', cursor: 'pointer',
-                border: isSel ? '1.5px solid #022448' : '1px solid rgba(196,198,207,0.15)',
-                boxShadow: isSel ? '0 4px 16px rgba(2,36,72,0.08)' : '0 1px 4px rgba(2,36,72,0.04)',
-                transition: 'all 0.12s',
+      {/* Filing cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
+        {filings.map((filing, i) => {
+          const stageStyle = STAGE_COLORS[filing.stage] || STAGE_COLORS['Misc'];
+          const encodedCase = encodeURIComponent(JSON.stringify({
+            title: c.title,
+            court: c.court,
+            case_type: c.case_type,
+            perspective: c.perspective,
+            cnr_number: c.cnr_number,
+          }));
+          return (
+            <Link
+              key={i}
+              href={"/filings?filing=" + encodeURIComponent(filing.name)}
+              style={{ textDecoration: 'none' }}
+            >
+              <div style={{
+                background: '#fff', borderRadius: '12px', padding: '16px',
+                border: '1px solid rgba(196,198,207,0.2)',
+                boxShadow: '0 1px 4px rgba(2,36,72,0.04)',
+                cursor: 'pointer', height: '100%', boxSizing: 'border-box',
+                transition: 'box-shadow 0.15s, border-color 0.15s',
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: cc?.bg || '#edeef0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 }}>
-                    {cc?.emoji || '📋'}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
-                      <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {filing.name}
-                      </h3>
-                      <ChevronRight size={14} color={isSel ? '#022448' : '#c4c6cf'} style={{ flexShrink: 0, transform: isSel ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
-                    </div>
-                    <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 8px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {filing.description}
-                    </p>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      {cc && <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: cc.bg, color: cc.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{sc?.label}</span>}
-                      {filing.court_fee && <span style={{ fontSize: '10px', color: '#735c00', fontWeight: 600 }}>{filing.court_fee}</span>}
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', borderRadius: '3px', background: stageStyle.bg, color: stageStyle.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {filing.stage}
+                  </span>
+                  <ChevronRight size={14} color="#c4c6cf" />
                 </div>
-                {isSel && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(196,198,207,0.15)' }}
-                    onClick={e => e.stopPropagation()}>
-                    <button type="button" onClick={() => setShowDraft(true)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                      <Sparkles size={13} /> AI Draft
-                    </button>
-                    <button type="button" onClick={() => handleDownloadTemplate(filing)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                      <Download size={13} /> Template
-                    </button>
-                  </div>
-                )}
+                <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '0.95rem', color: '#022448', margin: '0 0 4px', lineHeight: 1.3 }}>
+                  {filing.name}
+                </p>
+                <p style={{ fontSize: '11px', color: '#74777f', margin: 0 }}>
+                  View guide · AI Draft · Template
+                </p>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Detail panel */}
-        {selectedFiling && (
-          <div style={{ position: 'sticky', top: '20px', background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 8px 32px rgba(2,36,72,0.1)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 18px', background: 'linear-gradient(135deg, #022448, #1e3a5f)' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '12px' }}>
-                <div>
-                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#fff', margin: '0 0 3px' }}>{selectedFiling.name}</h3>
-                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{selectedFiling.description}</p>
-                </div>
-                <button type="button" onClick={() => setSelectedFiling(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '6px', padding: '5px', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
-                  <X size={14} />
-                </button>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px' }}>
-                <p style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '0 0 6px' }}>AUTO-FILLED FROM THIS CASE</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                  {[['Case', c.title], ['Court', c.court], ['CNR', c.cnr_number || 'Not assigned'], ['Perspective', c.perspective]].map(([k, v]) => (
-                    <div key={k}>
-                      <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', display: 'block' }}>{k}</span>
-                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{String(v || '—').slice(0, 25)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <button type="button" onClick={() => setShowDraft(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '10px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                <Sparkles size={14} /> Generate AI Draft
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid rgba(196,198,207,0.12)' }}>
-              {(['guide', 'docs', 'law'] as const).map(tab => (
-                <button key={tab} type="button" onClick={e => { e.stopPropagation(); setDetailTab(tab); }} style={{
-                  flex: 1, padding: '10px 4px', border: 'none', cursor: 'pointer', fontSize: '11px',
-                  fontWeight: detailTab === tab ? 700 : 500,
-                  color: detailTab === tab ? '#022448' : '#74777f',
-                  background: detailTab === tab ? '#fff' : 'transparent',
-                  borderBottom: detailTab === tab ? '2px solid #022448' : '2px solid transparent',
-                  fontFamily: 'Manrope, sans-serif',
-                }}>
-                  {tab === 'guide' ? 'Guide' : tab === 'docs' ? 'Documents' : 'Law'}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ padding: '14px 16px', maxHeight: '400px', overflowY: 'auto' }}>
-              {detailTab === 'guide' && (
-                <div>
-                  {[
-                    { label: 'WHO FILES', value: selectedFiling.filing_guide.who_files },
-                    { label: 'WHEN TO FILE', value: selectedFiling.filing_guide.when_to_file },
-                    ...(selectedFiling.filing_guide.time_limit ? [{ label: 'TIME LIMIT', value: selectedFiling.filing_guide.time_limit }] : []),
-                  ].map(item => (
-                    <div key={item.label} style={{ marginBottom: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid rgba(196,198,207,0.12)' }}>
-                      <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 3px' }}>{item.label}</p>
-                      <p style={{ fontSize: '12px', color: '#191c1e', margin: 0, lineHeight: 1.5 }}>{item.value}</p>
-                    </div>
-                  ))}
-                  <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '12px 0 8px' }}>KEY CONTENTS</p>
-                  {selectedFiling.filing_guide.key_contents.map((item, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: '#022448', flexShrink: 0 }}>{i + 1}</span>
-                      <p style={{ fontSize: '12px', color: '#43474e', margin: '1px 0 0', lineHeight: 1.4 }}>{item}</p>
-                    </div>
-                  ))}
-                  <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '12px 0 8px' }}>TIPS</p>
-                  {selectedFiling.filing_guide.tips.map((tip, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '7px', marginBottom: '6px', background: '#fffbeb', borderRadius: '6px', padding: '7px 9px', border: '1px solid rgba(202,138,4,0.12)' }}>
-                      <span style={{ fontSize: '12px', flexShrink: 0 }}>💡</span>
-                      <p style={{ fontSize: '11px', color: '#92400e', margin: 0, lineHeight: 1.5 }}>{tip}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {detailTab === 'docs' && (
-                <div>
-                  <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 10px' }}>REQUIRED DOCUMENTS</p>
-                  {selectedFiling.filing_guide.supporting_docs.map((doc, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '9px 11px', background: '#f8fafc', borderRadius: '7px', marginBottom: '6px', border: '1px solid rgba(196,198,207,0.12)' }}>
-                      <FileText size={13} color="#022448" style={{ flexShrink: 0 }} />
-                      <p style={{ fontSize: '12px', color: '#43474e', margin: 0 }}>{doc}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {detailTab === 'law' && (
-                <div>
-                  <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 10px' }}>APPLICABLE PROVISIONS</p>
-                  {(selectedFiling.relevant_sections || []).map((section, i) => {
-                    const isEx = expandedLaw === section;
-                    const desc = LAW_DESCS[section];
-                    return (
-                      <div key={i} style={{ marginBottom: '6px', borderRadius: '7px', border: isEx ? '1px solid rgba(2,36,72,0.25)' : '1px solid rgba(2,36,72,0.1)', overflow: 'hidden' }}>
-                        <button type="button" onClick={() => setExpandedLaw(isEx ? null : section)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', padding: '9px 11px', background: isEx ? '#d5e3ff' : '#d5e3ff30', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                          <span style={{ fontSize: '12px', color: '#022448', fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}>{section}</span>
-                          {desc && <span style={{ color: '#022448', flexShrink: 0, fontSize: '12px' }}>{isEx ? '▲' : '▼'}</span>}
-                        </button>
-                        {isEx && (
-                          <div style={{ padding: '10px 11px', background: '#f8fafc', borderTop: '1px solid rgba(2,36,72,0.08)' }}>
-                            <p style={{ fontSize: '12px', color: '#43474e', margin: 0, lineHeight: 1.6 }}>{desc || 'Refer to the relevant statute for detailed provisions.'}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fff7ed', borderRadius: '7px', border: '1px solid rgba(202,138,4,0.15)' }}>
-                    <p style={{ fontSize: '9px', fontWeight: 800, color: '#b45309', letterSpacing: '0.06em', margin: '0 0 4px' }}>NEW LAWS NOTE</p>
-                    <p style={{ fontSize: '11px', color: '#92400e', margin: 0, lineHeight: 1.5 }}>Post-July 2024: BNS, BNSS, BSA. Before July 2024: IPC, CrPC, Indian Evidence Act.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+            </Link>
+          );
+        })}
       </div>
 
-      {showDraft && selectedFiling && (
-        <CaseFilingDraftModal filing={selectedFiling} caseData={c} token={token} onClose={() => setShowDraft(false)} />
-      )}
+      {/* Footer note */}
+      <div style={{ marginTop: '20px', padding: '14px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid rgba(196,198,207,0.2)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <BookMarked size={16} color="#74777f" style={{ flexShrink: 0 }} />
+        <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
+          Click any filing to open the full guide, download a template, or generate an AI-drafted document in the Filings library.
+          The library will have all your case details pre-filled.
+        </p>
+      </div>
     </div>
   );
 }
+
 
 function TranslateButton({ doc, token }: { doc: any; token: string }) {
   const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'|'english'>('idle');
@@ -1487,9 +1173,9 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── FILE FOR ───────────────────────────────────── */}
+      {/* ─── FILINGS ────────────────────────────────────── */}
       {activeTab === 'filings' && (
-        <CaseFileFor c={c} token={token!} />
+        <CaseFilingsTab c={c} />
       )}
 
       {/* ─── PRESENTATIONS ──────────────────────────────── */}
