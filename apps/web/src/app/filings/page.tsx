@@ -446,7 +446,7 @@ function FileForPageInner() {
         {/* Case Type dropdown */}
         <div style={{ position: 'relative' }}>
           <button type="button" onClick={() => { setShowCatDropdown(v => !v); setShowJurDropdown(false); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', background: selectedCat ? selectedCat.bg : '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: selectedCat ? 700 : 500, color: selectedCat ? selectedCat.color : '#43474e', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 24px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', background: selectedCat ? selectedCat.bg : '#fff', cursor: 'pointer', fontSize: '15px', fontWeight: selectedCat ? 700 : 500, color: selectedCat ? selectedCat.color : '#43474e', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap', minWidth: '160px', justifyContent: 'space-between' }}>
             {selectedCat ? selectedCat.emoji + ' ' + selectedCat.label : 'Case Type'}
             <ChevronDown size={14} />
           </button>
@@ -469,7 +469,7 @@ function FileForPageInner() {
         {/* Jurisdiction dropdown */}
         <div style={{ position: 'relative' }}>
           <button type="button" onClick={() => { setShowJurDropdown(v => !v); setShowCatDropdown(false); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', background: selectedJur ? '#022448' : '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: selectedJur ? 700 : 500, color: selectedJur ? '#ffe088' : '#43474e', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 24px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', background: selectedJur ? '#022448' : '#fff', cursor: 'pointer', fontSize: '15px', fontWeight: selectedJur ? 700 : 500, color: selectedJur ? '#ffe088' : '#43474e', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap', minWidth: '160px', justifyContent: 'space-between' }}>
             {selectedJur ? selectedJur.short : 'Jurisdiction'}
             <ChevronDown size={14} />
           </button>
