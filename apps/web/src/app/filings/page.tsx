@@ -412,6 +412,8 @@ function FileForPageInner() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedJurisdiction, setExpandedJurisdiction] = useState<string | null>('sc');
   const [caseContext, setCaseContext] = useState<any>(null);
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const [showJurDropdown, setShowJurDropdown] = useState(false);
 
   // Read URL params passed from the case detail filings tab
   useEffect(() => {
@@ -497,113 +499,125 @@ function FileForPageInner() {
         </div>
       )}
 
-      {/* Search bar */}
-      <div style={{ position: 'relative', marginBottom: '24px', maxWidth: '500px' }}>
-        <Search size={16} color="#74777f" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-        <input
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search filings — bail, vakalatnama, writ, caveat..."
-          style={{ width: '100%', padding: '10px 12px 10px 38px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '10px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
-        />
-        {searchQuery && (
-          <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', padding: '2px' }}>
-            <X size={14} />
+      {/* ── Top filter bar ─────────────────────────────── */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '200px' }}>
+          <Search size={15} color="#74777f" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search filings — bail, vakalatnama, writ..."
+            style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#74777f' }}>
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
+        {/* Case Type dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => { setShowCatDropdown(v => !v); setShowJurDropdown(false); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', background: selectedCategory ? CASE_CATEGORIES.find(c => c.id === selectedCategory)?.bg || '#fff' : '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: selectedCategory ? 700 : 500, color: selectedCategory ? CASE_CATEGORIES.find(c => c.id === selectedCategory)?.color || '#43474e' : '#43474e', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap' }}>
+            {selectedCategory ? (
+              <>{CASE_CATEGORIES.find(c => c.id === selectedCategory)?.emoji} {CASE_CATEGORIES.find(c => c.id === selectedCategory)?.label}</>
+            ) : 'Case Type'}
+            <ChevronDown size={14} />
+          </button>
+          {showCatDropdown && (
+            <div style={{ position: 'absolute', top: '44px', left: 0, background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '200px', overflow: 'hidden' }}>
+              <button type="button" onClick={() => { setSelectedCategory(null); setShowCatDropdown(false); }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 14px', border: 'none', background: !selectedCategory ? '#f0f4ff' : 'transparent', cursor: 'pointer', fontSize: '13px', color: '#74777f', fontFamily: 'Manrope, sans-serif', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
+                All Case Types
+              </button>
+              {CASE_CATEGORIES.map(cat => (
+                <button key={cat.id} type="button" onClick={() => { setSelectedCategory(cat.id); setShowCatDropdown(false); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', border: 'none', borderBottom: '1px solid rgba(196,198,207,0.06)', background: selectedCategory === cat.id ? cat.bg : 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: selectedCategory === cat.id ? 700 : 400, color: selectedCategory === cat.id ? cat.color : '#43474e', fontFamily: 'Manrope, sans-serif' }}>
+                  <span>{cat.emoji}</span> {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Jurisdiction dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => { setShowJurDropdown(v => !v); setShowCatDropdown(false); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', background: selectedJurisdiction ? '#022448' : '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: selectedJurisdiction ? 700 : 500, color: selectedJurisdiction ? '#ffe088' : '#43474e', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap' }}>
+            {selectedJurisdiction ? JURISDICTIONS.find(j => j.id === selectedJurisdiction)?.short || 'Court' : 'Jurisdiction'}
+            <ChevronDown size={14} />
+          </button>
+          {showJurDropdown && (
+            <div style={{ position: 'absolute', top: '44px', left: 0, background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 100, width: '260px', maxHeight: '400px', overflowY: 'auto' }}>
+              <button type="button" onClick={() => { setSelectedJurisdiction(null); setShowJurDropdown(false); }}
+                style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '10px 14px', border: 'none', background: !selectedJurisdiction ? '#f0f4ff' : 'transparent', cursor: 'pointer', fontSize: '13px', color: '#74777f', fontFamily: 'Manrope, sans-serif', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
+                All Jurisdictions
+              </button>
+              <div style={{ padding: '6px 14px 4px', fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em' }}>SUPREME COURT</div>
+              {JURISDICTIONS.filter(j => j.type === 'supreme_court').map(j => (
+                <button key={j.id} type="button" onClick={() => { setSelectedJurisdiction(j.id); setShowJurDropdown(false); }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 14px', border: 'none', borderBottom: '1px solid rgba(196,198,207,0.06)', background: selectedJurisdiction === j.id ? '#022448' : 'transparent', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: selectedJurisdiction === j.id ? '#ffe088' : '#022448' }}>{j.name}</span>
+                </button>
+              ))}
+              <div style={{ padding: '8px 14px 4px', fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', borderTop: '1px solid rgba(196,198,207,0.1)', marginTop: '4px' }}>HIGH COURTS</div>
+              {JURISDICTIONS.filter(j => j.type === 'high_court').map(j => (
+                <button key={j.id} type="button" onClick={() => { setSelectedJurisdiction(j.id); setShowJurDropdown(false); }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 14px', border: 'none', borderBottom: '1px solid rgba(196,198,207,0.06)', background: selectedJurisdiction === j.id ? '#d5e3ff' : 'transparent', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: selectedJurisdiction === j.id ? 700 : 500, color: selectedJurisdiction === j.id ? '#022448' : '#43474e', display: 'block' }}>{j.name}</span>
+                    <span style={{ fontSize: '10px', color: '#74777f' }}>{j.state}</span>
+                  </div>
+                  {selectedJurisdiction === j.id && <span style={{ fontSize: '12px', color: '#022448' }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Stage dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => { setShowCatDropdown(false); setShowJurDropdown(false); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', background: '#fff', cursor: 'pointer', fontSize: '13px', fontFamily: 'Manrope, sans-serif', color: '#43474e' }}>
+            <select
+              value={selectedStage || ''}
+              onChange={e => setSelectedStage(e.target.value as FilingStage || null)}
+              style={{ border: 'none', outline: 'none', fontSize: '13px', fontFamily: 'Manrope, sans-serif', color: selectedStage ? '#022448' : '#43474e', fontWeight: selectedStage ? 700 : 500, background: 'transparent', cursor: 'pointer', appearance: 'none', paddingRight: '20px' }}>
+              <option value="">All Stages</option>
+              {FILING_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+            <ChevronDown size={14} style={{ pointerEvents: 'none', marginLeft: '-16px' }} />
+          </button>
+        </div>
+
+        {/* Clear filters */}
+        {(selectedCategory || selectedJurisdiction || selectedStage || searchQuery) && (
+          <button type="button" onClick={() => { setSelectedCategory(null); setSelectedJurisdiction(null); setSelectedStage(null); setSearchQuery(''); }}
+            style={{ padding: '10px 14px', border: '1px solid rgba(186,26,26,0.2)', borderRadius: '9px', background: '#fff7f7', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#ba1a1a', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap' }}>
+            Clear all
           </button>
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0,1fr)', gap: '20px', alignItems: 'start' }}>
+      {/* Click outside to close dropdowns */}
+      {(showCatDropdown || showJurDropdown) && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => { setShowCatDropdown(false); setShowJurDropdown(false); }} />
+      )}
 
-        {/* ── Left: Filters ──────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* ── Main area ──────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: selectedFiling ? '1fr 380px' : '1fr', gap: '16px', alignItems: 'start' }}>
 
-          {/* Case Category */}
-          <div style={{ ...cardStyle, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
-              <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: 0 }}>CASE TYPE</p>
-            </div>
-            {CASE_CATEGORIES.map(cat => (
-              <button key={cat.id} onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)} style={{
-                display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 16px',
-                border: 'none', borderBottom: '1px solid rgba(196,198,207,0.06)',
-                background: selectedCategory === cat.id ? cat.bg : 'transparent',
-                cursor: 'pointer', textAlign: 'left', fontFamily: 'Manrope, sans-serif',
-              }}>
-                <span style={{ fontSize: '16px' }}>{cat.emoji}</span>
-                <span style={{ fontSize: '13px', fontWeight: selectedCategory === cat.id ? 700 : 500, color: selectedCategory === cat.id ? cat.color : '#43474e' }}>
-                  {cat.label}
-                </span>
-                {selectedCategory === cat.id && <ChevronRight size={14} color={cat.color} style={{ marginLeft: 'auto' }} />}
-              </button>
-            ))}
-          </div>
-
-          {/* Filing Stage */}
-          <div style={{ ...cardStyle, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
-              <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: 0 }}>STAGE</p>
-            </div>
-            {FILING_STAGES.map(stage => (
-              <button key={stage.id} onClick={() => setSelectedStage(selectedStage === stage.id ? null : stage.id)} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 16px',
-                border: 'none', borderBottom: '1px solid rgba(196,198,207,0.06)',
-                background: selectedStage === stage.id ? '#d5e3ff' : 'transparent',
-                cursor: 'pointer', textAlign: 'left', fontFamily: 'Manrope, sans-serif',
-              }}>
-                <span style={{ fontSize: '12px', fontWeight: selectedStage === stage.id ? 700 : 500, color: selectedStage === stage.id ? '#022448' : '#43474e' }}>
-                  {stage.label}
-                </span>
-                {selectedStage === stage.id && <ChevronRight size={13} color="#022448" />}
-              </button>
-            ))}
-          </div>
-
-          {/* Jurisdiction */}
-          <div style={{ ...cardStyle, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
-              <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: 0 }}>JURISDICTION</p>
-            </div>
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {/* Supreme Court */}
-              {JURISDICTIONS.filter(j => j.type === 'supreme_court').map(j => (
-                <button key={j.id} onClick={() => setSelectedJurisdiction(selectedJurisdiction === j.id ? null : j.id)} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 16px',
-                  border: 'none', borderBottom: '1px solid rgba(196,198,207,0.1)',
-                  background: selectedJurisdiction === j.id ? '#022448' : '#f0f4f8',
-                  cursor: 'pointer', textAlign: 'left', fontFamily: 'Manrope, sans-serif',
-                }}>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: 800, color: selectedJurisdiction === j.id ? '#ffe088' : '#022448', margin: 0 }}>{j.short}</p>
-                    <p style={{ fontSize: '10px', color: selectedJurisdiction === j.id ? 'rgba(255,255,255,0.7)' : '#74777f', margin: 0 }}>{j.city}</p>
-                  </div>
-                  {selectedJurisdiction === j.id && <ChevronRight size={13} color="#ffe088" />}
-                </button>
-              ))}
-              {/* High Courts */}
-              {JURISDICTIONS.filter(j => j.type === 'high_court').map(j => (
-                <button key={j.id} onClick={() => setSelectedJurisdiction(selectedJurisdiction === j.id ? null : j.id)} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 16px',
-                  border: 'none', borderBottom: '1px solid rgba(196,198,207,0.06)',
-                  background: selectedJurisdiction === j.id ? '#d5e3ff' : 'transparent',
-                  cursor: 'pointer', textAlign: 'left', fontFamily: 'Manrope, sans-serif',
-                }}>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: selectedJurisdiction === j.id ? 700 : 500, color: selectedJurisdiction === j.id ? '#022448' : '#43474e', margin: 0 }}>{j.short}</p>
-                    <p style={{ fontSize: '10px', color: '#74777f', margin: 0 }}>{j.state}</p>
-                  </div>
-                  {selectedJurisdiction === j.id && <ChevronRight size={13} color="#022448" />}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Right: Filings + Detail ─────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: selectedFiling ? '1fr 380px' : '1fr', gap: '16px', alignItems: 'start' }}>
-
-          {/* Filing list */}
-          <div>
+        {/* Filing list */}
+        <div>
             {/* Results count */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
@@ -611,11 +625,7 @@ function FileForPageInner() {
                 {selectedCategory && ` · ${CASE_CATEGORIES.find(c => c.id === selectedCategory)?.label}`}
                 {selectedStage && ` · ${FILING_STAGES.find(s => s.id === selectedStage)?.label}`}
               </p>
-              {(selectedCategory || selectedStage || selectedJurisdiction) && (
-                <button onClick={() => { setSelectedCategory(null); setSelectedStage(null); setSelectedJurisdiction(null); }} style={{ fontSize: '11px', fontWeight: 700, color: '#ba1a1a', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                  Clear filters
-                </button>
-              )}
+
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
