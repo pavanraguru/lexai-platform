@@ -10,7 +10,7 @@ import {
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
   Eye, Download, Monitor, Languages, Sparkles, Clock,
-  BookMarked,
+  BookMarked, Save,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -83,6 +83,301 @@ const lbl: React.CSSProperties = {
 };
 
 
+
+
+// ── Drafting Workspace Component ─────────────────────────────
+function DraftingWorkspace({ caseId, token }: { caseId: string; token: string }) {
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingDraft, setEditingDraft] = useState<any>(null);
+  const [formTitle, setFormTitle] = useState('');
+  const [formType, setFormType] = useState('petition');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [editorText, setEditorText] = useState('');
+
+  const DOC_TYPES = [
+    { value: 'petition',           label: 'Petition' },
+    { value: 'written_statement',  label: 'Written Statement' },
+    { value: 'affidavit',          label: 'Affidavit' },
+    { value: 'vakalatnama',        label: 'Vakalatnama' },
+    { value: 'bail_application',   label: 'Bail Application' },
+    { value: 'opening_statement',  label: 'Opening Statement' },
+    { value: 'memo_of_appeal',     label: 'Memo of Appeal' },
+    { value: 'legal_notice',       label: 'Legal Notice' },
+    { value: 'reply_notice',       label: 'Reply Notice' },
+    { value: 'other',              label: 'Other Document' },
+  ];
+
+  const fetchDrafts = async () => {
+    try {
+      const res = await fetch(BASE + '/v1/drafts/case/' + caseId, {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const data = await res.json();
+      setDrafts(data.data || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchDrafts(); }, [caseId]);
+
+  // Sync editor text when draft changes
+  useEffect(() => {
+    if (editingDraft) {
+      const text = editingDraft.content?.text || editingDraft.content?.content || '';
+      setEditorText(typeof text === 'string' ? text : '');
+    }
+  }, [editingDraft?.id]);
+
+  const createDraft = async () => {
+    if (!formTitle.trim()) return;
+    setCreating(true); setError('');
+    try {
+      const res = await fetch(BASE + '/v1/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ case_id: caseId, title: formTitle, doc_type: formType, content: { type: 'doc', content: [] } }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Failed to create draft');
+      setShowForm(false); setFormTitle(''); setFormType('petition');
+      setEditingDraft(data.data);
+      fetchDrafts();
+    } catch (err: any) { setError(err.message); }
+    setCreating(false);
+  };
+
+  const saveDraft = async (draft: any, content: string) => {
+    setSaving(true);
+    try {
+      const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+      await fetch(BASE + '/v1/drafts/' + draft.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ content: { type: 'doc', text: content }, title: draft.title, word_count: wordCount }),
+      });
+      setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: content } }));
+      fetchDrafts();
+    } catch {}
+    setSaving(false);
+  };
+
+  const deleteDraft = async (draftId: string) => {
+    if (!confirm('Delete this draft? This cannot be undone.')) return;
+    await fetch(BASE + '/v1/drafts/' + draftId, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (editingDraft?.id === draftId) setEditingDraft(null);
+    fetchDrafts();
+  };
+
+  const generateWithAI = async (draft: any) => {
+    setAiGenerating(true);
+    try {
+      const res = await fetch(BASE + '/v1/filings/ai-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({
+          filing_name: draft.title,
+          ai_prompt_hint: 'Draft a complete ' + draft.doc_type?.replace(/_/g, ' ') + ' for this case in formal Indian court style.',
+          case_context: { title: draft.case?.title, court: draft.case?.court, cnr_number: draft.case?.cnr_number, perspective: draft.case?.perspective },
+        }),
+      });
+      const data = await res.json();
+      if (data.data?.draft) {
+        setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: data.data.draft } }));
+      }
+    } catch {}
+    setAiGenerating(false);
+  };
+
+  const openDraft = async (draft: any) => {
+    const res = await fetch(BASE + '/v1/drafts/' + draft.id, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await res.json();
+    setEditingDraft(data.data);
+  };
+
+  const downloadDraft = (draft: any) => {
+    const text = draft.content?.text || draft.content?.content || '';
+    const blob = new Blob([String(text)], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (draft.title || 'draft').replace(/[^a-zA-Z0-9]/g, '_') + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const typeLabel = (type: string) => DOC_TYPES.find(d => d.value === type)?.label || type;
+
+  const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
+    petition: { bg: '#d5e3ff', color: '#022448' },
+    bail_application: { bg: '#ffdad6', color: '#93000a' },
+    affidavit: { bg: '#dcfce7', color: '#15803d' },
+    written_statement: { bg: '#ede9fe', color: '#5b21b6' },
+    legal_notice: { bg: '#ffe088', color: '#745c00' },
+    opening_statement: { bg: '#d5e3ff', color: '#022448' },
+    default: { bg: '#edeef0', color: '#43474e' },
+  };
+
+  // Editor view
+  if (editingDraft) {
+
+    return (
+      <div style={{ maxWidth: '860px' }}>
+        {/* Editor toolbar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <button onClick={() => setEditingDraft(null)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', color: '#43474e', fontFamily: 'Manrope, sans-serif' }}>
+            ← Back to Drafts
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editingDraft.title}</p>
+            <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: (TYPE_COLORS[editingDraft.doc_type] || TYPE_COLORS.default).bg, color: (TYPE_COLORS[editingDraft.doc_type] || TYPE_COLORS.default).color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {typeLabel(editingDraft.doc_type)}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <button onClick={() => generateWithAI(editingDraft)} disabled={aiGenerating} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: aiGenerating ? 'not-allowed' : 'pointer', opacity: aiGenerating ? 0.7 : 1, fontFamily: 'Manrope, sans-serif' }}>
+              <Sparkles size={13} /> {aiGenerating ? 'Generating...' : 'AI Generate'}
+            </button>
+            <button onClick={() => saveDraft(editingDraft, editorText)} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: saving ? '#dcfce7' : '#022448', color: saving ? '#15803d' : '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+              <Save size={13} /> {saving ? 'Saved!' : 'Save'}
+            </button>
+            <button onClick={() => downloadDraft({ ...editingDraft, content: { text: editorText } })} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+              <Download size={13} /> Download
+            </button>
+          </div>
+        </div>
+
+        {/* Word count */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span style={{ fontSize: '11px', color: '#74777f' }}>
+            {editorText.trim().split(/\s+/).filter(Boolean).length} words · v{editingDraft.version}
+          </span>
+          <span style={{ fontSize: '11px', color: '#74777f' }}>
+            Last saved: {new Date(editingDraft.last_modified_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+
+        {/* Text editor */}
+        <textarea
+          value={editorText}
+          onChange={e => setEditorText(e.target.value)}
+          placeholder="Start typing your legal document here...
+
+Use AI Generate above to get a complete draft pre-filled with your case details, then edit as needed."
+          style={{
+            width: '100%', minHeight: '520px', padding: '24px', border: '1px solid rgba(196,198,207,0.3)',
+            borderRadius: '12px', fontSize: '14px', fontFamily: 'Georgia, serif', lineHeight: 2,
+            color: '#191c1e', resize: 'vertical', outline: 'none', background: '#fff',
+            boxSizing: 'border-box', boxShadow: '0 2px 8px rgba(2,36,72,0.05)',
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Drafts list view
+  return (
+    <div style={{ maxWidth: '860px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 4px' }}>Drafting Workspace</h2>
+          <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>{drafts.length} draft{drafts.length !== 1 ? 's' : ''} for this case</p>
+        </div>
+        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', background: '#022448', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+          <Plus size={14} /> New Draft
+        </button>
+      </div>
+
+      {/* New draft form */}
+      {showForm && (
+        <div style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+          <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 14px' }}>New Draft</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px' }}>Title *</label>
+              <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="e.g. Bail Application for Accused" style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px' }}>Document Type</label>
+              <select value={formType} onChange={e => setFormType(e.target.value)} style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', appearance: 'none' as any }}>
+                {DOC_TYPES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              </select>
+            </div>
+          </div>
+          {error && <p style={{ fontSize: '12px', color: '#93000a', margin: '0 0 10px' }}>{error}</p>}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={createDraft} disabled={creating || !formTitle.trim()} style={{ padding: '8px 16px', background: '#022448', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', opacity: creating || !formTitle.trim() ? 0.6 : 1, fontFamily: 'Manrope, sans-serif' }}>
+              {creating ? 'Creating...' : 'Create & Open'}
+            </button>
+            <button onClick={() => { setShowForm(false); setError(''); }} style={{ padding: '8px 16px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Draft list */}
+      {loading ? (
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.15)', padding: '32px', textAlign: 'center', color: '#74777f' }}>Loading drafts...</div>
+      ) : drafts.length === 0 && !showForm ? (
+        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.15)', padding: '56px', textAlign: 'center', boxShadow: '0 2px 12px rgba(2,36,72,0.05)' }}>
+          <BookOpen size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
+          <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No Drafts Yet</p>
+          <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 20px', maxWidth: '360px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+            Create a draft and use AI Generate to auto-draft legal documents from your case details. Run the Strategy agent first for the best results.
+          </p>
+          <button onClick={() => setShowForm(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 20px', background: '#022448', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+            <Plus size={14} /> Create First Draft
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {drafts.map(draft => {
+            const tc = TYPE_COLORS[draft.doc_type] || TYPE_COLORS.default;
+            return (
+              <div key={draft.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.15)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 1px 4px rgba(2,36,72,0.04)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: tc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FileText size={18} color={tc.color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.title}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: tc.bg, color: tc.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{typeLabel(draft.doc_type)}</span>
+                    <span style={{ fontSize: '11px', color: '#74777f' }}>{draft.word_count || 0} words</span>
+                    <span style={{ fontSize: '11px', color: '#74777f' }}>v{draft.version}</span>
+                    <span style={{ fontSize: '11px', color: '#74777f' }}>
+                      {new Date(draft.last_modified_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                  <button onClick={() => openDraft(draft)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                    <Eye size={13} /> Open
+                  </button>
+                  <button onClick={() => downloadDraft(draft)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 10px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                    <Download size={13} />
+                  </button>
+                  <button onClick={() => deleteDraft(draft.id)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 10px', background: '#ffdad6', color: '#93000a', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Case Timeline Component ───────────────────────────────────
 function CaseTimeline({ c, cardStyle, btnPrimary, btnGhost, setActiveTab }: {
@@ -1173,11 +1468,7 @@ export default function CaseDetailPage() {
 
       {/* ─── DRAFTS ─────────────────────────────────────── */}
       {activeTab === 'drafts' && (
-        <div style={{ ...cardStyle, padding: '48px', textAlign: 'center' }}>
-          <BookOpen size={36} color="#c4c6cf" style={{ marginBottom: '14px' }} />
-          <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>Drafting Workspace</p>
-          <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 20px' }}>Run an AI agent above, then click "To Draft" to create an editable legal document</p>
-        </div>
+        <DraftingWorkspace caseId={id} token={token!} />
       )}
 
       {/* ─── FILINGS ────────────────────────────────────── */}
