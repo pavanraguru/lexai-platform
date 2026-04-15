@@ -220,7 +220,7 @@ function FilingDetailPanel({ filing, onClose, onAIDraft }: {
   };
 
   return (
-    <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 8px 32px rgba(2,36,72,0.1)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}>
+    <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 8px 32px rgba(2,36,72,0.1)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
       <div style={{ padding: '20px 20px 16px', background: 'linear-gradient(135deg, #022448 0%, #1e3a5f 100%)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -267,7 +267,7 @@ function FilingDetailPanel({ filing, onClose, onAIDraft }: {
         ))}
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px' }}>
+      <div style={{ padding: '16px 20px' }}>
         {activeSection === 'guide' && (
           <div>
             {[
