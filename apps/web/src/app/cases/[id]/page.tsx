@@ -10,9 +10,16 @@ import {
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
   Eye, Download, Monitor, Languages, Sparkles, Clock,
+  BookMarked, Search, Copy, Scale,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Filing repository imports
+import {
+  FILINGS, CASE_CATEGORIES, FILING_STAGES,
+  type Filing, type CaseCategory,
+} from '@/lib/filingRepository';
 
 const TABS = [
   { key: 'overview',      Icon: Info,        label: 'Overview' },
@@ -23,6 +30,7 @@ const TABS = [
   { key: 'drafts',        Icon: BookOpen,    label: 'Drafts' },
   { key: 'presentations', Icon: Monitor,     label: 'Presentations' },
   { key: 'timeline',      Icon: Clock,       label: 'Case Timeline' },
+  { key: 'filings',      Icon: BookMarked,  label: 'File For' },
 ] as const;
 
 const HEARING_PURPOSES = [
@@ -208,6 +216,491 @@ function CaseTimeline({ c, cardStyle, btnPrimary, btnGhost, setActiveTab }: {
           <button onClick={() => setActiveTab('documents')} style={{ ...btnGhost, fontSize: '12px', padding: '6px 12px' }}>+ Document</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+// ── Case Filing Repository Component ─────────────────────────
+// Maps DB case_type to filing categories
+const CASE_TYPE_TO_CATEGORIES: Record<string, CaseCategory[]> = {
+  criminal_sessions:   ['criminal'],
+  criminal_magistrate: ['criminal'],
+  writ_hc:             ['constitutional', 'civil', 'labour', 'revenue'],
+  civil_district:      ['civil', 'family', 'motor_accident'],
+  corporate_nclt:      ['commercial'],
+  family:              ['family'],
+  labour:              ['labour', 'constitutional'],
+  ip:                  ['commercial', 'civil'],
+  tax:                 ['revenue', 'constitutional'],
+  arbitration:         ['commercial', 'civil'],
+  consumer:            ['civil', 'commercial'],
+};
+
+// Maps court_level to jurisdiction prefix for display
+const COURT_LEVEL_LABEL: Record<string, string> = {
+  supreme_court: 'Supreme Court of India',
+  high_court:    'High Court',
+  district_court:'District Court',
+  tribunal:      'Tribunal',
+  magistrate:    'Magistrate Court',
+};
+
+function CaseFilingDraftModal({ filing, caseData, token, onClose }: {
+  filing: Filing;
+  caseData: any;
+  token: string;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+
+  const generateDraft = async () => {
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${BASE}/v1/filings/ai-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          filing_name: filing.name,
+          ai_prompt_hint: filing.ai_prompt_hint,
+          relevant_sections: filing.relevant_sections,
+          case_context: {
+            title: caseData.title,
+            court: caseData.court,
+            case_type: caseData.case_type,
+            perspective: caseData.perspective,
+            cnr_number: caseData.cnr_number,
+            filed_date: caseData.filed_date,
+            metadata: caseData.metadata,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Failed to generate');
+      setDraft(data.data?.draft || '');
+    } catch (err: any) { setError(err.message); }
+    setLoading(false);
+  };
+
+  // Auto-generate on mount since case context is already available
+  useEffect(() => { generateDraft(); }, []);
+
+  const lbl: React.CSSProperties = { fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px', display: 'block' };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+      onClick={onClose}>
+      <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '820px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(196,198,207,0.15)', background: 'linear-gradient(135deg, #022448 0%, #1e3a5f 100%)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#fff', margin: '0 0 4px' }}>
+                {filing.name}
+              </h2>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>AI Draft — pre-filled with case details</p>
+            </div>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+              <X size={16} />
+            </button>
+          </div>
+          {/* Case details chips */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {[
+              caseData.title?.slice(0, 30) + (caseData.title?.length > 30 ? '…' : ''),
+              caseData.court,
+              caseData.cnr_number,
+              caseData.perspective?.toUpperCase(),
+            ].filter(Boolean).map((chip, i) => (
+              <span key={i} style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)' }}>
+                {chip}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <Loader2 size={36} color="#5b21b6" style={{ animation: 'spin 1s linear infinite', marginBottom: '16px' }} />
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#022448', margin: '0 0 6px' }}>Drafting {filing.name}...</p>
+              <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Pre-filling with {caseData.title} details</p>
+            </div>
+          )}
+
+          {error && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ffdad6', borderRadius: '10px', padding: '14px 16px', marginBottom: '16px' }}>
+              <AlertCircle size={16} color="#93000a" />
+              <span style={{ fontSize: '13px', color: '#93000a', flex: 1 }}>{error}</span>
+              <button onClick={generateDraft} style={{ fontSize: '12px', fontWeight: 700, color: '#93000a', background: 'transparent', border: '1px solid #93000a', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>Retry</button>
+            </div>
+          )}
+
+          {draft && !loading && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={15} color="#15803d" />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#15803d' }}>Draft ready — review before filing</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={generateDraft} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: 'transparent', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', color: '#43474e', fontFamily: 'Manrope, sans-serif' }}>
+                    <Sparkles size={12} /> Regenerate
+                  </button>
+                  <button onClick={() => { navigator.clipboard.writeText(draft); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: copied ? '#dcfce7' : '#022448', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', color: copied ? '#15803d' : '#fff', fontFamily: 'Manrope, sans-serif' }}>
+                    <Copy size={12} /> {copied ? 'Copied!' : 'Copy Draft'}
+                  </button>
+                </div>
+              </div>
+              <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '20px', border: '1px solid rgba(196,198,207,0.2)', fontSize: '13px', color: '#191c1e', lineHeight: 2, whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', maxHeight: '480px', overflowY: 'auto' }}>
+                {draft}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', padding: '10px 14px', background: '#fff7ed', borderRadius: '8px', border: '1px solid rgba(202,138,4,0.15)' }}>
+                <AlertCircle size={13} color="#b45309" style={{ flexShrink: 0 }} />
+                <p style={{ fontSize: '11px', color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+                  AI drafts are starting points. Always review citations and facts before filing in court.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CaseFileFor({ c, token }: { c: any; token: string }) {
+  const [selectedFiling, setSelectedFiling] = useState<Filing | null>(null);
+  const [showDraft, setShowDraft] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [expandedLaw, setExpandedLaw] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<'guide'|'docs'|'law'>('guide');
+
+  // Detect relevant filing categories from the case type
+  const relevantCategories: CaseCategory[] = CASE_TYPE_TO_CATEGORIES[c.case_type] || ['general'];
+
+  // Filter filings relevant to this case
+  const suggestedFilings = useMemo(() => {
+    return FILINGS.filter(f => {
+      const categoryMatch = f.category.some(cat => relevantCategories.includes(cat));
+      const stageMatch = !selectedStage || f.stage === selectedStage;
+      const searchMatch = !searchQuery.trim() ||
+        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return categoryMatch && stageMatch && searchMatch;
+    });
+  }, [relevantCategories, selectedStage, searchQuery]);
+
+  const catConfig = CASE_CATEGORIES.find(c => relevantCategories.includes(c.id));
+  const stages = FILING_STAGES.filter(s =>
+    suggestedFilings.some(f => f.stage === s.id) ||
+    FILINGS.filter(f => f.category.some(cat => relevantCategories.includes(cat))).some(f => f.stage === s.id)
+  );
+
+  const LAW_DESCRIPTIONS: Record<string, string> = {
+    'Section 480 BNSS (Bail)': 'Grants magistrate/court power to release accused on bail. Sets conditions and procedure for bail.',
+    'Section 482 BNSS (Anticipatory Bail)': 'Pre-arrest bail from Sessions Court or High Court when arrest is apprehended. Court may impose conditions.',
+    'Section 479 BNSS (Default Bail)': 'Statutory right to bail if chargesheet not filed within 60/90 days of arrest. Right extinguishes once chargesheet filed.',
+    'Section 528 BNSS': 'Inherent powers of High Court to quash FIR/proceedings to prevent abuse of process or secure justice.',
+    'Section 250 BNSS': 'Accused may apply for discharge before framing of charges if no prima facie case exists.',
+    'Section 415 BNSS': 'Right of appeal against conviction, acquittal or sentence to the appropriate appellate court.',
+    'Section 442 BNSS': 'Revisional jurisdiction of Sessions Court and High Court over orders of subordinate criminal courts.',
+    'Article 136 Constitution of India': 'Supreme Court's discretionary power to grant special leave to appeal from any court or tribunal in India.',
+    'Article 226 Constitution of India': 'High Court's power to issue all writs — Habeas Corpus, Mandamus, Certiorari, Prohibition, Quo Warranto.',
+    'Article 32 Constitution of India': 'Right to approach Supreme Court directly for enforcement of fundamental rights. Called the "heart and soul" of the Constitution.',
+    'Section 148A CPC': 'Caveat — person may lodge caveat so no ex-parte order is passed without hearing them. Valid for 90 days.',
+    'Order VII CPC': 'Mandatory contents of a plaint including parties, cause of action, relief, and verification.',
+    'Order VIII CPC': 'Written statement by defendant — must be filed within 30 days (max 90 days). Non-traversal = deemed admission.',
+    'Order XXXIX Rules 1-2 CPC': 'Temporary injunction — court may restrain party from acting in a way that would cause irreparable injury during suit.',
+    'Order XXI CPC': 'Execution of decrees — attachment and sale of property, arrest of judgment debtor, garnishee orders.',
+    'Section 13 Hindu Marriage Act 1955': 'Grounds for divorce — cruelty, desertion for 2 years, conversion, unsoundness of mind, renunciation.',
+    'Section 125 BNSS': 'Magistrate may order maintenance for wife, children or parents unable to maintain themselves. Applies to all religions.',
+    'Section 138 Negotiable Instruments Act': 'Criminal liability for dishonour of cheque for legally enforceable debt — up to 2 years imprisonment or fine up to twice cheque amount.',
+    'Section 7 IBC (Financial Creditor)': 'Financial creditor may initiate Corporate Insolvency Resolution Process before NCLT on default.',
+    'Section 9 IBC (Operational Creditor)': 'Operational creditor may apply for CIRP after demand notice and 10-day period if default not disputed.',
+    'Section 166 Motor Vehicles Act 1988': 'Right to claim compensation for death or bodily injury from motor vehicle accident before MACT.',
+    'Section 5 Limitation Act 1963': 'Court may condone delay in filing if sufficient cause is shown. Does not apply to suits.',
+    'Order III Rule 4 CPC': 'Advocate must file Vakalatnama — written authority signed by party — before appearing in court.',
+    'Contempt of Courts Act 1971': 'Defines civil and criminal contempt. Punishable with up to 6 months imprisonment or ₹2,000 fine.',
+  };
+
+  return (
+    <div style={{ maxWidth: '960px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+          <div>
+            <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 6px' }}>
+              File For — {c.title}
+            </h2>
+            <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
+              Showing <strong>{suggestedFilings.length}</strong> relevant filings for{' '}
+              <span style={{ fontWeight: 700, color: catConfig?.color || '#022448' }}>{catConfig?.emoji} {relevantCategories.map(r => CASE_CATEGORIES.find(c => c.id === r)?.label).join(' / ')}</span>
+              {' '}matters in <strong>{c.court}</strong>
+            </p>
+          </div>
+          {/* Case context chips */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {[
+              { label: c.perspective?.replace(/_/g, ' '), color: '#022448', bg: '#d5e3ff' },
+              { label: c.court_level?.replace(/_/g, ' '), color: '#43474e', bg: '#edeef0' },
+              { label: c.status?.replace(/_/g, ' '), color: '#735c00', bg: '#ffe088' },
+            ].filter(item => item.label).map((item, i) => (
+              <span key={i} style={{ fontSize: '10px', fontWeight: 800, padding: '3px 10px', borderRadius: '99px', background: item.bg, color: item.color, textTransform: 'capitalize' }}>
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Search + Stage filter */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <Search size={14} color="#74777f" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search filings..."
+            style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {stages.map(s => (
+            <button key={s.id} onClick={() => setSelectedStage(selectedStage === s.id ? null : s.id)} style={{
+              padding: '7px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700,
+              background: selectedStage === s.id ? '#022448' : '#fff',
+              color: selectedStage === s.id ? '#fff' : '#43474e',
+              border: selectedStage === s.id ? 'none' : '1px solid rgba(196,198,207,0.3)',
+              fontFamily: 'Manrope, sans-serif',
+            } as any}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filing grid + detail panel */}
+      <div style={{ display: 'grid', gridTemplateColumns: selectedFiling ? 'minmax(0,1fr) 380px' : '1fr', gap: '16px', alignItems: 'start' }}>
+
+        {/* Filing cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {suggestedFilings.length === 0 ? (
+            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.15)', padding: '40px', textAlign: 'center' }}>
+              <BookMarked size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#74777f', margin: 0 }}>No matching filings</p>
+            </div>
+          ) : suggestedFilings.map(filing => {
+            const isSelected = selectedFiling?.id === filing.id;
+            const catConf = CASE_CATEGORIES.find(c => filing.category.includes(c.id));
+            const stageConf = FILING_STAGES.find(s => s.id === filing.stage);
+
+            return (
+              <div key={filing.id} onClick={() => { setSelectedFiling(isSelected ? null : filing); setDetailTab('guide'); setExpandedLaw(null); }} style={{
+                background: '#fff', borderRadius: '12px', padding: '16px', cursor: 'pointer',
+                border: isSelected ? '1.5px solid #022448' : '1px solid rgba(196,198,207,0.15)',
+                boxShadow: isSelected ? '0 4px 16px rgba(2,36,72,0.08)' : '0 1px 4px rgba(2,36,72,0.04)',
+                background: isSelected ? '#f0f4ff' : '#fff',
+                transition: 'all 0.12s',
+              } as any}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: catConf?.bg || '#edeef0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 }}>
+                    {catConf?.emoji || '📋'}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+                      <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {filing.name}
+                      </h3>
+                      <ChevronRight size={14} color={isSelected ? '#022448' : '#c4c6cf'} style={{ flexShrink: 0, transform: isSelected ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 8px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {filing.description}
+                    </p>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: catConf?.bg, color: catConf?.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {stageConf?.label}
+                      </span>
+                      {filing.court_fee && <span style={{ fontSize: '10px', color: '#735c00', fontWeight: 600 }}>{filing.court_fee}</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded quick actions */}
+                {isSelected && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(196,198,207,0.15)' }}
+                    onClick={e => e.stopPropagation()}>
+                    <button onClick={() => setShowDraft(true)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                      <Sparkles size={13} /> AI Draft (Pre-filled)
+                    </button>
+                    <button onClick={() => {
+                      const blob = new Blob([`${filing.name}\n${'='.repeat(40)}\n\nCASE: ${c.title}\nCOURT: ${c.court}\nCNR: ${c.cnr_number || '[CNR]'}\nPETITIONER/ACCUSED: [NAME]\n\n[Fill in details below]\n\nPRAYER\nIt is therefore most respectfully prayed...`], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = `${filing.name.replace(/[^a-zA-Z0-9]/g,'_')}_${c.cnr_number || 'Template'}.txt`; a.click();
+                      URL.revokeObjectURL(url);
+                    }} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                      <Download size={13} /> Template
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Detail panel */}
+        {selectedFiling && (
+          <div style={{ position: 'sticky', top: '20px', background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 8px 32px rgba(2,36,72,0.1)', overflow: 'hidden' }}>
+            {/* Panel header */}
+            <div style={{ padding: '16px 18px', background: 'linear-gradient(135deg, #022448 0%, #1e3a5f 100%)', borderBottom: '1px solid rgba(196,198,207,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '12px' }}>
+                <div>
+                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#fff', margin: '0 0 3px' }}>{selectedFiling.name}</h3>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{selectedFiling.description}</p>
+                </div>
+                <button onClick={() => setSelectedFiling(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '6px', padding: '5px', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+                  <X size={14} />
+                </button>
+              </div>
+              {/* Auto-filled case context preview */}
+              <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px' }}>
+                <p style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '0 0 6px' }}>AUTO-FILLED FROM THIS CASE</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                  {[
+                    ['Case', c.title?.slice(0, 22) + (c.title?.length > 22 ? '…' : '')],
+                    ['Court', c.court?.slice(0, 22)],
+                    ['CNR', c.cnr_number || 'Not assigned'],
+                    ['Perspective', c.perspective],
+                    ['Filed', c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'],
+                    ['Sections', (c.metadata?.sections_charged || []).slice(0,2).join(', ') || '—'],
+                  ].map(([k, v]) => (
+                    <div key={k}>
+                      <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', display: 'block' }}>{k}</span>
+                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button onClick={() => setShowDraft(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '10px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                <Sparkles size={14} /> Generate AI Draft — Pre-filled
+              </button>
+            </div>
+
+            {/* Detail tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid rgba(196,198,207,0.12)' }}>
+              {(['guide', 'docs', 'law'] as const).map(tab => (
+                <button key={tab} type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); setDetailTab(tab); }} style={{
+                  flex: 1, padding: '10px 4px', border: 'none', cursor: 'pointer', fontSize: '11px',
+                  fontWeight: detailTab === tab ? 700 : 500,
+                  color: detailTab === tab ? '#022448' : '#74777f',
+                  background: detailTab === tab ? '#fff' : 'transparent',
+                  borderBottom: detailTab === tab ? '2px solid #022448' : '2px solid transparent',
+                  fontFamily: 'Manrope, sans-serif',
+                }}>
+                  {tab === 'guide' ? 'Guide' : tab === 'docs' ? 'Documents' : 'Law'}
+                </button>
+              ))}
+            </div>
+
+            {/* Detail content */}
+            <div style={{ padding: '14px 16px', maxHeight: '380px', overflowY: 'auto' }}>
+              {detailTab === 'guide' && (
+                <div>
+                  {[
+                    { icon: '👤', label: 'Who Files', value: selectedFiling.filing_guide.who_files },
+                    { icon: '📅', label: 'When to File', value: selectedFiling.filing_guide.when_to_file },
+                    ...(selectedFiling.filing_guide.time_limit ? [{ icon: '⏱', label: 'Time Limit', value: selectedFiling.filing_guide.time_limit }] : []),
+                  ].map(item => (
+                    <div key={item.label} style={{ marginBottom: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid rgba(196,198,207,0.12)' }}>
+                      <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 3px' }}>{item.icon} {item.label.toUpperCase()}</p>
+                      <p style={{ fontSize: '12px', color: '#191c1e', margin: 0, lineHeight: 1.5 }}>{item.value}</p>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: '10px' }}>
+                    <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>📝 KEY CONTENTS</p>
+                    {selectedFiling.filing_guide.key_contents.map((item, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: '#022448', flexShrink: 0 }}>{i+1}</span>
+                        <p style={{ fontSize: '12px', color: '#43474e', margin: '1px 0 0', lineHeight: 1.4 }}>{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: '10px' }}>
+                    <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>💡 TIPS</p>
+                    {selectedFiling.filing_guide.tips.map((tip, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '7px', marginBottom: '6px', background: '#fffbeb', borderRadius: '6px', padding: '7px 9px', border: '1px solid rgba(202,138,4,0.12)' }}>
+                        <span style={{ fontSize: '12px', flexShrink: 0 }}>💡</span>
+                        <p style={{ fontSize: '11px', color: '#92400e', margin: 0, lineHeight: 1.5 }}>{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {detailTab === 'docs' && (
+                <div>
+                  <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 10px' }}>REQUIRED DOCUMENTS</p>
+                  {selectedFiling.filing_guide.supporting_docs.map((doc, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '9px 11px', background: '#f8fafc', borderRadius: '7px', marginBottom: '6px', border: '1px solid rgba(196,198,207,0.12)' }}>
+                      <FileText size={13} color="#022448" style={{ flexShrink: 0 }} />
+                      <p style={{ fontSize: '12px', color: '#43474e', margin: 0 }}>{doc}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {detailTab === 'law' && (
+                <div>
+                  <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 10px' }}>APPLICABLE PROVISIONS — tap to expand</p>
+                  {(selectedFiling.relevant_sections || []).map((section, i) => {
+                    const isEx = expandedLaw === section;
+                    const desc = LAW_DESCRIPTIONS[section];
+                    return (
+                      <div key={i} style={{ marginBottom: '6px', borderRadius: '7px', border: `1px solid ${isEx ? 'rgba(2,36,72,0.25)' : 'rgba(2,36,72,0.1)'}`, overflow: 'hidden' }}>
+                        <button onClick={() => setExpandedLaw(isEx ? null : section)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', padding: '9px 11px', background: isEx ? '#d5e3ff' : '#d5e3ff30', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Scale size={12} color="#022448" style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: '12px', color: '#022448', fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}>{section}</span>
+                          </div>
+                          {desc && <span style={{ color: '#022448', flexShrink: 0, fontSize: '14px', transform: isEx ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▾</span>}
+                        </button>
+                        {isEx && (
+                          <div style={{ padding: '10px 11px 10px 32px', background: '#f8fafc', borderTop: '1px solid rgba(2,36,72,0.08)' }}>
+                            <p style={{ fontSize: '12px', color: '#43474e', margin: 0, lineHeight: 1.6 }}>{desc || 'Refer to the relevant statute for detailed provisions.'}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fff7ed', borderRadius: '7px', border: '1px solid rgba(202,138,4,0.15)' }}>
+                    <p style={{ fontSize: '9px', fontWeight: 800, color: '#b45309', letterSpacing: '0.06em', margin: '0 0 4px' }}>NEW LAWS NOTE</p>
+                    <p style={{ fontSize: '11px', color: '#92400e', margin: 0, lineHeight: 1.5 }}>Post-July 2024: BNS, BNSS, BSA. Before July 2024: IPC, CrPC, Indian Evidence Act.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* AI Draft Modal */}
+      {showDraft && selectedFiling && (
+        <CaseFilingDraftModal
+          filing={selectedFiling}
+          caseData={c}
+          token={token}
+          onClose={() => setShowDraft(false)}
+        />
+      )}
     </div>
   );
 }
@@ -972,6 +1465,11 @@ export default function CaseDetailPage() {
           <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>Drafting Workspace</p>
           <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 20px' }}>Run an AI agent above, then click "To Draft" to create an editable legal document</p>
         </div>
+      )}
+
+      {/* ─── FILE FOR ───────────────────────────────────── */}
+      {activeTab === 'filings' && (
+        <CaseFileFor c={c} token={token!} />
       )}
 
       {/* ─── PRESENTATIONS ──────────────────────────────── */}
