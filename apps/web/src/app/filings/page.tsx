@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import {
   Search, ChevronRight, ChevronDown, BookOpen, FileText,
@@ -11,8 +12,26 @@ import {
   JURISDICTIONS, FILINGS, CASE_CATEGORIES, FILING_STAGES,
   searchFilings, type Filing, type CaseCategory, type FilingStage,
 } from '@/lib/filingRepository';
+import { matchCourtKey } from '@/lib/courtHolidays';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Maps DB case_type → filing category
+const CASE_TYPE_TO_CATEGORY: Record<string, CaseCategory> = {
+  criminal_sessions:   'criminal',
+  criminal_magistrate: 'criminal',
+  writ_hc:             'constitutional',
+  civil_district:      'civil',
+  corporate_nclt:      'commercial',
+  family:              'family',
+  labour:              'labour',
+  ip:                  'commercial',
+  tax:                 'revenue',
+  arbitration:         'commercial',
+  consumer:            'civil',
+};
+
+
 
 // ── AI Draft Modal ────────────────────────────────────────────
 function AIDraftModal({ filing, caseContext, onClose }: {
@@ -90,7 +109,7 @@ function AIDraftModal({ filing, caseContext, onClose }: {
               </h3>
               <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 24px', lineHeight: 1.6, maxWidth: '400px', marginLeft: 'auto', marginRight: 'auto' }}>
                 Claude will draft a complete {filing.name} using Indian legal style.
-                {caseContext ? ' Pre-filled with your case details.' : ' With placeholders for case-specific details.'}
+                {caseContext?.title ? ' Pre-filled with: ' + caseContext.title + '.' : ' With placeholders for case-specific details.'}
               </p>
               <div style={{ background: '#fff7ed', borderRadius: '10px', padding: '12px 16px', marginBottom: '24px', border: '1px solid rgba(202,138,4,0.2)', textAlign: 'left' }}>
                 <p style={{ fontSize: '11px', fontWeight: 800, color: '#b45309', margin: '0 0 4px', letterSpacing: '0.06em' }}>DISCLAIMER</p>
@@ -383,7 +402,8 @@ function FilingDetailPanel({ filing, onClose, onAIDraft }: {
 }
 
 // ── Main Page ─────────────────────────────────────────────────
-export default function FileForPage() {
+function FileForPageInner() {
+  const searchParams = useSearchParams();
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CaseCategory | null>(null);
   const [selectedStage, setSelectedStage] = useState<FilingStage | null>(null);
@@ -391,6 +411,39 @@ export default function FileForPage() {
   const [showAIDraft, setShowAIDraft] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedJurisdiction, setExpandedJurisdiction] = useState<string | null>('sc');
+  const [caseContext, setCaseContext] = useState<any>(null);
+
+  // Read URL params passed from the case detail filings tab
+  useEffect(() => {
+    const filingName = searchParams.get('filing');
+    const caseType   = searchParams.get('case_type');
+    const court      = searchParams.get('court');
+    const cnr        = searchParams.get('cnr');
+    const caseTitle  = searchParams.get('case_title');
+    const perspective = searchParams.get('perspective');
+
+    // Auto-select category from case type
+    if (caseType && CASE_TYPE_TO_CATEGORY[caseType]) {
+      setSelectedCategory(CASE_TYPE_TO_CATEGORY[caseType]);
+    }
+
+    // Auto-select jurisdiction from court name
+    if (court) {
+      const courtKey = matchCourtKey(court);
+      if (courtKey) setSelectedJurisdiction(courtKey);
+    }
+
+    // Store case context for AI draft pre-filling
+    if (caseTitle || court) {
+      setCaseContext({ title: caseTitle, court, cnr_number: cnr, case_type: caseType, perspective });
+    }
+
+    // Auto-open the specific filing if passed
+    if (filingName) {
+      const found = FILINGS.find(f => f.name === filingName);
+      if (found) setSelectedFiling(found);
+    }
+  }, []);
 
   const filteredFilings = useMemo(() => {
     if (searchQuery.trim().length > 1) return searchFilings(searchQuery);
@@ -424,6 +477,25 @@ export default function FileForPage() {
           Complete repository of Indian court filings — Supreme Court + all 25 High Courts. Select jurisdiction and case type, then get filing guides, templates, and AI-drafted documents.
         </p>
       </div>
+
+      {/* Case context banner — shown when navigated from a case */}
+      {caseContext?.title && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#d5e3ff', borderRadius: '10px', marginBottom: '20px', border: '1px solid rgba(2,36,72,0.15)' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#022448', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '12px', fontWeight: 800, color: '#022448', margin: '0 0 2px' }}>
+              Auto-filtered for: {caseContext.title}
+            </p>
+            <p style={{ fontSize: '11px', color: '#43474e', margin: 0 }}>
+              {caseContext.court}{caseContext.cnr_number ? ' · ' + caseContext.cnr_number : ''} · Category and jurisdiction pre-selected · AI drafts will use your case details
+            </p>
+          </div>
+          <button onClick={() => { setCaseContext(null); setSelectedCategory(null); setSelectedJurisdiction(null); setSelectedFiling(null); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#022448', fontSize: '16px', fontWeight: 700, padding: '0 4px' }}>
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Search bar */}
       <div style={{ position: 'relative', marginBottom: '24px', maxWidth: '500px' }}>
@@ -637,10 +709,18 @@ export default function FileForPage() {
       {showAIDraft && selectedFiling && (
         <AIDraftModal
           filing={selectedFiling}
-          caseContext={undefined}
+          caseContext={caseContext}
           onClose={() => setShowAIDraft(false)}
         />
       )}
     </div>
+  );
+}
+
+export default function FileForPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '32px', fontFamily: 'Manrope, sans-serif', color: '#74777f' }}>Loading...</div>}>
+      <FileForPageInner />
+    </Suspense>
   );
 }

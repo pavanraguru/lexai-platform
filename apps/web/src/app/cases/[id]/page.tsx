@@ -371,7 +371,14 @@ function CaseFilingsTab({ c }: { c: any }) {
           return (
             <Link
               key={i}
-              href={"/filings?filing=" + encodeURIComponent(filing.name)}
+              href={
+                "/filings?filing=" + encodeURIComponent(filing.name) +
+                "&case_type=" + encodeURIComponent(c.case_type || '') +
+                "&court=" + encodeURIComponent(c.court || '') +
+                "&cnr=" + encodeURIComponent(c.cnr_number || '') +
+                "&case_title=" + encodeURIComponent(c.title || '') +
+                "&perspective=" + encodeURIComponent(c.perspective || '')
+              }
               style={{ textDecoration: 'none' }}
             >
               <div style={{
