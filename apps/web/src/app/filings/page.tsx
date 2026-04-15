@@ -700,19 +700,19 @@ function FileForPageInner() {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Filing detail panel */}
-          {selectedFiling && (
-            <div style={{ position: 'sticky', top: '20px' }}>
-              <FilingDetailPanel
-                filing={selectedFiling}
-                onClose={() => setSelectedFiling(null)}
-                onAIDraft={() => setShowAIDraft(true)}
-              />
-            </div>
-          )}
         </div>
+
+        {/* Filing detail panel */}
+        {selectedFiling && (
+          <div style={{ position: 'sticky', top: '20px' }}>
+            <FilingDetailPanel
+              filing={selectedFiling}
+              onClose={() => setSelectedFiling(null)}
+              onAIDraft={() => setShowAIDraft(true)}
+            />
+          </div>
+        )}
       </div>
 
       {/* AI Draft Modal */}
@@ -723,6 +723,8 @@ function FileForPageInner() {
           onClose={() => setShowAIDraft(false)}
         />
       )}
+    </div>
+    </div>
     </div>
   );
 }
