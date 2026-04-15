@@ -24,7 +24,6 @@ import { invoiceRoutes }      from './routes/invoices.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { calendarRoutes }     from './routes/calendar.js';
 import { dashboardRoutes }    from './routes/dashboard.js';
-import { webhookRoutes }        from './routes/webhooks.js';
 import { presentationRoutes }  from './routes/presentations.js';
 import { filingRoutes }        from './routes/filings.js';
 import { translationRoutes }   from './routes/translation.js';
@@ -101,7 +100,6 @@ async function bootstrap() {
   }, { prefix: '/v1' });
 
   // Webhook routes — outside /v1, no auth (Meta calls these directly)
-  await server.register(webhookRoutes, { prefix: '/webhooks' });
 
   // Global error handler
   server.setErrorHandler((error, request, reply) => {
