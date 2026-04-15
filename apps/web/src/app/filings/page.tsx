@@ -147,12 +147,66 @@ function AIDraftModal({ filing, caseContext, onClose }: {
 }
 
 // ── Filing Detail Panel ───────────────────────────────────────
+// Law descriptions for expandable sections
+const LAW_DESCRIPTIONS: Record<string, string> = {
+  'Section 480 BNSS (Bail)': 'Grants magistrate power to release accused on bail for bailable and non-bailable offences. Sets out conditions and procedure for grant of bail.',
+  'Section 482 BNSS (Anticipatory Bail)': 'Allows a person apprehending arrest to apply for pre-arrest bail from Sessions Court or High Court. Court may impose conditions including surrender of passport and no tampering with evidence.',
+  'Section 479 BNSS (Default Bail)': 'Statutory right of accused to bail if police fail to file chargesheet within 60 days (offences up to 10 years) or 90 days (offences above 10 years). Right extinguishes once chargesheet is filed.',
+  'Section 438 CrPC (old cases)': 'Pre-BNSS anticipatory bail provision. Applies to FIRs registered before July 1, 2024.',
+  'Section 167(2) CrPC (old cases)': 'Old default bail provision. Applies to cases before July 1, 2024.',
+  'Section 250 BNSS': 'Provides accused the right to apply for discharge before charges are framed, if the material placed does not disclose sufficient grounds.',
+  'Section 227 CrPC (old cases)': 'Old discharge provision. Applies to sessions cases before July 1, 2024.',
+  'Section 528 BNSS': 'Inherent powers of High Court to make any order necessary to prevent abuse of process of law or to secure ends of justice — including quashing of FIRs.',
+  'Section 482 CrPC (old cases)': 'Old inherent powers provision for quashing. Applies to cases before July 1, 2024.',
+  'State of Haryana v Bhajan Lal AIR 1992 SC 604': 'Landmark SC judgment listing 7 categories where High Court can exercise inherent powers to quash FIR — including cases where allegations do not constitute an offence, or where there is a legal bar to prosecution.',
+  'Section 442 BNSS': 'Revisional jurisdiction of Sessions Court and High Court to examine the correctness, legality or propriety of any finding, sentence or order of a subordinate criminal court.',
+  'Section 397 CrPC (old)': 'Old revision provision. Applies to orders passed before July 1, 2024.',
+  'Section 415 BNSS': 'Right of appeal against conviction, acquittal or sentence. Specifies which court to approach based on the court that passed the original order.',
+  'Section 374 CrPC (old)': 'Old criminal appeal provision.',
+  'Article 136 Constitution of India': 'Discretionary power of Supreme Court to grant special leave to appeal from any judgment, decree, determination, sentence or order in any cause or matter by any court or tribunal in India.',
+  'Supreme Court Rules 2013': 'Procedural rules governing filing format, limitation periods, and hearing procedures before the Supreme Court of India.',
+  'Article 226 Constitution of India': 'Power of every High Court to issue writs including Habeas Corpus, Mandamus, Certiorari, Prohibition, and Quo Warranto for enforcement of fundamental rights and other legal rights.',
+  'Article 32 Constitution of India': 'Right to constitutional remedies — empowers Supreme Court to issue writs for enforcement of fundamental rights. Dr. B.R. Ambedkar called it the "heart and soul" of the Constitution.',
+  'Article 14, 19, 21': 'Core fundamental rights: Art 14 (equality before law), Art 19 (freedoms of speech, movement, profession), Art 21 (right to life and personal liberty).',
+  'Order III Rule 4 CPC': 'Requires that a pleader appearing for a party must file a Vakalatnama — written authority signed by the party — before the court.',
+  'Supreme Court Rules 2013 Form 28': 'Prescribed format for Vakalatnama in Supreme Court proceedings.',
+  'Section 148A CPC': 'Caveat — any person claiming right to appear before the court may lodge a caveat so that no ex-parte order is passed. Valid for 90 days from date of filing.',
+  'Order VII CPC': 'Specifies mandatory contents of a plaint including parties, facts, cause of action, relief, valuation, and verification.',
+  'Limitation Act 1963': 'Prescribes time limits for filing suits, appeals and applications. Key periods: 3 years for money suits, 12 years for immovable property, 30 days for most criminal appeals.',
+  'Order VIII CPC': 'Governs written statement by defendant — must be filed within 30 days (extendable to 90 days). Non-traversal of facts in plaint amounts to deemed admission.',
+  'Order XXXIX Rules 1-2 CPC': 'Empowers courts to grant temporary injunctions — where property is at risk, or where an act may cause injury to plaintiff during pendency of suit.',
+  'Section 94 CPC': 'Supplemental proceedings — courts may grant interlocutory injunctions, appoint receivers, or make other orders to secure ends of justice.',
+  'Order XXI CPC': 'Execution of decrees — methods include attachment and sale of property, arrest and detention of judgment debtor, garnishee orders, and delivery of immovable property.',
+  'Section 36 CPC': 'Execution provisions of CPC apply to orders of court in the same manner as they apply to decrees.',
+  'Section 13 Hindu Marriage Act 1955': 'Grounds for divorce under Hindu law — cruelty, desertion for 2 years, conversion to another religion, unsoundness of mind, renunciation, and presumption of death.',
+  'Section 27 Special Marriage Act 1954': 'Grounds for divorce for marriages registered under Special Marriage Act — applicable to inter-religious or civil marriages.',
+  'Section 125 BNSS': 'Magistrate may order husband, parent or child to pay maintenance to wife, children or parents unable to maintain themselves. Applies to all religions.',
+  'Section 24 Hindu Marriage Act': 'Provides for maintenance pendente lite (during pendency of proceedings) and expenses of proceedings from either spouse.',
+  'Domestic Violence Act 2005': 'Protection of Women from Domestic Violence Act — provides civil remedies including protection orders, residence orders, and monetary relief.',
+  'Guardians and Wards Act 1890': 'Governs appointment of guardians of minor children — court considers welfare of minor as paramount consideration.',
+  'Section 26 Hindu Marriage Act': 'Court may make orders for custody, maintenance and education of minor children in any proceedings under the Act.',
+  'Section 138 Negotiable Instruments Act': 'Creates criminal liability for dishonour of cheque issued for discharge of legally enforceable debt or liability. Attracts imprisonment up to 2 years or fine up to twice the cheque amount.',
+  'Section 141 NI Act (company liability)': 'Where company commits offence under Section 138, every person in charge of and responsible for conduct of business at time of offence is also liable.',
+  'Section 7 IBC (Financial Creditor)': 'Financial creditor may file application before NCLT to initiate Corporate Insolvency Resolution Process against a corporate debtor who has committed a default.',
+  'Section 9 IBC (Operational Creditor)': 'Operational creditor may apply to NCLT for CIRP after issuing demand notice and 10-day waiting period, if default is not disputed.',
+  'Section 10 IBC (Corporate Debtor)': 'Corporate debtor itself may file for voluntary CIRP before NCLT if it has committed a default.',
+  'Contempt of Courts Act 1971': 'Defines civil contempt (wilful disobedience of court orders) and criminal contempt (scandalising the court). Punishable with up to 6 months imprisonment or ₹2,000 fine.',
+  'Article 129 / 215 Constitution': 'Article 129 — Supreme Court is a court of record and has power to punish for contempt. Article 215 — every High Court is a court of record with contempt jurisdiction.',
+  'Order XLI Rule 5 CPC (civil)': 'Appellate court may order stay of execution of decree or stay of proceedings during pendency of appeal, subject to conditions it deems fit.',
+  'Section 389 BNSS (criminal sentence)': 'Appellate court may suspend execution of sentence or order release on bail pending disposal of appeal.',
+  'Section 5 Limitation Act 1963': 'Court may condone delay in filing if applicant satisfies that there was sufficient cause for not filing within limitation period. Does not apply to suits.',
+  'Order VI Rule 17 CPC': 'Allows amendment of pleadings at any stage of proceedings for determining real questions in controversy — court may refuse if amendment would cause injustice to other party.',
+  'Section 166 Motor Vehicles Act 1988': 'Provides right to claim compensation for death or bodily injury arising from motor vehicle accident before Motor Accident Claims Tribunal.',
+  'Section 140 MV Act (no-fault liability)': 'Prescribes no-fault liability — compensation payable to victim regardless of negligence. Fixed at ₹50,000 for permanent disablement and ₹25,000 for death.',
+};
+
 function FilingDetailPanel({ filing, onClose, onAIDraft }: {
   filing: Filing;
   onClose: () => void;
   onAIDraft: () => void;
 }) {
   const [activeSection, setActiveSection] = useState<'guide' | 'docs' | 'law'>('guide');
+  const [expandedLaw, setExpandedLaw] = useState<string | null>(null);
 
   const catConfig = CASE_CATEGORIES.find(c => filing.category.includes(c.id));
 
@@ -191,22 +245,39 @@ function FilingDetailPanel({ filing, onClose, onAIDraft }: {
           <button onClick={onAIDraft} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 16px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
             <Sparkles size={13} /> AI Draft
           </button>
-          <button style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+          <button
+            onClick={() => {
+              // Generate a plain text template and download it
+              const templateContent = `${filing.name.toUpperCase()}\n${'='.repeat(filing.name.length)}\n\nIN THE [COURT NAME]\n[CITY/LOCATION]\n\nCase No.: [CASE NUMBER]\n\n[PETITIONER/PLAINTIFF NAME]                    ... Petitioner/Plaintiff\n\nVersus\n\n[RESPONDENT/DEFENDANT NAME]                    ... Respondent/Defendant\n\n\nPETITION/APPLICATION FOR ${filing.name.toUpperCase()}\n\nMOST RESPECTFULLY SHOWETH:\n\n1. [State the first fact of the case]\n\n2. [State the second fact]\n\n3. [Continue with relevant facts...]\n\nGROUNDS\n\nA. [First ground]\n\nB. [Second ground]\n\nC. [Continue with grounds...]\n\nPRAYER\n\nIt is therefore most respectfully prayed that this Hon'ble Court may be pleased to:\n\n(i) [State the first relief sought];\n\n(ii) [State the second relief sought];\n\n(iii) Pass such other and further order(s) as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case.\n\nAnd for this act of kindness, the Petitioner/Plaintiff shall ever pray.\n\n\nFiled by:\nAdvocate for Petitioner/Plaintiff\n\nDate: ${new Date().toLocaleDateString('en-IN')}\nPlace: [CITY]\n\n---\nApplicable Law: ${(filing.relevant_sections || []).join(', ')}`;
+              const blob = new Blob([templateContent], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${filing.name.replace(/[^a-zA-Z0-9]/g, '_')}_Template.txt`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
             <Download size={13} /> Template
           </button>
         </div>
       </div>
 
       {/* Tab nav */}
-      <div style={{ display: 'flex', borderBottom: '1px solid rgba(196,198,207,0.1)', flexShrink: 0 }}>
-        {[{ id: 'guide', label: 'Filing Guide' }, { id: 'docs', label: 'Documents' }, { id: 'law', label: 'Law & Sections' }].map(tab => (
-          <button key={tab.id} onClick={() => setActiveSection(tab.id as any)} style={{
-            flex: 1, padding: '10px', border: 'none', background: 'transparent', cursor: 'pointer',
-            fontSize: '12px', fontWeight: activeSection === tab.id ? 700 : 500,
-            color: activeSection === tab.id ? '#022448' : '#74777f',
-            borderBottom: activeSection === tab.id ? '2px solid #022448' : '2px solid transparent',
-            fontFamily: 'Manrope, sans-serif',
-          }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(196,198,207,0.15)', flexShrink: 0, background: '#fff' }}>
+        {([{ id: 'guide', label: 'Filing Guide' }, { id: 'docs', label: 'Documents' }, { id: 'law', label: 'Law & Sections' }] as const).map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveSection(tab.id); }}
+            style={{
+              flex: 1, padding: '11px 6px', border: 'none', cursor: 'pointer',
+              fontSize: '12px', fontWeight: activeSection === tab.id ? 700 : 500,
+              color: activeSection === tab.id ? '#022448' : '#74777f',
+              background: activeSection === tab.id ? '#fff' : 'transparent',
+              borderBottom: activeSection === tab.id ? '2px solid #022448' : '2px solid transparent',
+              fontFamily: 'Manrope, sans-serif', transition: 'all 0.12s',
+            }}>
             {tab.label}
           </button>
         ))}
@@ -264,18 +335,41 @@ function FilingDetailPanel({ filing, onClose, onAIDraft }: {
 
         {activeSection === 'law' && (
           <div>
-            <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 12px' }}>APPLICABLE LEGAL PROVISIONS</p>
-            {(filing.relevant_sections || []).map((section, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: '#d5e3ff30', borderRadius: '8px', marginBottom: '8px', border: '1px solid rgba(2,36,72,0.1)' }}>
-                <Scale size={14} color="#022448" style={{ flexShrink: 0 }} />
-                <p style={{ fontSize: '13px', color: '#022448', margin: 0, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}>{section}</p>
-              </div>
-            ))}
+            <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 12px' }}>APPLICABLE LEGAL PROVISIONS — click to expand</p>
+            {(filing.relevant_sections || []).map((section, i) => {
+              const isExpanded = expandedLaw === section;
+              const description = LAW_DESCRIPTIONS[section];
+              return (
+                <div key={i} style={{ marginBottom: '8px', borderRadius: '8px', border: `1px solid ${isExpanded ? 'rgba(2,36,72,0.25)' : 'rgba(2,36,72,0.1)'}`, overflow: 'hidden' }}>
+                  <button
+                    onClick={() => setExpandedLaw(isExpanded ? null : section)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', padding: '11px 14px', background: isExpanded ? '#d5e3ff' : '#d5e3ff30', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                      <Scale size={14} color="#022448" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: '13px', color: '#022448', fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}>{section}</span>
+                    </div>
+                    <span style={{ fontSize: '16px', color: '#022448', fontWeight: 400, flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                      {description ? '▾' : ''}
+                    </span>
+                  </button>
+                  {isExpanded && description && (
+                    <div style={{ padding: '12px 14px 12px 38px', background: '#f8fafc', borderTop: '1px solid rgba(2,36,72,0.08)' }}>
+                      <p style={{ fontSize: '12px', color: '#43474e', margin: 0, lineHeight: 1.7 }}>{description}</p>
+                    </div>
+                  )}
+                  {isExpanded && !description && (
+                    <div style={{ padding: '10px 14px 10px 38px', background: '#f8fafc', borderTop: '1px solid rgba(2,36,72,0.08)' }}>
+                      <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Refer to the relevant statute for detailed provisions.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {(!filing.relevant_sections || filing.relevant_sections.length === 0) && (
               <p style={{ fontSize: '13px', color: '#74777f' }}>Refer to applicable statutes for this filing type.</p>
             )}
-
-            <div style={{ marginTop: '20px', padding: '14px', background: '#fff7ed', borderRadius: '8px', border: '1px solid rgba(202,138,4,0.2)' }}>
+            <div style={{ marginTop: '16px', padding: '14px', background: '#fff7ed', borderRadius: '8px', border: '1px solid rgba(202,138,4,0.2)' }}>
               <p style={{ fontSize: '10px', fontWeight: 800, color: '#b45309', letterSpacing: '0.06em', margin: '0 0 6px' }}>NOTE ON NEW LAWS</p>
               <p style={{ fontSize: '12px', color: '#92400e', margin: 0, lineHeight: 1.6 }}>
                 For matters post-July 2024: use BNS (replaces IPC), BNSS (replaces CrPC), BSA (replaces Evidence Act). For matters before July 2024: use IPC, CrPC, Indian Evidence Act.
