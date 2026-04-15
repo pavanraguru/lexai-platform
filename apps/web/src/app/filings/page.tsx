@@ -429,10 +429,10 @@ function FileForPageInner() {
       )}
 
       {/* Top filter bar */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
 
         {/* Search */}
-        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
+        <div style={{ position: 'relative', width: '280px', flexShrink: 0 }}>
           <Search size={15} color="#74777f" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search — bail, vakalatnama, writ..."
             style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '9px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', background: '#fff', boxSizing: 'border-box' }} />
