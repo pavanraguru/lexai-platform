@@ -30,51 +30,20 @@ function AIDraftModal({ filing, caseContext, onClose }: {
     setLoading(true);
     setError('');
     try {
-      const caseInfo = caseContext ? `
-Case Title: ${caseContext.title}
-Court: ${caseContext.court}
-Case Type: ${caseContext.case_type}
-Perspective: ${caseContext.perspective}
-Sections Charged: ${(caseContext.metadata?.sections_charged || []).join(', ') || 'Not specified'}
-CNR Number: ${caseContext.cnr_number || 'Not assigned'}
-Client: ${caseContext.metadata?.client_name || 'Not specified'}
-Accused/Respondent: ${caseContext.metadata?.accused_names?.join(', ') || 'Not specified'}
-Filed Date: ${caseContext.filed_date ? new Date(caseContext.filed_date).toLocaleDateString('en-IN') : 'Not specified'}
-` : 'No specific case selected — generate a template with placeholders.';
-
-      const prompt = `You are a senior Indian advocate. Draft the following legal document for an Indian court.
-
-DOCUMENT TYPE: ${filing.name}
-${filing.ai_prompt_hint}
-
-CASE INFORMATION:
-${caseInfo}
-
-RELEVANT LAW: ${filing.relevant_sections?.join(', ') || 'As applicable'}
-
-INSTRUCTIONS:
-1. Use formal Indian court language and proper legal terminology
-2. Use BNS/BNSS/BSA sections for post-July 2024 matters, IPC/CrPC for older matters
-3. Include all required legal components for this document type
-4. Use [PLACEHOLDER] for any information not provided
-5. Structure the document properly with headings
-6. End with proper prayer clause
-7. Do NOT include markdown formatting — use plain text suitable for a legal document
-
-Draft the complete ${filing.name} now:`;
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch(`${BASE}/v1/filings/ai-draft`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 3000,
-          messages: [{ role: 'user', content: prompt }],
+          filing_name: filing.name,
+          ai_prompt_hint: filing.ai_prompt_hint,
+          relevant_sections: filing.relevant_sections,
+          case_context: caseContext,
         }),
       });
 
       const data = await res.json();
-      const text = data.content?.find((c: any) => c.type === 'text')?.text || '';
+      if (!res.ok) throw new Error(data.error?.message || 'Failed to generate draft');
+      const text = data.data?.draft || '';
       setDraft(text);
     } catch (err: any) {
       setError('Failed to generate draft. Please try again.');

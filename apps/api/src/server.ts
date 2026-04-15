@@ -24,7 +24,9 @@ import { invoiceRoutes }      from './routes/invoices.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { calendarRoutes }     from './routes/calendar.js';
 import { dashboardRoutes }    from './routes/dashboard.js';
+import { webhookRoutes }        from './routes/webhooks.js';
 import { presentationRoutes }  from './routes/presentations.js';
+import { filingRoutes }        from './routes/filings.js';
 import { translationRoutes }   from './routes/translation.js';
 
 // Plugin imports
@@ -94,10 +96,12 @@ async function bootstrap() {
     await app.register(calendarRoutes,     { prefix: '/calendar' });
     await app.register(dashboardRoutes,    { prefix: '/dashboard' });
     await app.register(presentationRoutes, { prefix: '/presentations' });
+    await app.register(filingRoutes,        { prefix: '/filings' });
     await app.register(translationRoutes,  { prefix: '/documents' });
   }, { prefix: '/v1' });
 
   // Webhook routes — outside /v1, no auth (Meta calls these directly)
+  await server.register(webhookRoutes, { prefix: '/webhooks' });
 
   // Global error handler
   server.setErrorHandler((error, request, reply) => {
