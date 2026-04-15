@@ -7,7 +7,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import {
   LayoutDashboard, FolderOpen, Calendar, FileText,
   Users, Receipt, Settings, Bell, Plus, ChevronLeft,
-  Scale, LogOut, Menu, X, ChevronRight
+  Scale, LogOut, Menu, X, ChevronRight, BookMarked
 } from 'lucide-react';
 
 const SIDEBAR_W = 240;
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/dashboard', Icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/cases',     Icon: FolderOpen,       label: 'My Cases' },
   { href: '/calendar',  Icon: Calendar,         label: 'Calendar' },
+  { href: '/filings',   Icon: BookMarked,       label: 'File For' },
   { href: '/drafts',    Icon: FileText,         label: 'Drafts' },
   { href: '/clients',   Icon: Users,            label: 'Clients' },
   { href: '/invoices',  Icon: Receipt,          label: 'Billing' },
@@ -36,6 +37,7 @@ function getBreadcrumbs(pathname: string) {
   const seg = pathname.split('/').filter(Boolean);
   if (!seg.length || seg[0] === 'dashboard') return crumbs;
   const map: Record<string, string> = {
+    filings: 'File For',
     cases: 'Cases', calendar: 'Calendar', drafts: 'Drafts',
     clients: 'Clients', invoices: 'Billing', settings: 'Settings',
   };
