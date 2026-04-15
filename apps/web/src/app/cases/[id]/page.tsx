@@ -383,8 +383,11 @@ function CaseFileFor({ c, token }: { c: any; token: string }) {
   const [expandedLaw, setExpandedLaw] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'guide'|'docs'|'law'>('guide');
 
-  // Detect relevant filing categories from the case type
-  const relevantCategories: CaseCategory[] = CASE_TYPE_TO_CATEGORIES[c.case_type] || ['general'];
+  // Detect relevant filing categories from the case type — memoised for stable deps
+  const relevantCategories = useMemo<CaseCategory[]>(
+    () => CASE_TYPE_TO_CATEGORIES[c.case_type] || ['general'],
+    [c.case_type]
+  );
 
   // Filter filings relevant to this case
   const suggestedFilings = useMemo(() => {
@@ -398,10 +401,10 @@ function CaseFileFor({ c, token }: { c: any; token: string }) {
     });
   }, [relevantCategories, selectedStage, searchQuery]);
 
-  const catConfig = CASE_CATEGORIES.find(c => relevantCategories.includes(c.id));
-  const stages = FILING_STAGES.filter(s =>
-    suggestedFilings.some(f => f.stage === s.id) ||
-    FILINGS.filter(f => f.category.some(cat => relevantCategories.includes(cat))).some(f => f.stage === s.id)
+  const catConfig = CASE_CATEGORIES.find(cat => relevantCategories.includes(cat.id));
+  const stages = FILING_STAGES.filter(stage =>
+    suggestedFilings.some(f => f.stage === stage.id) ||
+    FILINGS.filter(f => f.category.some(cat => relevantCategories.includes(cat))).some(f => f.stage === stage.id)
   );
 
   const LAW_DESCRIPTIONS: Record<string, string> = {
@@ -499,17 +502,16 @@ function CaseFileFor({ c, token }: { c: any; token: string }) {
             </div>
           ) : suggestedFilings.map(filing => {
             const isSelected = selectedFiling?.id === filing.id;
-            const catConf = CASE_CATEGORIES.find(c => filing.category.includes(c.id));
+            const catConf = CASE_CATEGORIES.find(cat => filing.category.includes(cat.id));
             const stageConf = FILING_STAGES.find(s => s.id === filing.stage);
 
             return (
               <div key={filing.id} onClick={() => { setSelectedFiling(isSelected ? null : filing); setDetailTab('guide'); setExpandedLaw(null); }} style={{
-                background: '#fff', borderRadius: '12px', padding: '16px', cursor: 'pointer',
+                background: isSelected ? '#f0f4ff' : '#fff', borderRadius: '12px', padding: '16px', cursor: 'pointer',
                 border: isSelected ? '1.5px solid #022448' : '1px solid rgba(196,198,207,0.15)',
                 boxShadow: isSelected ? '0 4px 16px rgba(2,36,72,0.08)' : '0 1px 4px rgba(2,36,72,0.04)',
-                background: isSelected ? '#f0f4ff' : '#fff',
                 transition: 'all 0.12s',
-              } as any}>
+              }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: catConf?.bg || '#edeef0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 }}>
                     {catConf?.emoji || '📋'}
