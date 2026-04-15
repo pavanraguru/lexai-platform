@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -13,13 +13,12 @@ import {
   BookMarked, Search, Copy, Scale,
 } from 'lucide-react';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-// Filing repository imports
 import {
   FILINGS, CASE_CATEGORIES, FILING_STAGES,
   type Filing, type CaseCategory,
 } from '@/lib/filingRepository';
+
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const TABS = [
   { key: 'overview',      Icon: Info,        label: 'Overview' },
@@ -30,7 +29,7 @@ const TABS = [
   { key: 'drafts',        Icon: BookOpen,    label: 'Drafts' },
   { key: 'presentations', Icon: Monitor,     label: 'Presentations' },
   { key: 'timeline',      Icon: Clock,       label: 'Case Timeline' },
-  { key: 'filings',      Icon: BookMarked,  label: 'File For' },
+  { key: 'filings',      Icon: BookMarked,  label: 'Filings' },
 ] as const;
 
 const HEARING_PURPOSES = [
@@ -439,7 +438,7 @@ function CaseFileFor({ c, token }: { c: any; token: string }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div>
             <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 6px' }}>
-              File For — {c.title}
+              Filings — {c.title}
             </h2>
             <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>
               Showing <strong>{suggestedFilings.length}</strong> relevant filings for{' '}
