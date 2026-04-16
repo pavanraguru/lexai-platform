@@ -138,12 +138,48 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
       } else if (c?.content && typeof c.content === 'string') {
         text = c.content;
       } else if (Array.isArray(c?.content)) {
-        // Tiptap/ProseMirror JSON — extract plain text
         text = '';
+      }
+      // Restore from localStorage if we have a newer unsaved version
+      const lsKey = 'draft_autosave_' + editingDraft.id;
+      const saved = localStorage.getItem(lsKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.text && parsed.text.length > text.length) {
+            text = parsed.text;
+          }
+          localStorage.removeItem(lsKey);
+        } catch {}
       }
       setEditorText(text);
     }
   }, [editingDraft?.id]);
+
+  // Auto-save to localStorage every 10 seconds while editing
+  useEffect(() => {
+    if (!editingDraft?.id) return;
+    const interval = setInterval(() => {
+      const ta = document.getElementById('draft-editor') as HTMLTextAreaElement;
+      const text = ta ? ta.value : editorText;
+      if (text && text.trim().length > 0) {
+        localStorage.setItem('draft_autosave_' + editingDraft.id, JSON.stringify({ text, savedAt: new Date().toISOString() }));
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [editingDraft?.id, editorText]);
+
+  // Warn before leaving page with unsaved changes
+  useEffect(() => {
+    if (!editingDraft) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'You have unsaved changes in your draft. Are you sure you want to leave?';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [editingDraft]);
 
   const createDraft = async () => {
     if (!formTitle.trim()) return;
@@ -323,6 +359,7 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '11px', color: '#74777f' }}>
             {editorText.trim().split(/\s+/).filter(Boolean).length} words · v{editingDraft.version}
+            <span style={{ marginLeft: '8px', fontSize: '10px', color: '#15803d' }}>· auto-saved locally</span>
           </span>
           <span style={{ fontSize: '11px', color: '#74777f' }}>
             Last saved: {new Date(editingDraft.last_modified_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}

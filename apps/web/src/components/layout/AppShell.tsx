@@ -244,6 +244,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showNotifs]);
 
+  // Global auto-save: every 15 seconds snapshot all textareas to localStorage
+  useEffect(() => {
+    const interval = setInterval(() => {
+      document.querySelectorAll('textarea[id]').forEach((el) => {
+        const ta = el as HTMLTextAreaElement;
+        if (ta.id && ta.value && ta.value.trim().length > 10) {
+          localStorage.setItem('autosave_field_' + ta.id, JSON.stringify({
+            value: ta.value,
+            url: window.location.pathname,
+            savedAt: new Date().toISOString(),
+          }));
+        }
+      });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   const signOut = () => {
     clearUser();
     if (typeof window !== 'undefined') localStorage.removeItem('lexai-auth');
