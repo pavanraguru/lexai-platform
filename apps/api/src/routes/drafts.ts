@@ -9,9 +9,11 @@ import { z } from 'zod';
 const CreateDraftSchema = z.object({
   case_id: z.string().uuid(),
   title: z.string().min(1).max(500),
-  doc_type: z.enum(['petition', 'written_statement', 'affidavit', 'vakalatnama',
-    'bail_application', 'opening_statement', 'memo_of_appeal', 'legal_notice',
-    'reply_notice', 'other']).default('other'),
+  doc_type: z.enum([
+    'bail_application', 'plaint', 'written_statement', 'writ_petition',
+    'affidavit', 'vakalatnama', 'opening_statement', 'closing_statement',
+    'rejoinder', 'memo_of_appeal', 'other',
+  ]).default('other'),
   content: z.any().default({ type: 'doc', content: [] }),
 });
 
