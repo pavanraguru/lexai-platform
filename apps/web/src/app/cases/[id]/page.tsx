@@ -295,6 +295,38 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
     setAiGenerating(false);
   };
 
+  const syncFromECourts = async () => {
+    if (!c.cnr_number) {
+      alert('This case has no CNR number. Please add a CNR number in the case details before syncing.');
+      return;
+    }
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(BASE + '/v1/ecourts/sync/' + id, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      });
+      const data = await res.json();
+      if (res.status === 429) {
+        setSyncResult({ status: 'rate_limited', message: data.error?.message || 'Synced recently, please wait.' });
+      } else if (res.status === 503) {
+        setSyncResult({ status: 'portal_unavailable', message: 'eCourts portal is currently unavailable. Try again later.' });
+      } else if (res.status === 404 && data.error?.code === 'CNR_NOT_FOUND') {
+        setSyncResult({ status: 'cnr_not_found', message: data.error.message });
+      } else if (!res.ok) {
+        setSyncResult({ status: 'failed', message: data.error?.message || 'Sync failed. Please try again.' });
+      } else {
+        setSyncResult({ status: 'success', message: data.data.message, data: data.data });
+        setLastSync({ synced_at: new Date().toISOString(), status: 'success', fetched_date: data.data.next_hearing_date });
+        refresh(); // Refresh case + hearings
+      }
+    } catch (err: any) {
+      setSyncResult({ status: 'failed', message: 'Network error: ' + err.message });
+    }
+    setSyncing(false);
+  };
+
   const openDraft = async (draft: any) => {
     const res = await fetch(BASE + '/v1/drafts/' + draft.id, {
       headers: { Authorization: 'Bearer ' + token },
@@ -911,6 +943,9 @@ export default function CaseDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
+  const [lastSync, setLastSync] = useState<any>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -1185,6 +1220,60 @@ export default function CaseDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ─── eCourts Sync Panel ─────────────────────────── */}
+        <div style={{ ...cardStyle, padding: '20px', marginTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 4px' }}>
+                eCourts Sync
+              </h3>
+              <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>
+                {!c.cnr_number
+                  ? 'Add a CNR number to this case to enable eCourts sync.'
+                  : lastSync
+                    ? `Last synced ${new Date(lastSync.synced_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · Status: ${lastSync.status}`
+                    : `CNR: ${c.cnr_number} · Never synced`
+                }
+              </p>
+            </div>
+            <button
+              onClick={syncFromECourts}
+              disabled={syncing || !c.cnr_number}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', borderRadius: '8px', border: 'none',
+                background: syncing || !c.cnr_number ? '#edeef0' : '#022448',
+                color: syncing || !c.cnr_number ? '#74777f' : '#fff',
+                fontSize: '12px', fontWeight: 700, cursor: syncing || !c.cnr_number ? 'not-allowed' : 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+              }}
+            >
+              {syncing ? '⏳ Syncing...' : '🔄 Sync from eCourts'}
+            </button>
+          </div>
+
+          {/* Sync result banner */}
+          {syncResult && (
+            <div style={{
+              marginTop: '12px', padding: '10px 14px', borderRadius: '8px',
+              background: syncResult.status === 'success' ? '#dcfce7' : syncResult.status === 'rate_limited' ? '#fef9c3' : '#fde8e8',
+              border: `1px solid ${syncResult.status === 'success' ? '#86efac' : syncResult.status === 'rate_limited' ? '#fde047' : '#fca5a5'}`,
+            }}>
+              <p style={{
+                margin: 0, fontSize: '12px', fontWeight: 600,
+                color: syncResult.status === 'success' ? '#15803d' : syncResult.status === 'rate_limited' ? '#854d0e' : '#b91c1c',
+              }}>
+                {syncResult.status === 'success' ? '✅' : syncResult.status === 'rate_limited' ? '⏳' : '❌'} {syncResult.message}
+              </p>
+              {syncResult.data?.conflict_detected && (
+                <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#b45309' }}>
+                  ⚠️ A hearing already existed on this date — updated with eCourts data.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
