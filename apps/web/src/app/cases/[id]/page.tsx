@@ -86,7 +86,7 @@ const lbl: React.CSSProperties = {
 
 
 // ── Drafting Workspace Component ─────────────────────────────
-function DraftingWorkspace({ caseId, token }: { caseId: string; token: string }) {
+function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token: string; caseData: any }) {
   const [drafts, setDrafts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -219,15 +219,15 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
           ai_prompt_hint: 'Draft a complete ' + (draft.doc_type || 'legal document').replace(/_/g, ' ') + ' for this case in formal Indian court style.',
           existing_content: existingText || null,
           case_context: {
-            title: c.title,
-            court: c.court,
-            cnr_number: c.cnr_number,
-            case_type: c.case_type,
-            court_level: c.court_level,
-            perspective: c.perspective,
-            filed_date: c.filed_date,
-            status: c.status,
-            metadata: c.metadata,
+            title: caseData.title,
+            court: caseData.court,
+            cnr_number: caseData.cnr_number,
+            case_type: caseData.case_type,
+            court_level: caseData.court_level,
+            perspective: caseData.perspective,
+            filed_date: caseData.filed_date,
+            status: caseData.status,
+            metadata: caseData.metadata,
           },
         }),
       });
@@ -1516,7 +1516,7 @@ export default function CaseDetailPage() {
 
       {/* ─── DRAFTS ─────────────────────────────────────── */}
       {activeTab === 'drafts' && (
-        <DraftingWorkspace caseId={id} token={token!} />
+        <DraftingWorkspace caseId={id} token={token!} caseData={c} />
       )}
 
       {/* ─── FILINGS ────────────────────────────────────── */}
