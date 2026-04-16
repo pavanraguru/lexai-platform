@@ -19,8 +19,8 @@ export const notificationRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ data: notifs });
   });
 
-  // PATCH /v1/notifications/read-all  ← registered first, before /:id/read
-  fastify.patch('/read-all', {
+  // PATCH /v1/notifications/mark-all-read
+  fastify.patch('/mark-all-read', {
     preHandler: [fastify.authenticate],
   }, async (req, reply) => {
     const { id: user_id } = req.user;

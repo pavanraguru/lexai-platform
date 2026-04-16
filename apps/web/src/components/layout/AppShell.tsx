@@ -83,7 +83,7 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
   };
 
   const markAllRead = async () => {
-    await fetch(BASE + '/v1/notifications/read-all', {
+    await fetch(BASE + '/v1/notifications/mark-all-read', {
       method: 'PATCH',
       headers: { Authorization: 'Bearer ' + token },
     });
