@@ -180,20 +180,39 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
   const generateWithAI = async (draft: any) => {
     setAiGenerating(true);
     try {
+      // Get current editor text to improve if it already has content
+      const existingText = editorText?.trim() || '';
       const res = await fetch(BASE + '/v1/filings/ai-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({
           filing_name: draft.title,
-          ai_prompt_hint: 'Draft a complete ' + draft.doc_type?.replace(/_/g, ' ') + ' for this case in formal Indian court style.',
-          case_context: { title: draft.case?.title, court: draft.case?.court, cnr_number: draft.case?.cnr_number, perspective: draft.case?.perspective },
+          doc_type: draft.doc_type,
+          ai_prompt_hint: 'Draft a complete ' + (draft.doc_type || 'legal document').replace(/_/g, ' ') + ' for this case in formal Indian court style.',
+          existing_content: existingText || null,
+          case_context: {
+            title: c.title,
+            court: c.court,
+            cnr_number: c.cnr_number,
+            case_type: c.case_type,
+            court_level: c.court_level,
+            perspective: c.perspective,
+            filed_date: c.filed_date,
+            status: c.status,
+            metadata: c.metadata,
+          },
         }),
       });
       const data = await res.json();
       if (data.data?.draft) {
+        setEditorText(data.data.draft);
         setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: data.data.draft } }));
+      } else if (data.error) {
+        console.error('AI draft error:', data.error.message);
       }
-    } catch {}
+    } catch (err: any) {
+      console.error('AI generate failed:', err.message);
+    }
     setAiGenerating(false);
   };
 

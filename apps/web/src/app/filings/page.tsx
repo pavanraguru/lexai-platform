@@ -53,6 +53,7 @@ function AIDraftModal({ filing, caseContext, onClose }: {
           ai_prompt_hint: filing.ai_prompt_hint,
           relevant_sections: filing.relevant_sections,
           case_context: caseContext,
+          existing_content: draft || null,
         }),
       });
       const data = await res.json();
