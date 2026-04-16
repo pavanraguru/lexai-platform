@@ -295,38 +295,6 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
     setAiGenerating(false);
   };
 
-  const syncFromECourts = async () => {
-    if (!c.cnr_number) {
-      alert('This case has no CNR number. Please add a CNR number in the case details before syncing.');
-      return;
-    }
-    setSyncing(true);
-    setSyncResult(null);
-    try {
-      const res = await fetch(BASE + '/v1/ecourts/sync/' + id, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      });
-      const data = await res.json();
-      if (res.status === 429) {
-        setSyncResult({ status: 'rate_limited', message: data.error?.message || 'Synced recently, please wait.' });
-      } else if (res.status === 503) {
-        setSyncResult({ status: 'portal_unavailable', message: 'eCourts portal is currently unavailable. Try again later.' });
-      } else if (res.status === 404 && data.error?.code === 'CNR_NOT_FOUND') {
-        setSyncResult({ status: 'cnr_not_found', message: data.error.message });
-      } else if (!res.ok) {
-        setSyncResult({ status: 'failed', message: data.error?.message || 'Sync failed. Please try again.' });
-      } else {
-        setSyncResult({ status: 'success', message: data.data.message, data: data.data });
-        setLastSync({ synced_at: new Date().toISOString(), status: 'success', fetched_date: data.data.next_hearing_date });
-        refresh(); // Refresh case + hearings
-      }
-    } catch (err: any) {
-      setSyncResult({ status: 'failed', message: 'Network error: ' + err.message });
-    }
-    setSyncing(false);
-  };
-
   const openDraft = async (draft: any) => {
     const res = await fetch(BASE + '/v1/drafts/' + draft.id, {
       headers: { Authorization: 'Bearer ' + token },
@@ -999,6 +967,38 @@ export default function CaseDetailPage() {
       .then(d => { if (d.data?.last_sync) setLastSync(d.data.last_sync); })
       .catch(() => {});
   }, [id, token]);
+
+  const syncFromECourts = async () => {
+    if (!c?.cnr_number) {
+      alert('This case has no CNR number. Please add a CNR number in the case details before syncing.');
+      return;
+    }
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(`${BASE}/v1/ecourts/sync/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.status === 429) {
+        setSyncResult({ status: 'rate_limited', message: data.error?.message || 'Synced recently, please wait.' });
+      } else if (res.status === 503) {
+        setSyncResult({ status: 'portal_unavailable', message: 'eCourts portal is currently unavailable. Try again later.' });
+      } else if (res.status === 404 && data.error?.code === 'CNR_NOT_FOUND') {
+        setSyncResult({ status: 'cnr_not_found', message: data.error.message });
+      } else if (!res.ok) {
+        setSyncResult({ status: 'failed', message: data.error?.message || 'Sync failed. Please try again.' });
+      } else {
+        setSyncResult({ status: 'success', message: data.data?.message, data: data.data });
+        setLastSync({ synced_at: new Date().toISOString(), status: 'success', fetched_date: data.data?.next_hearing_date });
+        refresh();
+      }
+    } catch (err: any) {
+      setSyncResult({ status: 'failed', message: 'Network error: ' + err.message });
+    }
+    setSyncing(false);
+  };
 
   const apiCall = async (url: string, method: string, body?: any) => {
     const res = await fetch(`${BASE}${url}`, {
