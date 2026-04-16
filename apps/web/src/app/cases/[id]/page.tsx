@@ -991,6 +991,15 @@ export default function CaseDetailPage() {
   const presentations: any[] = presData || [];
   const refresh = () => qc.invalidateQueries({ queryKey: ['case', id] });
 
+  // Fetch last eCourts sync status on mount
+  useEffect(() => {
+    if (!token || !id) return;
+    fetch(`${BASE}/v1/ecourts/status/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (d.data?.last_sync) setLastSync(d.data.last_sync); })
+      .catch(() => {});
+  }, [id, token]);
+
   const apiCall = async (url: string, method: string, body?: any) => {
     const res = await fetch(`${BASE}${url}`, {
       method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -1111,7 +1120,7 @@ export default function CaseDetailPage() {
   };
 
   return (
-    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
 
       {/* ── Case Header ─────────────────────────────────── */}
       <div style={{ ...cardStyle, padding: '20px', marginBottom: '16px', maxWidth: '860px' }}>
