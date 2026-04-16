@@ -21,6 +21,7 @@ const UpdateDraftSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   content: z.any().optional(),
   doc_type: z.string().optional(),
+  word_count: z.number().optional(),
 });
 
 export const draftRoutes: FastifyPluginAsync = async (fastify) => {

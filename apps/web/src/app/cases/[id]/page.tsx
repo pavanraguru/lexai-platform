@@ -126,11 +126,22 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
 
   useEffect(() => { fetchDrafts(); }, [caseId]);
 
-  // Sync editor text when draft changes
+  // Sync editor text when draft changes — handle all content formats
   useEffect(() => {
     if (editingDraft) {
-      const text = editingDraft.content?.text || editingDraft.content?.content || '';
-      setEditorText(typeof text === 'string' ? text : '');
+      const c = editingDraft.content;
+      let text = '';
+      if (typeof c === 'string') {
+        text = c;
+      } else if (c?.text && typeof c.text === 'string') {
+        text = c.text;
+      } else if (c?.content && typeof c.content === 'string') {
+        text = c.content;
+      } else if (Array.isArray(c?.content)) {
+        // Tiptap/ProseMirror JSON — extract plain text
+        text = '';
+      }
+      setEditorText(text);
     }
   }, [editingDraft?.id]);
 
@@ -155,15 +166,32 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
   const saveDraft = async (draft: any, content: string) => {
     setSaving(true);
     try {
-      const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
-      await fetch(BASE + '/v1/drafts/' + draft.id, {
+      const res = await fetch(BASE + '/v1/drafts/' + draft.id, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ content: { type: 'doc', text: content }, title: draft.title, word_count: wordCount }),
+        body: JSON.stringify({
+          content: { type: 'doc', text: content },
+          title: draft.title,
+        }),
       });
-      setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: content } }));
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Save failed:', res.status, err);
+        setSaving(false);
+        return;
+      }
+      const updated = await res.json();
+      setEditingDraft((prev: any) => ({
+        ...prev,
+        content: { type: 'doc', text: content },
+        version: updated.data?.version || prev.version,
+        last_modified_at: updated.data?.last_modified_at || prev.last_modified_at,
+        word_count: updated.data?.word_count || prev.word_count,
+      }));
       fetchDrafts();
-    } catch {}
+    } catch (err: any) {
+      console.error('Save error:', err.message);
+    }
     setSaving(false);
   };
 
@@ -208,10 +236,10 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
         setEditorText(data.data.draft);
         setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: data.data.draft } }));
       } else if (data.error) {
-        console.error('AI draft error:', data.error.message);
+        alert('AI Generate failed: ' + (data.error.message || 'Unknown error'));
       }
     } catch (err: any) {
-      console.error('AI generate failed:', err.message);
+      alert('AI Generate failed: ' + err.message);
     }
     setAiGenerating(false);
   };
@@ -267,8 +295,8 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
             <button onClick={() => generateWithAI(editingDraft)} disabled={aiGenerating} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: aiGenerating ? 'not-allowed' : 'pointer', opacity: aiGenerating ? 0.7 : 1, fontFamily: 'Manrope, sans-serif' }}>
               <Sparkles size={13} /> {aiGenerating ? 'Generating...' : 'AI Generate'}
             </button>
-            <button onClick={() => saveDraft(editingDraft, editorText)} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: saving ? '#dcfce7' : '#022448', color: saving ? '#15803d' : '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-              <Save size={13} /> {saving ? 'Saved!' : 'Save'}
+            <button onClick={() => saveDraft(editingDraft, editorText)} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: saving ? '#dcfce7' : '#022448', color: saving ? '#15803d' : '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+              <Save size={13} /> {saving ? 'Saving...' : 'Save'}
             </button>
             <button onClick={() => downloadDraft({ ...editingDraft, content: { text: editorText } })} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
               <Download size={13} /> Download
