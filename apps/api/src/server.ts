@@ -24,7 +24,6 @@ import { invoiceRoutes }      from './routes/invoices.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { calendarRoutes }     from './routes/calendar.js';
 import { dashboardRoutes }    from './routes/dashboard.js';
-import { webhookRoutes }        from './routes/webhooks.js';
 import { presentationRoutes }  from './routes/presentations.js';
 import { filingRoutes }        from './routes/filings.js';
 import { translationRoutes }   from './routes/translation.js';
@@ -48,24 +47,13 @@ const server = Fastify({
 
 async function bootstrap() {
   await server.register(cors, {
-    origin: (origin: string | undefined, cb: Function) => {
-      const allowed = [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'https://lexai-platform-web.vercel.app',
-        ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((o: string) => o.trim()) : []),
-      ];
-      // Allow requests with no origin (mobile apps, curl, etc)
-      if (!origin || allowed.some(a => origin.startsWith(a))) {
-        cb(null, true);
-      } else {
-        cb(null, true); // permissive for now — lock down in production
-      }
-    },
+    origin: true,  // allow all origins — Vercel + localhost + any client
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Type'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   await server.register(jwt, {
@@ -116,8 +104,6 @@ async function bootstrap() {
     await app.register(translationRoutes,  { prefix: '/documents' });
   }, { prefix: '/v1' });
 
-  // Webhook routes — outside /v1, no auth (Meta calls these directly)
-  await server.register(webhookRoutes, { prefix: '/webhooks' });
 
   // Global error handler
   server.setErrorHandler((error, request, reply) => {
