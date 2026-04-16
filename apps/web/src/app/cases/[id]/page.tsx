@@ -1172,7 +1172,7 @@ export default function CaseDetailPage() {
         {TABS.map(({ key, Icon, label }) => (
           <button key={key} onClick={() => setActiveTab(key)} style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '9px 14px', border: 'none', borderRadius: '8px',
+            padding: '9px 14px', borderRadius: '8px',
             background: activeTab === key ? '#022448' : '#fff',
             color: activeTab === key ? '#fff' : '#74777f',
             fontWeight: activeTab === key ? 700 : 500, fontSize: '13px',
