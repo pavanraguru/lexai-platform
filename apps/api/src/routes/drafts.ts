@@ -115,17 +115,20 @@ export const draftRoutes: FastifyPluginAsync = async (fastify) => {
       wordCount = text.split(/\s+/).filter(Boolean).length;
     }
 
+    // Build update data — always save content if provided
+    const updateData: any = {
+      word_count: wordCount,
+      version: { increment: 1 },
+      last_modified_by: user_id,
+      last_modified_at: new Date(),
+    };
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.content !== undefined) updateData.content = body.content;
+    if (body.doc_type !== undefined) updateData.doc_type = body.doc_type;
+
     const draft = await fastify.prisma.draft.update({
       where: { id },
-      data: {
-        ...(body.title && { title: body.title }),
-        ...(body.content && { content: body.content }),
-        ...(body.doc_type && { doc_type: body.doc_type as any }),
-        word_count: wordCount,
-        version: { increment: 1 },
-        last_modified_by: user_id,
-        last_modified_at: new Date(),
-      },
+      data: updateData,
     });
 
     return reply.send({ data: draft });

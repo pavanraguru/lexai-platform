@@ -156,41 +156,52 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'Failed to create draft');
-      setShowForm(false); setFormTitle(''); setFormType('petition');
+      setShowForm(false); setFormTitle(''); setFormType('bail_application');
       setEditingDraft(data.data);
       fetchDrafts();
     } catch (err: any) { setError(err.message); }
     setCreating(false);
   };
 
-  const saveDraft = async (draft: any, content: string) => {
+  const saveDraft = async (draft: any, contentText: string) => {
+    if (!draft?.id) { console.error('No draft id'); return; }
     setSaving(true);
     try {
+      // Use the textarea value directly as final source of truth
+      const textareaEl = document.getElementById('draft-editor') as HTMLTextAreaElement;
+      const finalText = textareaEl ? textareaEl.value : contentText;
+
+      const payload = {
+        content: { type: 'doc', text: finalText },
+        title: draft.title || 'Untitled Draft',
+      };
+
       const res = await fetch(BASE + '/v1/drafts/' + draft.id, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({
-          content: { type: 'doc', text: content },
-          title: draft.title,
-        }),
+        body: JSON.stringify(payload),
       });
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error('Save failed:', res.status, err);
+        const errBody = await res.json().catch(() => ({}));
+        const msg = errBody?.error?.message || errBody?.message || 'Save failed with status ' + res.status;
+        alert('Save failed: ' + msg);
         setSaving(false);
         return;
       }
+
       const updated = await res.json();
+      setEditorText(finalText);
       setEditingDraft((prev: any) => ({
         ...prev,
-        content: { type: 'doc', text: content },
-        version: updated.data?.version || prev.version,
-        last_modified_at: updated.data?.last_modified_at || prev.last_modified_at,
-        word_count: updated.data?.word_count || prev.word_count,
+        content: { type: 'doc', text: finalText },
+        version: updated.data?.version ?? prev.version,
+        last_modified_at: updated.data?.last_modified_at ?? new Date().toISOString(),
+        word_count: updated.data?.word_count ?? finalText.trim().split(/\s+/).filter(Boolean).length,
       }));
       fetchDrafts();
     } catch (err: any) {
-      console.error('Save error:', err.message);
+      alert('Save error: ' + err.message);
     }
     setSaving(false);
   };
@@ -233,8 +244,12 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
       });
       const data = await res.json();
       if (data.data?.draft) {
-        setEditorText(data.data.draft);
-        setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: data.data.draft } }));
+        const generatedText = data.data.draft;
+        setEditorText(generatedText);
+        setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: generatedText } }));
+        // Also update textarea DOM directly so Save reads the latest value immediately
+        const ta = document.getElementById('draft-editor') as HTMLTextAreaElement;
+        if (ta) ta.value = generatedText;
       } else if (data.error) {
         alert('AI Generate failed: ' + (data.error.message || 'Unknown error'));
       }
@@ -316,6 +331,7 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
 
         {/* Text editor */}
         <textarea
+          id="draft-editor"
           value={editorText}
           onChange={e => setEditorText(e.target.value)}
           placeholder="Start typing your legal document here...

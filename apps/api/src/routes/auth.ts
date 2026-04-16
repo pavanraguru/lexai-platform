@@ -1,7 +1,8 @@
 // ============================================================
 // LexAI India — Auth Routes
-// PRD v1.1 Section 6 — Authentication
-// Flow: Supabase token → verify → lookup user → issue LexAI JWT
+// POST /v1/auth/login     — email + password → LexAI JWT
+// POST /v1/auth/token     — supabase_token   → LexAI JWT
+// GET  /v1/auth/me        — return current user
 // ============================================================
 
 import { FastifyPluginAsync } from 'fastify';
@@ -14,52 +15,22 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // POST /v1/auth/token
-  // Exchanges a Supabase JWT for a LexAI signed JWT
-  fastify.post('/token', async (request, reply) => {
-    const { supabase_token } = request.body as { supabase_token: string };
-
-    if (!supabase_token) {
-      return reply.status(400).send({
-        error: { code: 'MISSING_TOKEN', message: 'supabase_token is required' }
-      });
-    }
-
-    // Step 1: Verify the Supabase token
-    const { data: { user: supaUser }, error } = await supabase.auth.getUser(supabase_token);
-
-    if (error || !supaUser) {
-      return reply.status(401).send({
-        error: { code: 'INVALID_SUPABASE_TOKEN', message: 'Invalid or expired Supabase token' }
-      });
-    }
-
-    // Step 2: Look up user in our database
+  // Helper: look up user and issue LexAI JWT
+  async function issueToken(userId: string, reply: any) {
     const dbUser = await fastify.prisma.user.findUnique({
-      where: { id: supaUser.id },
+      where: { id: userId },
       include: {
-        tenant: {
-          select: { id: true, name: true, plan: true, slug: true, active: true }
-        }
+        tenant: { select: { id: true, name: true, plan: true, slug: true, active: true } }
       }
     });
 
     if (!dbUser) {
-      return reply.status(401).send({
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found. Please contact your administrator.'
-        }
-      });
+      return reply.status(401).send({ error: { code: 'USER_NOT_FOUND', message: 'User not found.' } });
     }
-
     if (!dbUser.is_active) {
-      return reply.status(401).send({
-        error: { code: 'USER_INACTIVE', message: 'Your account has been deactivated.' }
-      });
+      return reply.status(401).send({ error: { code: 'USER_INACTIVE', message: 'Account deactivated.' } });
     }
 
-    // Step 3: Issue our own signed JWT with tenant_id and role embedded
     const lexaiToken = fastify.jwt.sign({
       id: dbUser.id,
       tenant_id: dbUser.tenant_id,
@@ -67,29 +38,70 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       email: dbUser.email,
     }, { expiresIn: '30d' });
 
-    // Step 4: Update last_seen_at
     await fastify.prisma.user.update({
       where: { id: dbUser.id },
       data: { last_seen_at: new Date() }
     });
 
-    return reply.send({
-      data: {
-        token: lexaiToken,
-        user: {
-          id: dbUser.id,
-          email: dbUser.email,
-          full_name: dbUser.full_name,
-          role: dbUser.role,
-          bar_enrollment_no: dbUser.bar_enrollment_no,
-          avatar_url: dbUser.avatar_url,
-          tenant_id: dbUser.tenant_id,
-          tenant_name: dbUser.tenant?.name,
-          tenant_plan: dbUser.tenant?.plan,
-          tenant_slug: dbUser.tenant?.slug,
-        }
+    const payload = {
+      access_token: lexaiToken,   // ← both names for compatibility
+      token: lexaiToken,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        full_name: dbUser.full_name,
+        role: dbUser.role,
+        bar_enrollment_no: dbUser.bar_enrollment_no,
+        avatar_url: dbUser.avatar_url,
+        tenant_id: dbUser.tenant_id,
+        tenant_name: dbUser.tenant?.name,
+        tenant_plan: dbUser.tenant?.plan,
+        tenant_slug: dbUser.tenant?.slug,
       }
-    });
+    };
+
+    return reply.send({ data: payload });
+  }
+
+  // POST /v1/auth/login — direct email + password (uses Supabase internally)
+  // Used by QA agent and any direct API clients
+  fastify.post('/login', async (request, reply) => {
+    const { email, password } = request.body as { email?: string; password?: string };
+
+    if (!email || !password) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'email and password are required' } });
+    }
+
+    // Authenticate via Supabase
+    const sbClient = createClient(
+      process.env.SUPABASE_URL!,
+      (process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!
+    );
+
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+
+    if (error || !data.user) {
+      return reply.status(401).send({ error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' } });
+    }
+
+    return issueToken(data.user.id, reply);
+  });
+
+  // POST /v1/auth/token — exchange Supabase JWT for LexAI JWT (existing flow)
+  fastify.post('/token', async (request, reply) => {
+    const { supabase_token } = request.body as { supabase_token?: string };
+
+    if (!supabase_token) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'supabase_token is required' } });
+    }
+
+    const { data: { user: supaUser }, error } = await supabase.auth.getUser(supabase_token);
+
+    if (error || !supaUser) {
+      return reply.status(401).send({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired Supabase token' } });
+    }
+
+    return issueToken(supaUser.id, reply);
   });
 
   // GET /v1/auth/me
@@ -99,9 +111,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     const { id: user_id } = request.user as any;
     const dbUser = await fastify.prisma.user.findUnique({
       where: { id: user_id },
-      include: {
-        tenant: { select: { id: true, name: true, plan: true, slug: true } }
-      }
+      include: { tenant: { select: { id: true, name: true, plan: true, slug: true } } }
     });
     if (!dbUser) {
       return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'User not found' } });
