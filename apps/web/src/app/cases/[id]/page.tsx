@@ -93,22 +93,23 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
   const [showForm, setShowForm] = useState(false);
   const [editingDraft, setEditingDraft] = useState<any>(null);
   const [formTitle, setFormTitle] = useState('');
-  const [formType, setFormType] = useState('petition');
+  const [formType, setFormType] = useState('bail_application');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
   const [editorText, setEditorText] = useState('');
 
   const DOC_TYPES = [
-    { value: 'petition',           label: 'Petition' },
+    { value: 'bail_application',   label: 'Bail Application' },
+    { value: 'plaint',             label: 'Plaint / Petition' },
     { value: 'written_statement',  label: 'Written Statement' },
+    { value: 'writ_petition',      label: 'Writ Petition' },
     { value: 'affidavit',          label: 'Affidavit' },
     { value: 'vakalatnama',        label: 'Vakalatnama' },
-    { value: 'bail_application',   label: 'Bail Application' },
     { value: 'opening_statement',  label: 'Opening Statement' },
+    { value: 'closing_statement',  label: 'Closing Statement' },
+    { value: 'rejoinder',          label: 'Rejoinder' },
     { value: 'memo_of_appeal',     label: 'Memo of Appeal' },
-    { value: 'legal_notice',       label: 'Legal Notice' },
-    { value: 'reply_notice',       label: 'Reply Notice' },
     { value: 'other',              label: 'Other Document' },
   ];
 
@@ -218,11 +219,11 @@ function DraftingWorkspace({ caseId, token }: { caseId: string; token: string })
   const typeLabel = (type: string) => DOC_TYPES.find(d => d.value === type)?.label || type;
 
   const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
-    petition: { bg: '#d5e3ff', color: '#022448' },
+    plaint: { bg: '#d5e3ff', color: '#022448' },
+    writ_petition: { bg: '#ede9fe', color: '#5b21b6' },
     bail_application: { bg: '#ffdad6', color: '#93000a' },
     affidavit: { bg: '#dcfce7', color: '#15803d' },
     written_statement: { bg: '#ede9fe', color: '#5b21b6' },
-    legal_notice: { bg: '#ffe088', color: '#745c00' },
     opening_statement: { bg: '#d5e3ff', color: '#022448' },
     default: { bg: '#edeef0', color: '#43474e' },
   };
