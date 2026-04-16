@@ -69,25 +69,50 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
     fetch(BASE + '/v1/notifications', {
       headers: { Authorization: 'Bearer ' + token },
     }).then(r => r.json()).then(j => {
-      setNotifs(j.data || []);
+      const data = j.data || [];
+      // Deduplicate by id
+      const seen = new Set<string>();
+      const unique = data.filter((n: any) => {
+        if (seen.has(n.id)) return false;
+        seen.add(n.id);
+        return true;
+      });
+      setNotifs(unique);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [token]);
 
   const markRead = async (id: string) => {
-    await fetch(BASE + '/v1/notifications/' + id + '/read', {
-      method: 'PATCH',
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    try {
+      await fetch(BASE + '/v1/notifications/' + id + '/read', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
+        body: JSON.stringify({}),
+      });
+      setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (err) {
+      console.error('markRead failed:', err);
+    }
   };
 
   const markAllRead = async () => {
-    await fetch(BASE + '/v1/notifications/mark-all-read', {
-      method: 'PATCH',
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      await fetch(BASE + '/v1/notifications/mark-all-read', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
+        body: JSON.stringify({}),
+      });
+      setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('markAllRead failed:', err);
+    }
   };
 
   const handleClick = (notif: any) => {

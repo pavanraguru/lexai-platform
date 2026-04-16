@@ -16,10 +16,18 @@ export const notificationRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { created_at: 'desc' },
       take: 30,
     });
-    return reply.send({ data: notifs });
+    // Deduplicate by id in case of any DB anomalies
+    const seen = new Set<string>();
+    const unique = notifs.filter((n: any) => {
+      if (seen.has(n.id)) return false;
+      seen.add(n.id);
+      return true;
+    });
+    return reply.send({ data: unique });
   });
 
   // PATCH /v1/notifications/mark-all-read
+  // IMPORTANT: must be registered BEFORE /:id/read to avoid route conflict
   fastify.patch('/mark-all-read', {
     preHandler: [fastify.authenticate],
   }, async (req, reply) => {
@@ -28,7 +36,7 @@ export const notificationRoutes: FastifyPluginAsync = async (fastify) => {
       where: { user_id, read: false },
       data: { read: true },
     });
-    return reply.send({ data: { ok: true } });
+    return reply.code(200).header('Content-Type', 'application/json').send({ data: { ok: true } });
   });
 
   // PATCH /v1/notifications/:id/read
@@ -41,6 +49,6 @@ export const notificationRoutes: FastifyPluginAsync = async (fastify) => {
       where: { id, user_id },
       data: { read: true },
     });
-    return reply.send({ data: { ok: true } });
+    return reply.code(200).send({ data: { ok: true } });
   });
 };
