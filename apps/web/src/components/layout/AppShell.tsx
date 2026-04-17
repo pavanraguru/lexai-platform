@@ -337,11 +337,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav style={{ flex: 1, padding: '0 10px' }}>
-          {NAV.map(({ href, Icon, label }) => navItem(href, Icon, label))}
+          {NAV.map(({ href, Icon, labelKey }) => navItem(href, Icon, tr(labelKey)))}
         </nav>
         <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(0,0,0,0.06)', marginTop: '8px' }}>
           <button onClick={signOut} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#ba1a1a', fontSize: '13.5px', fontWeight: 600, fontFamily: 'Manrope, sans-serif', borderRadius: '8px', textAlign: 'left' }}>
-            <LogOut size={16} /> Sign out
+            <LogOut size={16} /> {tr('sign_out')}
           </button>
         </div>
       </div>
@@ -359,15 +359,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#74777f" /></button>
             </div>
             <nav style={{ flex: 1, padding: '8px 10px' }}>
-              {NAV.map(({ href, Icon, label }) => (
+              {NAV.map(({ href, Icon, labelKey }) => (
                 <Link key={href} href={href} onClick={() => setMobileOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 12px', textDecoration: 'none', borderRadius: '8px', marginBottom: '2px', background: isActive(href) ? 'rgba(2,36,72,0.08)' : 'transparent', color: isActive(href) ? P : '#5f6368', fontWeight: isActive(href) ? 700 : 500, fontSize: '14px' }}>
-                  <Icon size={18} /> {label}
+                  <Icon size={18} /> {tr(labelKey)}
                 </Link>
               ))}
             </nav>
             <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(0,0,0,0.07)' }}>
               <button onClick={signOut} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '11px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#ba1a1a', fontSize: '14px', fontWeight: 600, fontFamily: 'Manrope, sans-serif', borderRadius: '8px' }}>
-                <LogOut size={18} /> Sign out
+                <LogOut size={18} /> {tr('sign_out')}
               </button>
             </div>
           </div>
@@ -450,12 +450,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
       `}</style>
       <div id="lex-mobile-nav">
-        {MOBILE_NAV.map(({ href, Icon, label }) => {
+        {MOBILE_NAV.map(({ href, Icon, labelKey }) => {
           const active = isActive(href);
           return (
             <Link key={href} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', color: active ? GOLD : '#74777f', textDecoration: 'none', flex: 1, padding: '6px 0' }}>
               <Icon size={21} />
-              <span style={{ fontSize: '9px', fontWeight: active ? 800 : 500 }}>{label}</span>
+              <span style={{ fontSize: '9px', fontWeight: active ? 800 : 500 }}>{tr(labelKey)}</span>
             </Link>
           );
         })}
