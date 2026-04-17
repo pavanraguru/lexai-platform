@@ -7,7 +7,7 @@ import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
 const CreateDraftSchema = z.object({
-  case_id: z.string().uuid(),
+  case_id: z.string().uuid().optional(),
   title: z.string().min(1).max(500),
   doc_type: z.enum([
     'bail_application', 'plaint', 'written_statement', 'writ_petition',
@@ -71,17 +71,20 @@ export const draftRoutes: FastifyPluginAsync = async (fastify) => {
     const { tenant_id, id: user_id } = req.user;
     const body = CreateDraftSchema.parse(req.body);
 
-    const caseRecord = await fastify.prisma.case.findFirst({
-      where: { id: body.case_id, tenant_id },
-    });
-    if (!caseRecord) {
-      return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
+    // case_id is optional — filings-generated drafts may not have a case
+    if (body.case_id) {
+      const caseRecord = await fastify.prisma.case.findFirst({
+        where: { id: body.case_id, tenant_id },
+      });
+      if (!caseRecord) {
+        return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
+      }
     }
 
     const draft = await fastify.prisma.draft.create({
       data: {
         tenant_id,
-        case_id: body.case_id,
+        ...(body.case_id ? { case_id: body.case_id } : {}),
         title: body.title,
         doc_type: body.doc_type as any,
         content: body.content,

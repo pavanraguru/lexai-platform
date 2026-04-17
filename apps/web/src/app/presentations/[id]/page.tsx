@@ -349,17 +349,21 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
       {slide.type === 'title' && (
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '0 48px' }}>
           <div style={{ width: '48px', height: '3px', background: colors.accent, borderRadius: '2px', margin: '0 auto 20px' }} />
-          <input
+          <textarea
             value={slide.title || ''}
             onChange={e => onChange({ ...slide, title: e.target.value })}
             placeholder="Case Title"
-            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, textAlign: 'center', marginBottom: '12px', color: colors.text }}
+            rows={2}
+            onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, textAlign: 'center', marginBottom: '12px', color: colors.text, resize: 'none', overflow: 'hidden', lineHeight: 1.2 }}
           />
-          <input
+          <textarea
             value={slide.content || ''}
             onChange={e => onChange({ ...slide, content: e.target.value })}
             placeholder="Court  •  Case Type  •  CNR  •  Judge"
-            style={{ ...inputBase, fontFamily: bodyFont, fontSize: bodySize, textAlign: 'center', color: colors.text, opacity: 0.85 }}
+            rows={2}
+            onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            style={{ ...inputBase, fontFamily: bodyFont, fontSize: bodySize, textAlign: 'center', color: colors.text, opacity: 0.85, resize: 'none', overflow: 'hidden', lineHeight: 1.5 }}
           />
         </div>
       )}
@@ -367,11 +371,13 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
       {/* ── SECTION slide ────────────────────────── */}
       {slide.type === 'section' && (
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '40px' }}>
-          <input
+          <textarea
             value={slide.title || ''}
             onChange={e => onChange({ ...slide, title: e.target.value })}
             placeholder="Section Title"
-            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, textAlign: 'center', color: colors.accent }}
+            rows={2}
+            onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, textAlign: 'center', color: colors.accent, resize: 'none', overflow: 'hidden', lineHeight: 1.2 }}
           />
         </div>
       )}
@@ -379,20 +385,24 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
       {/* ── TEXT / ARGUMENTS slide ───────────────── */}
       {(slide.type === 'text' || slide.type === 'arguments') && (
         <>
-          <input
+          <textarea
             value={slide.title || ''}
             onChange={e => onChange({ ...slide, title: e.target.value })}
             placeholder="Slide Title"
-            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, marginBottom: '20px', paddingBottom: '8px', textAlign: isCenter ? 'center' : 'left' }}
+            rows={1}
+            onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, marginBottom: '20px', paddingBottom: '8px', textAlign: isCenter ? 'center' : 'left', resize: 'none', overflow: 'hidden', lineHeight: 1.3 }}
           />
           <div style={{ flex: 1, textAlign: isCenter ? 'center' : 'left' }}>
             {(slide.bullets || []).map((b, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '10px' }}>
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: colors.accent, flexShrink: 0, marginTop: '9px' }} />
-                <input
+                <textarea
                   value={b}
                   onChange={e => updateBullet(i, e.target.value)}
-                  style={{ ...inputBase, flex: 1, fontSize: bodySize, lineHeight: 1.6 }}
+                  rows={1}
+                  onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+                  style={{ ...inputBase, flex: 1, fontSize: bodySize, lineHeight: 1.6, resize: 'none', overflow: 'hidden' }}
                 />
                 <button onClick={() => removeBullet(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.text, opacity: 0.4, fontSize: '16px' }}>×</button>
               </div>
@@ -411,11 +421,13 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: colors.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ color: colors.bg, fontWeight: 800, fontSize: '14px' }}>Q</span>
             </div>
-            <input
+            <textarea
               value={slide.title || ''}
               onChange={e => onChange({ ...slide, title: e.target.value })}
               placeholder="Anticipated Bench Question"
-              style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, flex: 1, paddingBottom: '4px' }}
+              rows={2}
+              onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+              style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, flex: 1, paddingBottom: '4px', resize: 'none', overflow: 'hidden', lineHeight: 1.3 }}
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
@@ -435,8 +447,9 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
               {(slide.bullets || []).map((b, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
                   <span style={{ fontSize: '11px', color: colors.accent, fontWeight: 800, flexShrink: 0, paddingTop: '2px' }}>Q{i + 2}:</span>
-                  <input value={b} onChange={e => updateBullet(i, e.target.value)}
-                    style={{ ...inputBase, flex: 1, fontSize: bodySize }} />
+                  <textarea value={b} onChange={e => updateBullet(i, e.target.value)}
+                    rows={1} onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+                    style={{ ...inputBase, flex: 1, fontSize: bodySize, resize: 'none', overflow: 'hidden', lineHeight: 1.5 }} />
                   <button onClick={() => removeBullet(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.text, opacity: 0.4 }}>×</button>
                 </div>
               ))}
@@ -451,11 +464,13 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
       {/* ── EVIDENCE slide ───────────────────────── */}
       {slide.type === 'evidence' && (
         <>
-          <input
+          <textarea
             value={slide.title || ''}
             onChange={e => onChange({ ...slide, title: e.target.value })}
             placeholder="Evidence Exhibit Title"
-            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, marginBottom: '16px', paddingBottom: '8px' }}
+            rows={1}
+            onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, marginBottom: '16px', paddingBottom: '8px', resize: 'none', overflow: 'hidden', lineHeight: 1.3 }}
           />
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
             {slide.exhibit_number && (
@@ -485,11 +500,13 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
       {/* ── TIMELINE slide ───────────────────────── */}
       {slide.type === 'timeline' && (
         <>
-          <input
+          <textarea
             value={slide.title || ''}
             onChange={e => onChange({ ...slide, title: e.target.value })}
             placeholder="Timeline Title"
-            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, marginBottom: '20px', paddingBottom: '8px' }}
+            rows={1}
+            onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            style={{ ...inputBase, fontFamily: titleFont, fontWeight: 700, fontSize: titleSize, color: colors.accent, borderBottom: `2px solid ${colors.accent}`, marginBottom: '20px', paddingBottom: '8px', resize: 'none', overflow: 'hidden', lineHeight: 1.3 }}
           />
           {(slide.bullets || []).map((b, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
@@ -497,8 +514,9 @@ function SlideCanvas({ slide, onChange }: { slide: Slide; onChange: (updated: Sl
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors.accent }} />
                 {i < (slide.bullets || []).length - 1 && <div style={{ width: '2px', flex: 1, background: `${colors.accent}30`, minHeight: '20px', marginTop: '2px' }} />}
               </div>
-              <input value={b} onChange={e => updateBullet(i, e.target.value)}
-                style={{ ...inputBase, flex: 1, fontSize: bodySize }} />
+              <textarea value={b} onChange={e => updateBullet(i, e.target.value)}
+                rows={1} onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+                style={{ ...inputBase, flex: 1, fontSize: bodySize, resize: 'none', overflow: 'hidden', lineHeight: 1.5 }} />
               <button onClick={() => removeBullet(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.text, opacity: 0.4 }}>×</button>
             </div>
           ))}
