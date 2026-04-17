@@ -11,6 +11,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type SlideType = 'title' | 'text' | 'evidence' | 'timeline' | 'arguments' | 'qa' | 'blank' | 'section';
 
+interface SlideStyle { bgColor?: string; textColor?: string; accentColor?: string; titleSize?: number; bodySize?: number; fontFamily?: 'serif' | 'sans'; layout?: string; }
 interface Slide {
   id: string;
   type: SlideType;
@@ -20,6 +21,7 @@ interface Slide {
   notes?: string;
   layout?: string;
   exhibit_number?: string;
+  style?: SlideStyle;
 }
 
 const SLIDE_COLORS: Record<SlideType, { bg: string; text: string; accent: string; sub: string }> = {
@@ -34,7 +36,16 @@ const SLIDE_COLORS: Record<SlideType, { bg: string; text: string; accent: string
 };
 
 function PresentationSlide({ slide, isActive }: { slide: Slide; isActive: boolean }) {
-  const colors = SLIDE_COLORS[slide.type] || SLIDE_COLORS.text;
+  const TYPE_DEF = SLIDE_COLORS[slide.type] || SLIDE_COLORS.text;
+  const colors = {
+    bg:     slide.style?.bgColor     || TYPE_DEF.bg,
+    text:   slide.style?.textColor   || TYPE_DEF.text,
+    accent: slide.style?.accentColor || TYPE_DEF.accent,
+    sub:    slide.style?.textColor   ? (slide.style.textColor + 'aa') : TYPE_DEF.sub,
+  };
+  const titleSize = slide.style?.titleSize ? `${slide.style.titleSize * 1.6}rem` : undefined;
+  const bodySize  = slide.style?.bodySize  ? `${slide.style.bodySize * 1.3}px`  : undefined;
+  const titleFont = slide.style?.fontFamily === 'sans' ? 'Manrope, sans-serif' : 'Newsreader, serif';
 
   return (
     <div style={{
@@ -66,7 +77,7 @@ function PresentationSlide({ slide, isActive }: { slide: Slide; isActive: boolea
       {slide.type === 'title' && (
         <div style={{ textAlign: 'center', padding: '80px', position: 'relative', zIndex: 1 }}>
           <div style={{ width: '60px', height: '4px', background: colors.accent, borderRadius: '2px', margin: '0 auto 32px' }} />
-          <h1 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '3.5rem', color: colors.text, margin: '0 0 20px', lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: titleSize || '3.5rem', color: colors.text, fontFamily: titleFont, margin: '0 0 20px', lineHeight: 1.2 }}>
             {slide.title || 'Case Title'}
           </h1>
           {slide.content && (
@@ -80,7 +91,7 @@ function PresentationSlide({ slide, isActive }: { slide: Slide; isActive: boolea
       {/* SECTION SLIDE */}
       {slide.type === 'section' && (
         <div style={{ textAlign: 'center', padding: '80px', position: 'relative', zIndex: 1 }}>
-          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '3rem', color: colors.accent, margin: 0 }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: titleSize || '3rem', color: colors.accent, fontFamily: titleFont, margin: 0 }}>
             {slide.title || 'Section'}
           </h2>
         </div>
@@ -92,7 +103,7 @@ function PresentationSlide({ slide, isActive }: { slide: Slide; isActive: boolea
           {slide.title && (
             <div style={{ marginBottom: '36px' }}>
               <div style={{ width: '40px', height: '4px', background: colors.accent, borderRadius: '2px', marginBottom: '16px' }} />
-              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '2.2rem', color: colors.accent, margin: 0, lineHeight: 1.2 }}>
+              <h2 style={{ fontFamily: titleFont, fontWeight: 700, fontSize: titleSize || '2.2rem', color: colors.accent, margin: 0, lineHeight: 1.2 }}>
                 {slide.title}
               </h2>
             </div>
@@ -162,7 +173,7 @@ function PresentationSlide({ slide, isActive }: { slide: Slide; isActive: boolea
           {slide.title && (
             <div style={{ marginBottom: '36px' }}>
               <div style={{ width: '40px', height: '4px', background: '#15803d', borderRadius: '2px', marginBottom: '16px' }} />
-              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '2.2rem', color: '#15803d', margin: 0 }}>{slide.title}</h2>
+              <h2 style={{ fontFamily: titleFont, fontWeight: 700, fontSize: titleSize || '2.2rem', color: '#15803d', margin: 0 }}>{slide.title}</h2>
             </div>
           )}
           <div style={{ position: 'relative', paddingLeft: '32px' }}>
