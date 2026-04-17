@@ -29,7 +29,7 @@ const TABS = [
   { key: 'presentations', Icon: Monitor,     label: 'Presentations' },
   { key: 'timeline',      Icon: Clock,       label: 'Case Timeline' },
   { key: 'filings',      Icon: BookMarked,  label: 'Filings' },
-] as const;
+];
 
 const HEARING_PURPOSES = [
   { value: 'framing_of_charges', label: 'Framing of Charges' },
@@ -91,11 +91,11 @@ const lbl: React.CSSProperties = {
 
 // ── Drafting Workspace Component ─────────────────────────────
 function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token: string; caseData: any }) {
-  const [drafts, setDrafts] = useState<any[]>([]);
+  const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [editingDraft, setEditingDraft] = useState<any>(null);
+  const [editingDraft, setEditingDraft] = useState(null);
   const [formTitle, setFormTitle] = useState('');
   const [formType, setFormType] = useState('bail_application');
   const [saving, setSaving] = useState(false);
@@ -164,7 +164,7 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
   useEffect(() => {
     if (!editingDraft?.id) return;
     const interval = setInterval(() => {
-      const ta = document.getElementById('draft-editor') as HTMLTextAreaElement;
+      const ta = document.getElementById('draft-editor');
       const text = ta ? ta.value : editorText;
       if (text && text.trim().length > 0) {
         localStorage.setItem('draft_autosave_' + editingDraft.id, JSON.stringify({ text, savedAt: new Date().toISOString() }));
@@ -199,7 +199,7 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
       setShowForm(false); setFormTitle(''); setFormType('bail_application');
       setEditingDraft(data.data);
       fetchDrafts();
-    } catch (err: any) { setError(err.message); }
+    } catch (err) { setError(err.message); }
     setCreating(false);
   };
 
@@ -208,7 +208,7 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
     setSaving(true);
     try {
       // Use the textarea value directly as final source of truth
-      const textareaEl = document.getElementById('draft-editor') as HTMLTextAreaElement;
+      const textareaEl = document.getElementById('draft-editor');
       const finalText = textareaEl ? textareaEl.value : contentText;
 
       const payload = {
@@ -240,7 +240,7 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
         word_count: updated.data?.word_count ?? finalText.trim().split(/\s+/).filter(Boolean).length,
       }));
       fetchDrafts();
-    } catch (err: any) {
+    } catch (err) {
       alert('Save error: ' + err.message);
     }
     setSaving(false);
@@ -288,12 +288,12 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
         setEditorText(generatedText);
         setEditingDraft((prev: any) => ({ ...prev, content: { type: 'doc', text: generatedText } }));
         // Also update textarea DOM directly so Save reads the latest value immediately
-        const ta = document.getElementById('draft-editor') as HTMLTextAreaElement;
+        const ta = document.getElementById('draft-editor');
         if (ta) ta.value = generatedText;
       } else if (data.error) {
         alert('AI Generate failed: ' + (data.error.message || 'Unknown error'));
       }
-    } catch (err: any) {
+    } catch (err) {
       alert('AI Generate failed: ' + err.message);
     }
     setAiGenerating(false);
@@ -820,8 +820,8 @@ function CaseFilingsTab({ c }: { c: any }) {
 
 
 function TranslateButton({ doc, token }: { doc: any; token: string }) {
-  const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'|'english'>('idle');
-  const [result, setResult] = useState<any>(null);
+  const [status, setStatus] = useState('idle');
+  const [result, setResult] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -910,20 +910,20 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
 }
 
 export default function CaseDetailPage() {
-  const params = useParams(); const id = params.id as string;
+  const params = useParams(); const id = params.id;
   const { token } = useAuthStore();
   const router = useRouter();
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeTab, setActiveTab] = useState('overview');
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<any>(null);
-  const [lastSync, setLastSync] = useState<any>(null);
+  const [syncResult, setSyncResult] = useState(null);
+  const [lastSync, setLastSync] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Hearing state
   const [showHearingForm, setShowHearingForm] = useState(false);
-  const [showOutcome, setShowOutcome] = useState<string | null>(null);
+  const [showOutcome, setShowOutcome] = useState(null);
   const [hf, setHf] = useState({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
   const [of_, setOf_] = useState({ outcome: '', order_summary: '', next_hearing_date: '' });
 
@@ -932,7 +932,7 @@ export default function CaseDetailPage() {
   const [tf, setTf] = useState({ title: '', priority: 'normal', due_date: '' });
 
   // Agent state
-  const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [runningAgent, setRunningAgent] = useState(null);
 
   // Presentation state
   const [creatingPresentation, setCreatingPresentation] = useState(false);
@@ -998,7 +998,7 @@ export default function CaseDetailPage() {
         setLastSync({ synced_at: new Date().toISOString(), status: 'success', fetched_date: data.data?.next_hearing_date });
         refresh();
       }
-    } catch (err: any) {
+    } catch (err) {
       setSyncResult({ status: 'failed', message: 'Network error: ' + err.message });
     }
     setSyncing(false);
@@ -1020,7 +1020,7 @@ export default function CaseDetailPage() {
       setShowHearingForm(false);
       setHf({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
       refresh();
-    } catch (err: any) { setError(err.message); }
+    } catch (err) { setError(err.message); }
     setSaving(false);
   };
 
@@ -1030,7 +1030,7 @@ export default function CaseDetailPage() {
     try {
       await apiCall(`/v1/hearings/${showOutcome}/outcome`, 'PATCH', of_);
       setShowOutcome(null); setOf_({ outcome: '', order_summary: '', next_hearing_date: '' }); refresh();
-    } catch (err: any) { setError(err.message); }
+    } catch (err) { setError(err.message); }
     setSaving(false);
   };
 
@@ -1039,7 +1039,7 @@ export default function CaseDetailPage() {
     try {
       await apiCall('/v1/tasks', 'POST', { case_id: id, ...tf });
       setShowTaskForm(false); setTf({ title: '', priority: 'normal', due_date: '' }); refresh();
-    } catch (err: any) { setError(err.message); }
+    } catch (err) { setError(err.message); }
     setSaving(false);
   };
 
@@ -1047,7 +1047,7 @@ export default function CaseDetailPage() {
     try {
       await apiCall(`/v1/tasks/${task.id}`, 'PATCH', { status: task.status === 'done' ? 'todo' : 'done' });
       refresh();
-    } catch (err: any) { setError(err.message); }
+    } catch (err) { setError(err.message); }
   };
 
   const handleRunAgent = async (agentType: string) => {
@@ -1067,7 +1067,7 @@ export default function CaseDetailPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
       refresh();
-    } catch (err: any) { setError(err.message); }
+    } catch (err) { setError(err.message); }
     setRunningAgent(null);
   };
 
@@ -1085,7 +1085,7 @@ export default function CaseDetailPage() {
       setShowNewPresForm(false);
       setNewPresTitle('');
       router.push(`/presentations/${json.data.id}`);
-    } catch (err: any) { setError(err.message); }
+    } catch (err) { setError(err.message); }
     setCreatingPresentation(false);
   };
 
@@ -1184,7 +1184,7 @@ export default function CaseDetailPage() {
             cursor: 'pointer', whiteSpace: 'nowrap',
             border: activeTab === key ? 'none' : '1px solid rgba(196,198,207,0.25)',
             fontFamily: 'Manrope, sans-serif',
-          } as any}>
+          }}>
             <Icon size={14} />
             {label}
           </button>
@@ -1214,9 +1214,9 @@ export default function CaseDetailPage() {
                 ['Filed Date', c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : null],
                 ['Status', c.status?.replace(/_/g, ' ')],
               ].filter(([, v]) => v).map(([label, value]) => (
-                <div key={label as string}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 3px' }}>{label as string}</p>
-                  <p style={{ fontSize: '14px', color: '#191c1e', margin: 0, fontWeight: 500, textTransform: 'capitalize' }}>{value as string}</p>
+                <div key={label}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 3px' }}>{label}</p>
+                  <p style={{ fontSize: '14px', color: '#191c1e', margin: 0, fontWeight: 500, textTransform: 'capitalize' }}>{value}</p>
                 </div>
               ))}
             </div>
@@ -1325,7 +1325,7 @@ export default function CaseDetailPage() {
                     mime_type: file.type, file_size_bytes: file.size,
                   });
                   refresh();
-                } catch (err: any) { setError(err.message); }
+                } catch (err) { setError(err.message); }
               }} />
             </label>
           </div>
