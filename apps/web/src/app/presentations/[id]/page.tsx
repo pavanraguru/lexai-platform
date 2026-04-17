@@ -575,11 +575,16 @@ export default function PresentationBuilderPage() {
       return (await res.json()).data;
     },
     enabled: !!token && !!id,
-    onSuccess: (d: any) => {
-      setSlides(Array.isArray(d.slides) ? d.slides : []);
-      setTitle(d.title || '');
-    },
   });
+
+  // Load slides + title when data arrives
+  const dataRef = (data as any);
+  if (dataRef && slides.length === 0 && !title) {
+    if (Array.isArray(dataRef.slides) && dataRef.slides.length > 0) {
+      setSlides(dataRef.slides);
+    }
+    if (dataRef.title) setTitle(dataRef.title);
+  }
 
   const pres = data as any;
   const selectedSlide = slides[selectedIndex];
@@ -587,13 +592,20 @@ export default function PresentationBuilderPage() {
   const save = async (s = slides) => {
     setSaving(true);
     try {
-      await fetch(`${BASE}/v1/presentations/${id}`, {
+      const res = await fetch(`${BASE}/v1/presentations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ slides: s, title }),
       });
-      setSaved(true); setTimeout(() => setSaved(false), 2000);
-    } catch {}
+      if (res.ok) {
+        setSaved(true); setTimeout(() => setSaved(false), 2000);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setGenError('Save failed: ' + (err.error?.message || res.status));
+      }
+    } catch (e: any) {
+      setGenError('Save failed: ' + e.message);
+    }
     setSaving(false);
   };
 

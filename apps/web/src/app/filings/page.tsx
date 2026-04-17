@@ -6,7 +6,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import {
   Search, ChevronRight, ChevronDown, BookOpen, FileText,
   Scale, Sparkles, Download, X, AlertCircle,
-  Loader2, Copy, CheckCircle2,
+  Loader2, Copy, CheckCircle2, Save, BookMarked,
 } from 'lucide-react';
 import {
   JURISDICTIONS, FILINGS, CASE_CATEGORIES, FILING_STAGES,
@@ -41,6 +41,8 @@ function AIDraftModal({ filing, caseContext, onClose }: {
   const [draft, setDraft] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [savedToDrafts, setSavedToDrafts] = useState(false);
 
   const generateDraft = async () => {
     setLoading(true); setError('');
@@ -69,6 +71,36 @@ function AIDraftModal({ filing, caseContext, onClose }: {
     navigator.clipboard.writeText(draft);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const saveToDrafts = async () => {
+    if (!draft || saving) return;
+    setSaving(true);
+    try {
+      const body: any = {
+        title: (caseContext?.title ? caseContext.title + ' — ' : '') + filing.name,
+        doc_type: 'other',
+        content: { text: draft },
+        word_count: draft.split(/\s+/).filter(Boolean).length,
+      };
+      if (caseContext?.id) body.case_id = caseContext.id;
+
+      const res = await fetch(BASE + '/v1/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setSavedToDrafts(true);
+        setTimeout(() => setSavedToDrafts(false), 3000);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setError('Save failed: ' + (d.error?.message || res.status));
+      }
+    } catch (e: any) {
+      setError('Save failed: ' + e.message);
+    }
+    setSaving(false);
   };
 
   return (
@@ -140,14 +172,23 @@ function AIDraftModal({ filing, caseContext, onClose }: {
                   <button onClick={generateDraft} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: 'transparent', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', color: '#43474e', fontFamily: 'Manrope, sans-serif' }}>
                     <Sparkles size={12} /> Regenerate
                   </button>
-                  <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: copied ? '#dcfce7' : '#022448', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', color: copied ? '#15803d' : '#fff', fontFamily: 'Manrope, sans-serif' }}>
+                  <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: copied ? '#dcfce7' : 'transparent', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', color: copied ? '#15803d' : '#43474e', fontFamily: 'Manrope, sans-serif' }}>
                     <Copy size={12} /> {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                  <button onClick={saveToDrafts} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: savedToDrafts ? '#dcfce7' : '#022448', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', color: savedToDrafts ? '#15803d' : '#fff', fontFamily: 'Manrope, sans-serif', opacity: saving ? 0.7 : 1 }}>
+                    {saving ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={12} />}
+                    {savedToDrafts ? 'Saved to Drafts!' : saving ? 'Saving...' : 'Save to Drafts'}
                   </button>
                 </div>
               </div>
               <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '20px', border: '1px solid rgba(196,198,207,0.2)', fontSize: '13px', color: '#191c1e', lineHeight: 1.9, whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', maxHeight: '400px', overflow: 'auto' }}>
                 {draft}
               </div>
+              {savedToDrafts && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px', padding: '8px 12px', background: '#dcfce7', borderRadius: '8px', fontSize: '12px', color: '#15803d', fontWeight: 600 }}>
+                  <CheckCircle2 size={14} /> Saved to Drafts — find it in the Drafts section{caseContext?.title ? ' under ' + caseContext.title : ''}.
+                </div>
+              )}
             </div>
           )}
         </div>
