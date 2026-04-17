@@ -97,6 +97,11 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiAssist, setAiAssist] = useState<{visible: boolean; x: number; y: number; selectedText: string; action: string}>({
+    visible: false, x: 0, y: 0, selectedText: '', action: '',
+  });
+  const [aiAssistLoading, setAiAssistLoading] = useState(false);
+  const [aiAssistResult, setAiAssistResult] = useState('');
   const [editorText, setEditorText] = useState('');
 
   const DOC_TYPES = [
@@ -295,6 +300,52 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
     setAiGenerating(false);
   };
 
+  const runAiAssist = async (action: string, selectedText: string) => {
+    if (!selectedText.trim()) return;
+    setAiAssistLoading(true);
+    setAiAssistResult('');
+    const prompts: Record<string, string> = {
+      improve:    'Improve the language and clarity of this legal text while preserving its meaning. Return only the improved text, no explanation:\n\n',
+      formalize:  'Rewrite this text in formal Indian court language (as used in High Court/Supreme Court filings). Use proper legal terminology. Return only the rewritten text:\n\n',
+      simplify:   'Simplify this legal text so a client can understand it easily. Keep the legal substance intact. Return only the simplified text:\n\n',
+      expand:     'Expand this legal argument with more detail, supporting reasoning, and relevant legal principles. Return only the expanded text:\n\n',
+      counter:    'Identify the strongest counterarguments to this legal argument and briefly state how to distinguish them. Return only the counterargument analysis:\n\n',
+      summarize:  'Summarize this legal text in 2-3 concise sentences. Return only the summary:\n\n',
+    };
+    try {
+      const res = await fetch(BASE + '/v1/filings/ai-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({
+          filing_name: action,
+          ai_prompt_hint: (prompts[action] || prompts.improve) + selectedText,
+          case_context: caseData ? { title: caseData.title, court: caseData.court } : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.data?.draft) {
+        setAiAssistResult(data.data.draft);
+      } else {
+        setAiAssistResult('AI assist failed. Please try again.');
+      }
+    } catch (err: any) {
+      setAiAssistResult('Error: ' + err.message);
+    }
+    setAiAssistLoading(false);
+  };
+
+  const applyAiAssist = () => {
+    const ta = document.getElementById('draft-editor') as HTMLTextAreaElement;
+    if (!ta || !aiAssistResult) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const newText = editorText.slice(0, start) + aiAssistResult + editorText.slice(end);
+    setEditorText(newText);
+    ta.value = newText;
+    setAiAssist(prev => ({ ...prev, visible: false }));
+    setAiAssistResult('');
+  };
+
   const openDraft = async (draft: any) => {
     const res = await fetch(BASE + '/v1/drafts/' + draft.id, {
       headers: { Authorization: 'Bearer ' + token },
@@ -367,10 +418,77 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
         </div>
 
         {/* Text editor */}
+        {/* AI Writing Assist floating toolbar */}
+        {aiAssist.visible && (
+          <div style={{
+            position: 'fixed', top: aiAssist.y, left: aiAssist.x, zIndex: 1000,
+            background: '#022448', borderRadius: '10px', padding: '6px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.25)', display: 'flex', gap: '2px', flexWrap: 'wrap',
+            maxWidth: '360px',
+          }}>
+            {[
+              { key: 'improve',   label: '✨ Improve' },
+              { key: 'formalize', label: '⚖️ Formalize' },
+              { key: 'simplify',  label: '💡 Simplify' },
+              { key: 'expand',    label: '📝 Expand' },
+              { key: 'counter',   label: '🔄 Counterargs' },
+              { key: 'summarize', label: '📋 Summarize' },
+            ].map(a => (
+              <button key={a.key} onClick={() => { setAiAssist(p => ({ ...p, action: a.key })); runAiAssist(a.key, aiAssist.selectedText); }}
+                style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', background: aiAssist.action === a.key ? '#ffe088' : 'rgba(255,255,255,0.12)', color: aiAssist.action === a.key ? '#022448' : '#fff', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap' }}>
+                {a.label}
+              </button>
+            ))}
+            <button onClick={() => setAiAssist(p => ({ ...p, visible: false, action: '' }))}
+              style={{ padding: '5px 8px', borderRadius: '6px', border: 'none', background: 'rgba(255,255,255,0.08)', color: '#c4c6cf', fontSize: '11px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* AI Assist result panel */}
+        {(aiAssistLoading || aiAssistResult) && (
+          <div style={{ background: '#f0f4ff', border: '1px solid rgba(2,36,72,0.15)', borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
+            {aiAssistLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Loader2 size={14} color="#5b21b6" style={{ animation: 'spin 1s linear infinite' }} />
+                <span style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}>AI is rewriting your selection...</span>
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: '#74777f', margin: '0 0 8px', letterSpacing: '0.06em', fontFamily: 'Manrope, sans-serif' }}>AI SUGGESTION</p>
+                <p style={{ fontSize: '13px', color: '#191c1e', margin: '0 0 12px', fontFamily: 'Georgia, serif', lineHeight: 1.7 }}>{aiAssistResult}</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={applyAiAssist} style={{ padding: '6px 14px', background: '#022448', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                    ✓ Apply
+                  </button>
+                  <button onClick={() => { setAiAssistResult(''); setAiAssist(p => ({ ...p, action: '' })); }}
+                    style={{ padding: '6px 12px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                    Discard
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <textarea
           id="draft-editor"
           value={editorText}
           onChange={e => setEditorText(e.target.value)}
+          onMouseUp={e => {
+            const ta = e.target as HTMLTextAreaElement;
+            const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd).trim();
+            if (sel.length > 10) {
+              const rect = ta.getBoundingClientRect();
+              const pos = ta.selectionStart;
+              // Position toolbar above the selection
+              setAiAssist({ visible: true, x: Math.min(e.clientX - 60, window.innerWidth - 380), y: e.clientY - 52, selectedText: sel, action: '' });
+              setAiAssistResult('');
+            } else {
+              setAiAssist(p => ({ ...p, visible: false }));
+            }
+          }}
           placeholder="Start typing your legal document here...
 
 Use AI Generate above to get a complete draft pre-filled with your case details, then edit as needed."
@@ -913,6 +1031,9 @@ export default function CaseDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [savingField, setSavingField] = useState(false);
 
   // Hearing state
   const [showHearingForm, setShowHearingForm] = useState(false);
@@ -955,6 +1076,25 @@ export default function CaseDetailPage() {
   const c = caseData as any;
   const presentations: any[] = presData || [];
   const refresh = () => qc.invalidateQueries({ queryKey: ['case', id] });
+
+  const startEdit = (field: string, currentValue: string) => {
+    setEditingField(field);
+    setEditValues(prev => ({ ...prev, [field]: currentValue || '' }));
+  };
+
+  const saveField = async (field: string) => {
+    setSavingField(true);
+    try {
+      await fetch(BASE + '/v1/cases/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ [field]: editValues[field] || null }),
+      });
+      refresh();
+      setEditingField(null);
+    } catch (err) { console.error(err); }
+    setSavingField(false);
+  };
 
   const apiCall = async (url: string, method: string, body?: any) => {
     const res = await fetch(`${BASE}${url}`, {
@@ -1097,16 +1237,43 @@ export default function CaseDetailPage() {
                 </span>
               )}
             </div>
-            <h1 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: '0 0 8px', lineHeight: 1.25 }}>
-              {c.title}
-            </h1>
+            {editingField === 'title' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input value={editValues.title || ''} onChange={e => setEditValues(p => ({ ...p, title: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') saveField('title'); if (e.key === 'Escape') setEditingField(null); }}
+                  autoFocus style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', border: '2px solid #022448', borderRadius: '6px', padding: '4px 10px', outline: 'none', flex: 1 }}
+                />
+                <button onClick={() => saveField('title')} disabled={savingField} style={{ padding: '5px 10px', background: '#022448', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>{savingField ? '...' : '✓'}</button>
+                <button onClick={() => setEditingField(null)} style={{ padding: '5px 8px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>✕</button>
+              </div>
+            ) : (
+              <h1 onClick={() => startEdit('title', c.title)} title="Click to edit case title"
+                style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: '0 0 8px', lineHeight: 1.2, cursor: 'pointer' }}>
+                {c.title} <span style={{ fontSize: '11px', color: '#c4c6cf', fontWeight: 400, fontFamily: 'Manrope, sans-serif' }}>✎</span>
+              </h1>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#43474e', fontSize: '13px', flexWrap: 'wrap' }}>
               <MapPin size={13} />
               <span>{c.court}</span>
-              {c.cnr_number && (
-                <><span style={{ color: '#c4c6cf' }}>·</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{c.cnr_number}</span></>
-              )}
+                          {editingField === 'cnr_number' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <input value={editValues.cnr_number ?? ''} onChange={e => setEditValues(p => ({ ...p, cnr_number: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') saveField('cnr_number'); if (e.key === 'Escape') setEditingField(null); }}
+                  placeholder="e.g. TSHC01-12345-2025" autoFocus
+                  style={{ fontFamily: 'monospace', fontSize: '12px', border: '1.5px solid #022448', borderRadius: '5px', padding: '3px 8px', outline: 'none', width: '200px' }}
+                />
+                <button onClick={() => saveField('cnr_number')} style={{ padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', fontSize: '11px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>✓</button>
+                <button onClick={() => setEditingField(null)} style={{ padding: '3px 6px', background: '#edeef0', border: 'none', borderRadius: '5px', fontSize: '11px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>✕</button>
+              </div>
+            ) : (
+              <span onClick={() => startEdit('cnr_number', c.cnr_number || '')} title="Click to edit CNR" style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                <MapPin size={13} style={{ flexShrink: 0 }} />
+                {c.cnr_number
+                  ? <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{c.cnr_number}</span>
+                  : <span style={{ fontSize: '12px', color: '#c4c6cf' }}>+ Add CNR</span>}
+                <span style={{ fontSize: '10px', color: '#c4c6cf' }}>✎</span>
+              </span>
+            )}
             </div>
           </div>
           {c.next_hearing_date && (
@@ -1158,16 +1325,31 @@ export default function CaseDetailPage() {
             <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 16px' }}>Case Details</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
               {[
-                ['Court Level', c.court_level?.replace(/_/g, ' ')],
-                ['Perspective', c.perspective],
-                ['Judge', c.judge_name],
-                ['Priority', c.priority],
-                ['Filed Date', c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : null],
-                ['Status', c.status?.replace(/_/g, ' ')],
-              ].filter(([, v]) => v).map(([label, value]) => (
-                <div key={label as string}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 3px' }}>{label as string}</p>
-                  <p style={{ fontSize: '14px', color: '#191c1e', margin: 0, fontWeight: 500, textTransform: 'capitalize' }}>{value as string}</p>
+                { label: 'Court Level', value: c.court_level?.replace(/_/g, ' '), field: null },
+                { label: 'Perspective', value: c.perspective?.replace(/_/g, ' '), field: null },
+                { label: 'Judge', value: c.judge_name, field: 'judge_name', raw: c.judge_name },
+                { label: 'Priority', value: c.priority, field: 'priority', raw: c.priority },
+                { label: 'Filed Date', value: c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : null, field: null },
+                { label: 'Status', value: c.status?.replace(/_/g, ' '), field: null },
+              ].filter(item => item.value).map(item => (
+                <div key={item.label}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 3px' }}>{item.label}</p>
+                  {item.field && editingField === item.field ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input value={editValues[item.field] ?? ''} onChange={e => setEditValues(p => ({ ...p, [item.field!]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') saveField(item.field!); if (e.key === 'Escape') setEditingField(null); }}
+                        autoFocus style={{ fontSize: '12px', border: '1.5px solid #022448', borderRadius: '5px', padding: '3px 8px', outline: 'none', width: '130px', fontFamily: 'Manrope, sans-serif' }}
+                      />
+                      <button onClick={() => saveField(item.field!)} style={{ padding: '3px 7px', background: '#022448', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>✓</button>
+                      <button onClick={() => setEditingField(null)} style={{ padding: '3px 5px', background: '#edeef0', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>✕</button>
+                    </div>
+                  ) : (
+                    <p onClick={() => item.field ? startEdit(item.field, item.raw || '') : undefined}
+                      style={{ fontSize: '14px', color: '#191c1e', margin: 0, fontWeight: 500, textTransform: 'capitalize', cursor: item.field ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {item.value}
+                      {item.field && <span style={{ fontSize: '10px', color: '#c4c6cf' }}>✎</span>}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

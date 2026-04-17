@@ -10,19 +10,21 @@ import {
   Scale, LogOut, Menu, X, ChevronRight, BookMarked,
   CheckCheck, AlertCircle, Bot, Gavel, Clock,
 } from 'lucide-react';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLang } from '@/hooks/useLanguage';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const SIDEBAR_W = 240;
 
 const NAV = [
-  { href: '/dashboard', Icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/cases',     Icon: FolderOpen,       label: 'My Cases' },
-  { href: '/calendar',  Icon: Calendar,         label: 'Calendar' },
-  { href: '/filings',   Icon: BookMarked,       label: 'Filings' },
-  { href: '/drafts',    Icon: FileText,         label: 'Drafts' },
-  { href: '/clients',   Icon: Users,            label: 'Clients' },
-  { href: '/invoices',  Icon: Receipt,          label: 'Billing' },
-  { href: '/settings',  Icon: Settings,         label: 'Settings' },
+  { href: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { href: '/cases',     Icon: FolderOpen,       labelKey: 'my_cases' },
+  { href: '/calendar',  Icon: Calendar,         labelKey: 'calendar' },
+  { href: '/filings',   Icon: BookMarked,       labelKey: 'filings' },
+  { href: '/drafts',    Icon: FileText,         labelKey: 'drafts' },
+  { href: '/clients',   Icon: Users,            labelKey: 'clients' },
+  { href: '/invoices',  Icon: Receipt,          labelKey: 'billing' },
+  { href: '/settings',  Icon: Settings,         labelKey: 'settings' },
 ];
 
 const MOBILE_NAV = NAV.slice(0, 5);
@@ -204,6 +206,7 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { tr } = useLang();
   const { user, token, clearUser } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -402,7 +405,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {isHome && <div style={{ flex: 1 }} />}
 
           {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <LanguageSwitcher />
             <Link href="/cases/new" title="New Case" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', color: '#74777f', textDecoration: 'none' }}>
               <Plus size={18} />
             </Link>
