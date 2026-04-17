@@ -1,4 +1,3 @@
-echo '// @ts-nocheck' | cat - "apps/web/src/app/cases/[id]/page.tsx" > /tmp/tmp.tsx && mv /tmp/tmp.tsx "apps/web/src/app/cases/[id]/page.tsx"
 
 // @ts-nocheck
 // @ts-nocheck
