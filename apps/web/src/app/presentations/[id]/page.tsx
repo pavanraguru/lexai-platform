@@ -318,11 +318,13 @@ export default function PresentationBuilderPage() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState('');
   const [saved, setSaved] = useState(false);
   const [showAddSlide, setShowAddSlide] = useState(false);
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [genPerspective, setGenPerspective] = useState('defence');
+  const [genFocus, setGenFocus] = useState('arguments');
   const [showGenPanel, setShowGenPanel] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -397,18 +399,26 @@ export default function PresentationBuilderPage() {
   const generateWithAI = async () => {
     setGenerating(true);
     setShowGenPanel(false);
+    setGenError('');
     try {
       const res = await fetch(`${BASE}/v1/presentations/${id}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ perspective: genPerspective }),
+        body: JSON.stringify({ perspective: genPerspective, focus: genFocus }),
       });
       const json = await res.json();
       if (json.data?.slides) {
         setSlides(json.data.slides);
         setSelectedSlideIndex(0);
+        if (json.meta?.source === 'template') {
+          setGenError('Template generated — run AI agents on this case for richer AI content.');
+        }
+      } else {
+        setGenError(json.error?.message || 'Generation failed. Please try again.');
       }
-    } catch {}
+    } catch (e: any) {
+      setGenError('Network error. Please try again.');
+    }
     setGenerating(false);
   };
 
@@ -459,19 +469,36 @@ export default function PresentationBuilderPage() {
               {generating ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</> : <><Sparkles size={13} /> AI Generate</>}
             </button>
             {showGenPanel && (
-              <div style={{ position: 'absolute', top: '42px', right: 0, background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '12px', padding: '16px', width: '240px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 100 }}>
+              <div style={{ position: 'absolute', top: '42px', right: 0, background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '12px', padding: '16px', width: '260px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 100 }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', margin: '0 0 8px' }}>PERSPECTIVE</p>
                 {['defence', 'prosecution', 'petitioner', 'respondent'].map(p => (
                   <button key={p} onClick={() => setGenPerspective(p)} style={{
-                    display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px',
-                    background: genPerspective === p ? '#d5e3ff' : 'transparent',
-                    color: genPerspective === p ? '#022448' : '#43474e',
+                    display: 'inline-block', padding: '5px 10px', borderRadius: '6px', border: '1px solid',
+                    borderColor: genPerspective === p ? '#022448' : 'rgba(196,198,207,0.4)',
+                    cursor: 'pointer', fontSize: '12px', marginRight: '4px', marginBottom: '4px',
+                    background: genPerspective === p ? '#022448' : '#fff',
+                    color: genPerspective === p ? '#fff' : '#43474e',
                     fontWeight: genPerspective === p ? 700 : 400,
-                    marginBottom: '2px', textTransform: 'capitalize',
+                    textTransform: 'capitalize', fontFamily: 'Manrope, sans-serif',
                   }}>{p}</button>
                 ))}
-                <button onClick={generateWithAI} style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center', padding: '9px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', marginTop: '10px' }}>
-                  <Sparkles size={12} /> Generate {slides.length > 0 ? '(replace)' : '10-15 slides'}
+                <p style={{ fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', margin: '12px 0 8px' }}>FOCUS AREA</p>
+                {[
+                  { key: 'arguments', label: '⚖️ Arguments on Merits' },
+                  { key: 'bail',      label: '🔓 Bail Application' },
+                  { key: 'evidence',  label: '📄 Evidence Summary' },
+                  { key: 'hearing',   label: '📋 Hearing Submissions' },
+                ].map(f => (
+                  <button key={f.key} onClick={() => setGenFocus(f.key)} style={{
+                    display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px',
+                    background: genFocus === f.key ? '#ede9fe' : 'transparent',
+                    color: genFocus === f.key ? '#5b21b6' : '#43474e',
+                    fontWeight: genFocus === f.key ? 700 : 400,
+                    marginBottom: '2px', fontFamily: 'Manrope, sans-serif',
+                  }}>{f.label}</button>
+                ))}
+                <button onClick={generateWithAI} style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center', padding: '9px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', marginTop: '12px', fontFamily: 'Manrope, sans-serif' }}>
+                  <Sparkles size={12} /> Generate {slides.length > 0 ? '(replace all)' : 'Deck'}
                 </button>
               </div>
             )}
