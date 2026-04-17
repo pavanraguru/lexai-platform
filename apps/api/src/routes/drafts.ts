@@ -83,8 +83,8 @@ export const draftRoutes: FastifyPluginAsync = async (fastify) => {
 
     const draft = await fastify.prisma.draft.create({
       data: {
-        tenant_id,
-        ...(body.case_id ? { case_id: body.case_id } : {}),
+        tenant: { connect: { id: tenant_id } },
+        ...(body.case_id ? { case: { connect: { id: body.case_id } } } : {}),
         title: body.title,
         doc_type: body.doc_type as any,
         content: body.content,
