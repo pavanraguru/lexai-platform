@@ -77,7 +77,7 @@ function PresentationSlide({ slide, isActive }: { slide: Slide; isActive: boolea
       {slide.type === 'title' && (
         <div style={{ textAlign: 'center', padding: '80px', position: 'relative', zIndex: 1 }}>
           <div style={{ width: '60px', height: '4px', background: colors.accent, borderRadius: '2px', margin: '0 auto 32px' }} />
-          <h1 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: titleSize || '3.5rem', color: colors.text, fontFamily: titleFont, margin: '0 0 20px', lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: titleSize || '3.5rem', color: colors.text, margin: '0 0 20px', lineHeight: 1.2 }}>
             {slide.title || 'Case Title'}
           </h1>
           {slide.content && (
@@ -91,7 +91,7 @@ function PresentationSlide({ slide, isActive }: { slide: Slide; isActive: boolea
       {/* SECTION SLIDE */}
       {slide.type === 'section' && (
         <div style={{ textAlign: 'center', padding: '80px', position: 'relative', zIndex: 1 }}>
-          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: titleSize || '3rem', color: colors.accent, fontFamily: titleFont, margin: 0 }}>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: titleSize || '3rem', color: colors.accent, margin: 0 }}>
             {slide.title || 'Section'}
           </h2>
         </div>
@@ -294,7 +294,7 @@ export default function PresentationModePage() {
           background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)',
           opacity: showControls ? 1 : 0, transition: 'opacity 0.3s',
         }}>
-          <div style={{ display: 'flex', align: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Link href={`/presentations/${id}`} onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '12px', fontFamily: 'Manrope, sans-serif', fontWeight: 600, background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '6px' }}>
               <X size={14} /> Exit
             </Link>

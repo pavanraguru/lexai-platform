@@ -17,16 +17,16 @@ import {
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const TABS = [
-  { key: 'overview',      Icon: Info,        label: tr('overview') },
-  { key: 'documents',     Icon: FileText,    label: tr('documents') },
-  { key: 'hearings',      Icon: Gavel,       label: tr('hearings') },
-  { key: 'tasks',         Icon: CheckSquare, label: tr('tasks') },
-  { key: 'agents',        Icon: Bot,         label: tr('agents') },
-  { key: 'drafts',        Icon: BookOpen,    label: tr('drafts') },
-  { key: 'presentations', Icon: Monitor,     label: tr('presentations') },
-  { key: 'timeline',      Icon: Clock,       label: tr('case_timeline') },
-  { key: 'filings',      Icon: BookMarked,  label: tr('filings') },
-] as const;
+  { key: 'overview',      Icon: Info,        labelKey: 'overview' },
+  { key: 'documents',     Icon: FileText,    labelKey: 'documents' },
+  { key: 'hearings',      Icon: Gavel,       labelKey: 'hearings' },
+  { key: 'tasks',         Icon: CheckSquare, labelKey: 'tasks' },
+  { key: 'agents',        Icon: Bot,         labelKey: 'agents' },
+  { key: 'drafts',        Icon: BookOpen,    labelKey: 'drafts' },
+  { key: 'presentations', Icon: Monitor,     labelKey: 'presentations' },
+  { key: 'timeline',      Icon: Clock,       labelKey: 'case_timeline' },
+  { key: 'filings',       Icon: BookMarked,  labelKey: 'filings' },
+];
 
 const HEARING_PURPOSES = [
   { value: 'framing_of_charges', label: 'Framing of Charges' },
@@ -88,6 +88,7 @@ const lbl: React.CSSProperties = {
 
 // ── Drafting Workspace Component ─────────────────────────────
 function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token: string; caseData: any }) {
+  const { tr } = useLang();
   const [drafts, setDrafts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -731,6 +732,7 @@ function CaseTimeline({ c, cardStyle, btnPrimary, btnGhost, setActiveTab }: {
 
 
 // ── Case Filing Repository Component ─────────────────────────
+type CaseCategory = 'criminal' | 'civil' | 'constitutional' | 'labour' | 'revenue' | 'commercial' | 'family' | 'motor_accident' | 'property' | 'tax' | 'consumer' | 'arbitration';
 // Maps DB case_type to filing categories
 const CASE_TYPE_TO_CATEGORIES: Record<string, CaseCategory[]> = {
   criminal_sessions:   ['criminal'],
@@ -1218,7 +1220,7 @@ export default function CaseDetailPage() {
   };
 
   return (
-    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
 
       {/* ── Case Header ─────────────────────────────────── */}
       <div style={{ ...cardStyle, padding: '20px', marginBottom: '16px', maxWidth: '860px' }}>
@@ -1294,10 +1296,10 @@ export default function CaseDetailPage() {
 
       {/* ── Tabs ─────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '2px', flexWrap: 'wrap' }}>
-        {TABS.map(({ key, Icon, label }) => (
+        {TABS.map(({ key, Icon, labelKey }) => (
           <button key={key} onClick={() => setActiveTab(key)} style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '9px 14px', border: 'none', borderRadius: '8px',
+            padding: '9px 14px', borderRadius: '8px',
             background: activeTab === key ? '#022448' : '#fff',
             color: activeTab === key ? '#fff' : '#74777f',
             fontWeight: activeTab === key ? 700 : 500, fontSize: '13px',
@@ -1306,7 +1308,7 @@ export default function CaseDetailPage() {
             fontFamily: 'Manrope, sans-serif',
           } as any}>
             <Icon size={14} />
-            {label}
+            {tr(labelKey)}
           </button>
         ))}
       </div>

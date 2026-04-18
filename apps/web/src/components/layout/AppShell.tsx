@@ -111,7 +111,6 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
         body: JSON.stringify({}),
       });
       setNotifs(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
     } catch (err) {
       console.error('markAllRead failed:', err);
     }
