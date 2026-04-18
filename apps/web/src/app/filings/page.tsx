@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '@/hooks/useLanguage';
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -37,6 +38,7 @@ function AIDraftModal({ filing, caseContext, onClose }: {
   onClose: () => void;
 }) {
   const { token } = useAuthStore();
+  const { tr } = useLang();
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState('');
   const [copied, setCopied] = useState(false);
@@ -388,6 +390,7 @@ function FilingDetailPanel({ filing, onClose, onAIDraft }: {
 // ── Main Page ──────────────────────────────────────────────────
 function FileForPageInner() {
   const { token } = useAuthStore();
+  const { tr } = useLang();
   const searchParams = useSearchParams();
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CaseCategory | null>(null);
@@ -630,7 +633,7 @@ function FileForPageInner() {
           {filteredFilings.length === 0 && (
             <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', padding: '48px', textAlign: 'center' }}>
               <Search size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#74777f', margin: '0 0 4px' }}>No filings found</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#74777f', margin: '0 0 4px' }}>tr('no_filings_found')</p>
               <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Try different search terms or clear filters</p>
             </div>
           )}

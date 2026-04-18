@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '@/hooks/useLanguage';
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -36,6 +37,7 @@ const CASE_TYPE_LABELS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { token, user } = useAuthStore();
+  const { tr } = useLang();
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -110,11 +112,11 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Upcoming Hearings ────────────────────────────── */}
+      {/* ── {tr('upcoming_hearings')} ────────────────────────────── */}
       <section style={{ marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', maxWidth: '780px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#191c1e', margin: 0 }}>
-            Upcoming Hearings
+            {tr('upcoming_hearings')}
           </h2>
           <Link href="/calendar" style={{ fontSize: '11px', fontWeight: 800, color: '#735c00', letterSpacing: '0.08em', textDecoration: 'none' }}>
             VIEW ALL
@@ -128,7 +130,7 @@ export default function DashboardPage() {
             ))
           ) : !data?.upcoming_hearings?.length ? (
             <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)' }}>
-              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>No upcoming hearings scheduled</p>
+              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>{tr('no_upcoming')}</p>
             </div>
           ) : (
             data.upcoming_hearings.map((h: any) => {

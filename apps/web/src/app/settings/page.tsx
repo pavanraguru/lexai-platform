@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '@/hooks/useLanguage';
 
 import { useState } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -25,6 +26,7 @@ const lbl: React.CSSProperties = { fontSize: '13px', fontWeight: 600, color: '#1
 const sub: React.CSSProperties = { fontSize: '12px', color: '#74777f', margin: '2px 0 0' };
 
 export default function SettingsPage() {
+    const { tr } = useLang();
   const { user, clearUser } = useAuthStore();
   const router = useRouter();
   const [notifications, setNotifications] = useState({ email: true, whatsapp: true, sms: false });
@@ -46,7 +48,7 @@ export default function SettingsPage() {
       <div style={{ ...card }}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <User size={14} color="#022448" />
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>YOUR PROFILE</p>
+          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>tr('your_profile').toUpperCase()</p>
         </div>
         <div style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
@@ -129,7 +131,7 @@ export default function SettingsPage() {
       <div style={card}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Shield size={14} color="#022448" />
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>SECURITY & COMPLIANCE</p>
+          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>tr('security').toUpperCase()</p>
         </div>
         {[
           { label: 'Data Storage', value: 'AWS Mumbai (ap-south-1)', sub: 'All data stored in India' },
@@ -150,7 +152,7 @@ export default function SettingsPage() {
       <div style={card}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <CreditCard size={14} color="#022448" />
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>SUBSCRIPTION</p>
+          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>tr('subscription').toUpperCase()</p>
         </div>
         <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div>

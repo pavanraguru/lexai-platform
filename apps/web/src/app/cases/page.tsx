@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLang } from '@/hooks/useLanguage';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { FolderOpen, Plus, Search, FileText, CheckSquare, ChevronRight } from 'lucide-react';
@@ -34,6 +35,7 @@ const CASE_TYPE_LABELS: Record<string, string> = {
 
 export default function CasesPage() {
   const { token } = useAuthStore();
+  const { tr } = useLang();
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
 
@@ -90,7 +92,7 @@ export default function CasesPage() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search cases or CNR..."
+            placeholder={tr('search') + ' cases or CNR...'}
             style={{
               width: '100%', paddingLeft: '36px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '10px',
               border: '1px solid rgba(196,198,207,0.4)', borderRadius: '8px',
@@ -109,7 +111,7 @@ export default function CasesPage() {
             fontFamily: 'Manrope, sans-serif',
           }}
         >
-          <option value="">All Status</option>
+          <option value="">{tr('all_status')}</option>
           {Object.entries(STATUS_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLang } from '@/hooks/useLanguage';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import {
@@ -16,15 +17,15 @@ import {
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const TABS = [
-  { key: 'overview',      Icon: Info,        label: 'Overview' },
-  { key: 'documents',     Icon: FileText,    label: 'Documents' },
-  { key: 'hearings',      Icon: Gavel,       label: 'Hearings' },
-  { key: 'tasks',         Icon: CheckSquare, label: 'Tasks' },
-  { key: 'agents',        Icon: Bot,         label: 'Agents' },
-  { key: 'drafts',        Icon: BookOpen,    label: 'Drafts' },
-  { key: 'presentations', Icon: Monitor,     label: 'Presentations' },
-  { key: 'timeline',      Icon: Clock,       label: 'Case Timeline' },
-  { key: 'filings',      Icon: BookMarked,  label: 'Filings' },
+  { key: 'overview',      Icon: Info,        label: tr('overview') },
+  { key: 'documents',     Icon: FileText,    label: tr('documents') },
+  { key: 'hearings',      Icon: Gavel,       label: tr('hearings') },
+  { key: 'tasks',         Icon: CheckSquare, label: tr('tasks') },
+  { key: 'agents',        Icon: Bot,         label: tr('agents') },
+  { key: 'drafts',        Icon: BookOpen,    label: tr('drafts') },
+  { key: 'presentations', Icon: Monitor,     label: tr('presentations') },
+  { key: 'timeline',      Icon: Clock,       label: tr('case_timeline') },
+  { key: 'filings',      Icon: BookMarked,  label: tr('filings') },
 ] as const;
 
 const HEARING_PURPOSES = [
@@ -395,10 +396,10 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
           </div>
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <button onClick={() => generateWithAI(editingDraft)} disabled={aiGenerating} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: '#5b21b6', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: aiGenerating ? 'not-allowed' : 'pointer', opacity: aiGenerating ? 0.7 : 1, fontFamily: 'Manrope, sans-serif' }}>
-              <Sparkles size={13} /> {aiGenerating ? 'Generating...' : 'AI Generate'}
+              <Sparkles size={13} /> {aiGenerating ? tr('generating') : tr('ai_generate')}
             </button>
             <button onClick={() => saveDraft(editingDraft, editorText)} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: saving ? '#dcfce7' : '#022448', color: saving ? '#15803d' : '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-              <Save size={13} /> {saving ? 'Saving...' : 'Save'}
+              <Save size={13} /> {saving ? tr('saving') : tr('save')}
             </button>
             <button onClick={() => downloadDraft({ ...editingDraft, content: { text: editorText } })} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
               <Download size={13} /> Download
@@ -508,7 +509,7 @@ Use AI Generate above to get a complete draft pre-filled with your case details,
     <div style={{ maxWidth: '860px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 4px' }}>Drafting Workspace</h2>
+          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.4rem', color: '#022448', margin: '0 0 4px' }}>{tr('drafting_workspace')}</h2>
           <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>{drafts.length} draft{drafts.length !== 1 ? 's' : ''} for this case</p>
         </div>
         <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', background: '#022448', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
@@ -519,7 +520,7 @@ Use AI Generate above to get a complete draft pre-filled with your case details,
       {/* New draft form */}
       {showForm && (
         <div style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
-          <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 14px' }}>New Draft</h3>
+          <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 14px' }}>{tr('new_draft')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px' }}>Title *</label>
@@ -1028,6 +1029,7 @@ export default function CaseDetailPage() {
   const { token } = useAuthStore();
   const router = useRouter();
   const qc = useQueryClient();
+  const { tr } = useLang();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -1328,7 +1330,7 @@ export default function CaseDetailPage() {
                 { label: 'Court Level', value: c.court_level?.replace(/_/g, ' '), field: null },
                 { label: 'Perspective', value: c.perspective?.replace(/_/g, ' '), field: null },
                 { label: 'Judge', value: c.judge_name, field: 'judge_name', raw: c.judge_name },
-                { label: 'Priority', value: c.priority, field: 'priority', raw: c.priority },
+                { label: tr('priority'), value: c.priority, field: 'priority', raw: c.priority },
                 { label: 'Filed Date', value: c.filed_date ? new Date(c.filed_date).toLocaleDateString('en-IN') : null, field: null },
                 { label: 'Status', value: c.status?.replace(/_/g, ' '), field: null },
               ].filter(item => item.value).map(item => (
@@ -1356,8 +1358,8 @@ export default function CaseDetailPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignSelf: 'flex-start' }}>
             {[
-              { label: 'Documents',   value: c._count?.documents || 0, bg: '#d5e3ff', color: '#001c3b' },
-              { label: 'Hearings',    value: hearings.length,          bg: '#ffe088', color: '#745c00' },
+              { label: tr('documents'),   value: c._count?.documents || 0, bg: '#d5e3ff', color: '#001c3b' },
+              { label: tr('hearings'),    value: hearings.length,          bg: '#ffe088', color: '#745c00' },
               { label: 'Active Tasks', value: activeTasks.length,      bg: '#fdddb9', color: '#322109' },
               { label: 'Agent Runs',  value: agents.length,            bg: '#edeef0', color: '#43474e' },
             ].map(item => (
@@ -1376,7 +1378,7 @@ export default function CaseDetailPage() {
           {/* Upload zone */}
           <div style={{ border: '2px dashed rgba(196,198,207,0.5)', borderRadius: '16px', padding: '40px', textAlign: 'center', marginBottom: '16px', background: '#fff' }}>
             <Upload size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-            <p style={{ fontWeight: 700, fontSize: '14px', color: '#022448', margin: '0 0 6px' }}>Upload Documents</p>
+            <p style={{ fontWeight: 700, fontSize: '14px', color: '#022448', margin: '0 0 6px' }}>{tr('upload_documents')}</p>
             <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 16px' }}>FIR, Charge Sheet, Evidence, Deposition — PDF or Image up to 50MB</p>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', ...btnPrimary }}>
               <Upload size={14} /> Choose File
@@ -1411,7 +1413,7 @@ export default function CaseDetailPage() {
           {/* Document list */}
           {(c.documents || []).length === 0 ? (
             <div style={{ ...cardStyle, padding: '32px', textAlign: 'center' }}>
-              <p style={{ color: '#74777f', fontSize: '14px' }}>No documents uploaded yet</p>
+              <p style={{ color: '#74777f', fontSize: '14px' }}>{tr('no_documents_yet')}</p>
             </div>
           ) : (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
@@ -1502,7 +1504,7 @@ export default function CaseDetailPage() {
 
           {showHearingForm && (
             <form onSubmit={handleAddHearing} style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 16px' }}>New Hearing</h3>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 16px' }}>{tr('new_hearing')}</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div><label style={lbl}>Date *</label><input type="date" required value={hf.date} onChange={e => setHf({ ...hf, date: e.target.value })} style={inp()} /></div>
                 <div><label style={lbl}>Time (IST)</label><input type="time" value={hf.time} onChange={e => setHf({ ...hf, time: e.target.value })} style={inp()} /></div>
@@ -1520,7 +1522,7 @@ export default function CaseDetailPage() {
                 <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
                   {saving ? <><Loader2 size={13} className="animate-spin" /> Saving...</> : 'Schedule Hearing'}
                 </button>
-                <button type="button" onClick={() => setShowHearingForm(false)} style={btnGhost}>Cancel</button>
+                <button type="button" onClick={() => setShowHearingForm(false)} style={btnGhost}>{tr('cancel')}</button>
               </div>
             </form>
           )}
@@ -1528,7 +1530,7 @@ export default function CaseDetailPage() {
           {/* Upcoming */}
           {upcomingHearings.length > 0 && (
             <div style={{ ...cardStyle, overflow: 'hidden', marginBottom: '12px' }}>
-              <p style={sectionHeader}>UPCOMING</p>
+              <p style={sectionHeader}>{tr('upcoming').toUpperCase()}</p>
               {upcomingHearings.map((h: any) => {
                 const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
                 const isUrgent = daysUntil <= 1;
@@ -1570,9 +1572,9 @@ export default function CaseDetailPage() {
                         </div>
                         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                           <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
-                            {saving ? 'Saving...' : 'Save Outcome'}
+                            {saving ? tr('saving') : 'Save Outcome'}
                           </button>
-                          <button type="button" onClick={() => setShowOutcome(null)} style={btnGhost}>Cancel</button>
+                          <button type="button" onClick={() => setShowOutcome(null)} style={btnGhost}>{tr('cancel')}</button>
                         </div>
                       </form>
                     )}
@@ -1585,7 +1587,7 @@ export default function CaseDetailPage() {
           {/* Past */}
           {pastHearings.length > 0 && (
             <div style={{ ...cardStyle, overflow: 'hidden', opacity: 0.75 }}>
-              <p style={sectionHeader}>PAST</p>
+              <p style={sectionHeader}>{tr('past').toUpperCase()}</p>
               {[...pastHearings].reverse().map((h: any) => (
                 <div key={h.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
                   <CheckCircle2 size={16} color="#15803d" style={{ marginTop: '2px', flexShrink: 0 }} />
@@ -1604,7 +1606,7 @@ export default function CaseDetailPage() {
           {hearings.length === 0 && !showHearingForm && (
             <div style={{ ...cardStyle, padding: '40px', textAlign: 'center' }}>
               <Gavel size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>No hearings scheduled yet</p>
+              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>{tr('no_hearings_yet')}</p>
             </div>
           )}
         </div>
@@ -1622,7 +1624,7 @@ export default function CaseDetailPage() {
 
           {showTaskForm && (
             <form onSubmit={handleAddTask} style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 16px' }}>New Task</h3>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 16px' }}>{tr('new_task')}</h3>
               <div style={{ marginBottom: '12px' }}><label style={lbl}>Title *</label><input type="text" required value={tf.title} onChange={e => setTf({ ...tf, title: e.target.value })} placeholder="e.g. File written arguments" style={inp()} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
@@ -1637,7 +1639,7 @@ export default function CaseDetailPage() {
                 <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Adding...' : 'Add Task'}
                 </button>
-                <button type="button" onClick={() => setShowTaskForm(false)} style={btnGhost}>Cancel</button>
+                <button type="button" onClick={() => setShowTaskForm(false)} style={btnGhost}>{tr('cancel')}</button>
               </div>
             </form>
           )}
@@ -1686,7 +1688,7 @@ export default function CaseDetailPage() {
           {tasks.length === 0 && !showTaskForm && (
             <div style={{ ...cardStyle, padding: '40px', textAlign: 'center' }}>
               <CheckSquare size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>No tasks yet</p>
+              <p style={{ color: '#74777f', fontSize: '14px', margin: 0 }}>{tr('no_tasks_yet')}</p>
             </div>
           )}
         </div>
@@ -1726,7 +1728,7 @@ export default function CaseDetailPage() {
 
           {agents.length > 0 && (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              <p style={sectionHeader}>RUN HISTORY</p>
+              <p style={sectionHeader}>{tr('run_history').toUpperCase()}</p>
               {agents.slice(0, 8).map((job: any) => (
                 <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
                   <div style={{ flex: 1 }}>
@@ -1768,7 +1770,7 @@ export default function CaseDetailPage() {
           </div>
           {showNewPresForm && (
             <form onSubmit={handleCreatePresentation} style={{ background: '#d5e3ff20', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 12px' }}>New Presentation</h3>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: '0 0 12px' }}>{tr('new_presentation')}</h3>
               <div style={{ marginBottom: '14px' }}>
                 <label style={lbl}>Title</label>
                 <input type="text" value={newPresTitle} onChange={e => setNewPresTitle(e.target.value)} placeholder={c?.title + ' — Presentation'} style={inp()} />
@@ -1777,14 +1779,14 @@ export default function CaseDetailPage() {
                 <button type="submit" disabled={creatingPresentation} style={{ ...btnPrimary, opacity: creatingPresentation ? 0.6 : 1 }}>
                   {creatingPresentation ? <><Loader2 size={13} /> Creating...</> : 'Create & Open Builder'}
                 </button>
-                <button type="button" onClick={() => setShowNewPresForm(false)} style={btnGhost}>Cancel</button>
+                <button type="button" onClick={() => setShowNewPresForm(false)} style={btnGhost}>{tr('cancel')}</button>
               </div>
             </form>
           )}
           {presentations.length === 0 && !showNewPresForm ? (
             <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(196,198,207,0.15)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', padding: '56px', textAlign: 'center' }}>
               <Monitor size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
-              <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No Presentations Yet</p>
+              <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>{tr('no_presentations')}</p>
               <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 20px', lineHeight: 1.6 }}>Create a presentation deck for this case. AI can generate a full deck from your Strategy agent output.</p>
               <button onClick={() => setShowNewPresForm(true)} style={btnPrimary}><Sparkles size={14} /> Create First Presentation</button>
             </div>

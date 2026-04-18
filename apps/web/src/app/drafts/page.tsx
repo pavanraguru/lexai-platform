@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '@/hooks/useLanguage';
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -19,6 +20,7 @@ const s = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif' };
 
 export default function DraftsPage() {
   const { token } = useAuthStore();
+  const { tr } = useLang();
 
   const { data: casesData } = useQuery({
     queryKey: ['cases-for-drafts'],
@@ -67,7 +69,7 @@ export default function DraftsPage() {
       ) : drafts.length === 0 ? (
         <div style={{ background: '#fff', borderRadius: '12px', padding: '40px 32px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', display: 'inline-block' }}>
           <FileText size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
-          <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>No drafts yet</p>
+          <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>tr('no_drafts_yet')</p>
           <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 24px' }}>
             Run an AI agent on a case, then click "To Draft" to create your first document
           </p>

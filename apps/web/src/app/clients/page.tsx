@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '@/hooks/useLanguage';
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -23,6 +24,7 @@ const lbl: React.CSSProperties = {
 
 export default function ClientsPage() {
   const { token } = useAuthStore();
+  const { tr } = useLang();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -64,7 +66,7 @@ export default function ClientsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: '0 0 4px' }}>Clients</h1>
+          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: '0 0 4px' }}>tr('clients')</h1>
           <p style={{ fontSize: '14px', color: '#74777f', margin: 0 }}>{clients.length} client{clients.length !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={() => setShowAdd(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '10px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', flexShrink: 0 }}>
@@ -84,15 +86,15 @@ export default function ClientsPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '460px', boxShadow: '0 24px 64px rgba(2,36,72,0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid rgba(196,198,207,0.15)' }}>
-              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: 0 }}>New Client</h2>
+              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: 0 }}>tr('new_client')</h2>
               <button onClick={() => { setShowAdd(false); setError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', padding: '4px' }}><X size={18} /></button>
             </div>
             <form onSubmit={handleCreate} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div><label style={lbl}>Full Name *</label><input required value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} placeholder="Ramesh Kumar" style={inp} /></div>
               <div><label style={lbl}>Phone *</label><input required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="9876543210" style={inp} /></div>
-              <div><label style={lbl}>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="ramesh@example.com" style={inp} /></div>
-              <div><label style={lbl}>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="123, MG Road, Delhi" style={inp} /></div>
-              <div><label style={lbl}>Notes</label><textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Any notes about this client..." style={{ ...inp, resize: 'none' }} /></div>
+              <div><label style={lbl}>tr('email')</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="ramesh@example.com" style={inp} /></div>
+              <div><label style={lbl}>tr('address')</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="123, MG Road, Delhi" style={inp} /></div>
+              <div><label style={lbl}>tr('notes')</label><textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Any notes about this client..." style={{ ...inp, resize: 'none' }} /></div>
               {error && <div style={{ padding: '10px 13px', background: '#ffdad6', borderRadius: '8px', fontSize: '13px', color: '#93000a', fontWeight: 500 }}>{error}</div>}
               <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
                 <button type="submit" disabled={saving} style={{ flex: 1, padding: '12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', fontSize: '14px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: saving ? 0.7 : 1 }}>

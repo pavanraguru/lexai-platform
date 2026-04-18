@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '@/hooks/useLanguage';
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -39,6 +40,7 @@ const purposeLabel: Record<string, string> = {
 
 export default function CalendarPage() {
   const { token } = useAuthStore();
+  const { tr } = useLang();
   const [current, setCurrent]           = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [showHolidays, setShowHolidays] = useState(true);
@@ -341,7 +343,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Agenda */}
-      <div style={{ marginTop: '10px' }}>
+      <div style={{ marginTop: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px', maxWidth: '700px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: 0 }}>
             Agenda: {selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -386,7 +388,7 @@ export default function CalendarPage() {
         {!selectedItems?.hearings?.length && !selectedItems?.tasks?.length && !selectedHolidays.length ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', maxWidth: '700px' }}>
             <Calendar size={36} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-            <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 4px', fontWeight: 600 }}>No hearings on this date</p>
+            <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 4px', fontWeight: 600 }}>{tr('no_hearings_date')}</p>
             <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Click any date on the calendar to see its schedule</p>
           </div>
         ) : (
