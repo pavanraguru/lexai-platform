@@ -87,7 +87,7 @@ export const draftRoutes: FastifyPluginAsync = async (fastify) => {
     const now = new Date().toISOString();
     await fastify.prisma.$executeRawUnsafe(
       `INSERT INTO drafts (id, tenant_id, case_id, title, doc_type, content, version, word_count, created_by, last_modified_by, last_modified_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb, 1, 0, $7, $7, $8, $8)`,
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6::jsonb, 1, 0, $7::uuid, $7::uuid, $8::timestamptz, $8::timestamptz)`,
       id, tenant_id, body.case_id ?? null,
       body.title, body.doc_type,
       JSON.stringify(body.content),
