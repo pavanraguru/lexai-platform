@@ -629,7 +629,39 @@ export default function DocumentsTab({
           </div>
         )}
 
-        {/* Upload progress */}
+        {/* OCR Pending banner */}
+      {(() => {
+        const pendingDocs = docs.filter(d => d.processing_status === 'pending' || d.processing_status === 'processing');
+        if (pendingDocs.length === 0) return null;
+        return (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '10px', padding: '11px 14px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '15px', flexShrink: 0 }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', margin: '0 0 3px' }}>
+                {pendingDocs.length} document{pendingDocs.length !== 1 ? 's' : ''} pending OCR processing
+              </p>
+              <p style={{ fontSize: '12px', color: '#c2410c', margin: '0 0 8px', lineHeight: 1.5 }}>
+                Text extraction is queued. Agents can still run using document names and categories as context.
+                If processing is stuck, your Redis queue may be over its free-tier limit.
+              </p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {pendingDocs.slice(0, 3).map(d => (
+                  <button key={d.id} onClick={async () => {
+                    await fetch(BASE + '/v1/documents/' + d.id + '/retry-ocr', {
+                      method: 'POST', headers: { Authorization: 'Bearer ' + token }
+                    }).catch(() => {});
+                    onRefresh();
+                  }} style={{ fontSize: '11px', fontWeight: 600, padding: '4px 10px', background: '#fff', border: '1px solid #fdba74', borderRadius: '6px', cursor: 'pointer', color: '#9a3412', fontFamily: 'Manrope, sans-serif', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    ↺ Retry OCR: {d.filename.slice(0, 20)}{d.filename.length > 20 ? '…' : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Upload progress */}
         {Object.keys(uploadProgress).length > 0 && (
           <div style={{ marginBottom: '12px' }}>
             {Object.entries(uploadProgress).map(([id, pct]) => (

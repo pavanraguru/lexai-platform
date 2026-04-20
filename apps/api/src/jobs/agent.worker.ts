@@ -263,31 +263,34 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
     const inputConfig = agentJob.input_config as any;
     const caseData = inputConfig.case_metadata;
 
-    // Fetch document texts
+    // Fetch document texts — accept all docs, use filename as fallback when OCR pending
     const documents = await prisma.document.findMany({
       where: {
         id: { in: inputConfig.doc_ids },
-        processing_status: 'ready',
       },
-      select: { id: true, filename: true, doc_category: true, extracted_text: true, page_count: true },
+      select: { id: true, filename: true, doc_category: true, extracted_text: true, page_count: true, processing_status: true },
     });
 
     if (documents.length === 0) {
-      throw new Error('No ready documents found for this agent job');
+      throw new Error('No documents found for this agent job. Please upload documents to the case first.');
     }
 
-    // Build document context string — cap per-doc and total to stay within rate limits
-    // Token limits tuned for Anthropic free tier (30K tokens/min)
-    // System prompt ~3K tokens + doc context ~6K = ~9K total, well under 30K limit
-    // Increase these if you upgrade to a higher Anthropic tier
-    const MAX_CHARS_PER_DOC = 4000;  // ~1000 tokens per doc
-    const MAX_TOTAL_CHARS = 12000;   // ~3000 tokens total for docs
+    const readyDocs = documents.filter(d => d.processing_status === 'ready' && d.extracted_text);
+    console.log(\`[Agent Worker] \${readyDocs.length}/\${documents.length} docs have OCR text\`);
+
+    // Build document context — use OCR text where available, filename/category as fallback
+    const MAX_CHARS_PER_DOC = 4000;
+    const MAX_TOTAL_CHARS = 16000;
     let totalChars = 0;
     const docContext = documents
-      .filter(d => d.extracted_text)
       .map(d => {
-        const text = (d.extracted_text || '').substring(0, MAX_CHARS_PER_DOC);
-        return `--- DOCUMENT: ${d.filename} (${d.doc_category || 'unknown'}) [ID: ${d.id}] ---\n${text}`;
+        if (d.extracted_text) {
+          const text = d.extracted_text.substring(0, MAX_CHARS_PER_DOC);
+          return `--- DOCUMENT: ${d.filename} (${d.doc_category || 'unknown'}) ---\n${text}`;
+        } else {
+          // No OCR yet — give the agent the filename and category so it can still reason
+          return `--- DOCUMENT: ${d.filename} (${d.doc_category || 'unknown'}) [OCR PENDING — analyse based on document name and category] ---`;
+        }
       })
       .filter(chunk => {
         if (totalChars >= MAX_TOTAL_CHARS) return false;
@@ -296,7 +299,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
       })
       .join('\n\n');
 
-    console.log(`[Agent Worker] Document context: ${totalChars} chars from ${documents.length} docs`);
+    console.log(\`[Agent Worker] Doc context: \${totalChars} chars, \${readyDocs.length}/\${documents.length} with OCR text\`);
 
     // Build prior outputs context
     const priorOutputs: Record<string, any> = {};
@@ -350,7 +353,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
     while (true) {
       try {
         response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-4-5',
           max_tokens: agent_type === 'strategy' ? 4000 : 2000,
           system: systemPrompt,
           messages: [{ role: 'user', content: userMessage }],

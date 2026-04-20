@@ -109,25 +109,29 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
     const body = RunAgentSchema.parse(request.body || {});
 
-    // Get ready documents for this case
-    const documents = await fastify.prisma.document.findMany({
+    // Get all documents — prefer ready (OCR done) but fall back to any uploaded doc
+    const allDocuments = await fastify.prisma.document.findMany({
       where: {
         case_id,
         tenant_id,
-        processing_status: 'ready',
         ...(body.doc_ids ? { id: { in: body.doc_ids } } : {}),
       },
-      select: { id: true, doc_category: true, filename: true, s3_key: true },
+      select: { id: true, doc_category: true, filename: true, s3_key: true, processing_status: true },
     });
+
+    const documents = allDocuments;
 
     if (documents.length < 1) {
       return reply.status(400).send({
         error: {
-          code: 'ERR_DOCUMENT_NOT_READY',
-          message: 'No processed documents found. Upload and wait for OCR to complete first.'
+          code: 'ERR_NO_DOCUMENTS',
+          message: 'No documents found for this case. Upload at least one document first.'
         }
       });
     }
+
+    const readyCount = allDocuments.filter(d => d.processing_status === 'ready').length;
+    fastify.log.info(\`[Agents] Case \${case_id}: \${readyCount}/\${documents.length} docs OCR-ready\`);
 
     // Get prior agent outputs for context injection
     const priorOutputs: Record<string, string> = {};
@@ -149,7 +153,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         agent_version: AGENT_VERSIONS[agent_type],
         status: 'queued',
         triggered_by: user_id,
-        model_used: 'claude-sonnet-4-6',
+        model_used: 'claude-sonnet-4-5',
         input_config: {
           doc_ids: documents.map(d => d.id),
           case_metadata: {

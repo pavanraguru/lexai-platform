@@ -1783,20 +1783,35 @@ export default function CaseDetailPage() {
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
               <p style={sectionHeader}>{tr('run_history').toUpperCase()}</p>
               {agents.slice(0, 8).map((job: any) => (
-                <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
-                    <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
-                      {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
-                    </p>
+                <div key={job.id} style={{ padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
+                      <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
+                        {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
+                        background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
+                        color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
+                      }}>
+                        {job.status.toUpperCase()}
+                      </span>
+                      {job.status === 'failed' && (
+                        <button onClick={() => handleRunAgent(job.agent_type)} disabled={!!runningAgent}
+                          style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                          ↺ Retry
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
-                    background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
-                    color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
-                  }}>
-                    {job.status.toUpperCase()}
-                  </span>
+                  {job.status === 'failed' && job.error_message && (
+                    <div style={{ marginTop: '8px', padding: '8px 10px', background: '#ffdad6', borderRadius: '6px', fontSize: '11px', color: '#93000a', lineHeight: 1.5 }}>
+                      <strong>Error:</strong> {job.error_message}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
