@@ -1130,7 +1130,7 @@ function LimitationCalc({ caseType }: { caseType: string }) {
             <div>
               <p style={{ fontSize: '11px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Filing Deadline</p>
               <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.3rem', fontWeight: 700, color: '#022448', margin: 0 }}>
-                {result.deadline.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {result.deadline.getDate()} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][result.deadline.getMonth()]} {result.deadline.getFullYear()}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>

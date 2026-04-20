@@ -247,19 +247,23 @@ export default function DocumentsTab({
   const STORAGE_KEY = `lexai_folders_${caseId}`;
   const DOC_STORAGE_KEY = `lexai_doc_folders_${caseId}`;
 
-  const [folders, setFolders] = useState<VFolder[]>(() => {
+  const [folders, setFolders] = useState<VFolder[]>([{ id: 'root', name: 'Documents', parent: null }]);
+  const [currentFolder, setCurrentFolder] = useState<string>('root');
+  const [docFolders, setDocFolders] = useState<Record<string, string>>({});
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load from localStorage after hydration (avoids SSR mismatch)
+  useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [{ id: 'root', name: 'Documents', parent: null }];
-    } catch { return [{ id: 'root', name: 'Documents', parent: null }]; }
-  });
-  const [currentFolder, setCurrentFolder] = useState<string>('root');
-  const [docFolders, setDocFolders] = useState<Record<string, string>>(() => {
+      if (saved) setFolders(JSON.parse(saved));
+    } catch {}
     try {
       const saved = localStorage.getItem(DOC_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
+      if (saved) setDocFolders(JSON.parse(saved));
+    } catch {}
+    setHydrated(true);
+  }, [STORAGE_KEY, DOC_STORAGE_KEY]);
 
   // Persist whenever folders or docFolders change
   useEffect(() => {

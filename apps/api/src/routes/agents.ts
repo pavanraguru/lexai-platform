@@ -307,22 +307,22 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    // Run agent directly in-process (no Redis/BullMQ dependency)
-    // Fire-and-forget: starts immediately, doesn't block HTTP response
-    setImmediate(async () => {
+    // Run agent directly in-process — no Redis needed
+    // void Promise: starts executing immediately, HTTP response returns without waiting
+    void (async () => {
       try {
         await runAgentInline(fastify, agentJob.id, agent_type, case_id, tenant_id);
       } catch (err: any) {
-        fastify.log.error(`[Agents] Inline agent failed: ${err.message}`);
+        fastify.log.error('[Agents] Inline agent failed: ' + err.message);
       }
-    });
+    })();
 
     return reply.status(202).send({
       data: {
         job_id: agentJob.id,
         status: 'running',
         agent_type,
-        message: 'Agent started. Poll /v1/agents/jobs/' + agentJob.id + ' for status updates.',
+        message: 'Agent running. Poll /v1/agents/jobs/' + agentJob.id + ' for updates.',
       }
     });
   });
