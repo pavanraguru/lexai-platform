@@ -34,7 +34,13 @@ export default function GlobalUpload() {
   useEffect(() => {
     if (!open || !token) return;
     fetch(`${BASE}/v1/cases?limit=100`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setCases(d.data || [])).catch(() => {});
+      .then(r => r.json())
+      .then(d => {
+        // API may return { data: [...] } or { data: { cases: [...] } }
+        const items = Array.isArray(d.data) ? d.data : (d.data?.cases || d.cases || []);
+        setCases(items);
+      })
+      .catch(() => {});
   }, [open, token]);
 
   const filteredCases = cases.filter(c =>
@@ -54,7 +60,8 @@ export default function GlobalUpload() {
   }, [addFiles]);
 
   const uploadAll = useCallback(async () => {
-    if (!selectedCase || !files.length) return;
+    if (!selectedCase) { alert('Please select a case first'); return; }
+    if (!files.length) { alert('Please add files to upload'); return; }
     setUploading(true);
     setDone(false);
 
@@ -98,6 +105,7 @@ export default function GlobalUpload() {
   const selectedCaseObj = cases.find(c => c.id === selectedCase);
   const allDone = files.length > 0 && files.every(f => f.status === 'done');
   const hasPending = files.some(f => f.status === 'pending' || f.status === 'error');
+  const pendingCount = files.filter(f => f.status !== 'done').length;
 
   return (
     <>
@@ -236,7 +244,13 @@ export default function GlobalUpload() {
               {allDone && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '10px', padding: '12px 16px', marginTop: '14px' }}>
                   <Check size={16} color="#15803d" />
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#15803d', margin: 0 }}>All {files.length} file{files.length !== 1 ? 's' : ''} uploaded successfully!</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#15803d', margin: 0 }}>All {files.filter(f=>f.status==='done').length} file{files.filter(f=>f.status==='done').length !== 1 ? 's' : ''} uploaded successfully!</p>
+                </div>
+              )}
+              {files.some(f => f.status === 'error') && !uploading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#ffdad6', border: '1px solid #ffb4ab', borderRadius: '10px', padding: '12px 16px', marginTop: '14px' }}>
+                  <AlertCircle size={16} color="#ba1a1a" />
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#ba1a1a', margin: 0 }}>{files.filter(f=>f.status==='error').length} file(s) failed — click Upload to retry</p>
                 </div>
               )}
             </div>
@@ -259,7 +273,7 @@ export default function GlobalUpload() {
                   }}>
                   <Upload size={14} />
                   {uploading ? `Uploading ${files.filter(f => f.status === 'uploading').length}/${files.length}...` 
-                    : `Upload ${files.filter(f => f.status !== 'done').length} file${files.filter(f => f.status !== 'done').length !== 1 ? 's' : ''}`}
+                    : `Upload ${pendingCount} file${pendingCount !== 1 ? 's' : ''}`}
                 </button>
               )}
             </div>

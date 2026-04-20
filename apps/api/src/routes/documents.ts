@@ -184,7 +184,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     const command = new GetObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: document.s3_key,
-      ResponseContentDisposition: `attachment; filename="${document.filename}"`,
+      ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(document.filename)}`,
     });
 
     const url = await getSignedUrl(s3, command, { expiresIn: 900 });
@@ -209,7 +209,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: document.s3_key,
       // 'inline' tells browser to render it (PDF viewer, image) instead of downloading
-      ResponseContentDisposition: `inline; filename="${document.filename}"`,
+      ResponseContentDisposition: `inline; filename*=UTF-8''${encodeURIComponent(document.filename)}`,
       ResponseContentType: document.mime_type || 'application/octet-stream',
     });
 

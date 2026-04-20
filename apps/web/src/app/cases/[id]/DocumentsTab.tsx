@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Folder, FolderOpen, FileText, Image, File, Upload, Plus,
   Grid, List, ChevronRight, Home, MoreVertical, Download,
@@ -42,11 +42,32 @@ export default function DocumentsTab({
 
   // ── State ──────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState<'grid' | 'tree'>('grid');
-  const [folders, setFolders] = useState<VFolder[]>([
-    { id: 'root', name: 'Documents', parent: null },
-  ]);
+  // ── Persist folders to localStorage keyed by caseId ──────
+  const STORAGE_KEY = `lexai_folders_${caseId}`;
+  const DOC_STORAGE_KEY = `lexai_doc_folders_${caseId}`;
+
+  const [folders, setFolders] = useState<VFolder[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [{ id: 'root', name: 'Documents', parent: null }];
+    } catch { return [{ id: 'root', name: 'Documents', parent: null }]; }
+  });
   const [currentFolder, setCurrentFolder] = useState<string>('root');
-  const [docFolders, setDocFolders] = useState<Record<string, string>>({}); // docId → folderId
+  const [docFolders, setDocFolders] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(DOC_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  // Persist whenever folders or docFolders change
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(folders)); } catch {}
+  }, [folders, STORAGE_KEY]);
+
+  useEffect(() => {
+    try { localStorage.setItem(DOC_STORAGE_KEY, JSON.stringify(docFolders)); } catch {}
+  }, [docFolders, DOC_STORAGE_KEY]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
@@ -659,13 +680,42 @@ export default function DocumentsTab({
               </div>
             </div>
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f5f7' }}>
-              {previewUrl ? (
-                previewDoc.mime_type?.startsWith('image/') ? (
+              {previewUrl ? (() => {
+                const mime = previewDoc.mime_type || '';
+                const isImage = mime.startsWith('image/');
+                const isPdf = mime === 'application/pdf';
+                const isOffice = mime.includes('word') || mime.includes('excel') || mime.includes('powerpoint') ||
+                  mime.includes('spreadsheet') || mime.includes('presentation') ||
+                  previewDoc.filename.match(/\.(docx?|xlsx?|pptx?)$/i);
+                const isText = mime.startsWith('text/') || previewDoc.filename.match(/\.txt$/i);
+                if (isImage) return (
                   <img src={previewUrl} alt={previewDoc.filename} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                ) : (
+                );
+                if (isPdf) return (
                   <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title={previewDoc.filename} />
-                )
-              ) : (
+                );
+                if (isOffice) return (
+                  <iframe
+                    src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title={previewDoc.filename}
+                  />
+                );
+                if (isText) return (
+                  <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none', background: '#fff', fontFamily: 'monospace' }} title={previewDoc.filename} />
+                );
+                // Unsupported — show download prompt
+                return (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <FileText size={48} color="#c4c6cf" style={{ marginBottom: '16px' }} />
+                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#022448', margin: '0 0 8px' }}>Preview not available</p>
+                    <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 20px' }}>This file type cannot be previewed in browser.</p>
+                    <button onClick={() => downloadDoc(previewDoc)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 20px', background: '#022448', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                      <Download size={14} /> Download to view
+                    </button>
+                  </div>
+                );
+              })() : (
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ width: '32px', height: '32px', border: '3px solid #022448', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
                   <p style={{ fontSize: '13px', color: '#74777f' }}>Loading preview...</p>
