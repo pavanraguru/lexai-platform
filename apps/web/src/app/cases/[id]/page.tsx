@@ -1750,6 +1750,27 @@ export default function CaseDetailPage() {
       {/* ─── AGENTS ─────────────────────────────────────── */}
       {activeTab === 'agents' && (
         <div>
+          {/* Stuck jobs banner */}
+          {(agents as any[]).some((j: any) => j.status === 'queued' || j.status === 'running') && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', margin: '0 0 2px' }}>
+                  {(agents as any[]).filter((j: any) => j.status === 'queued' || j.status === 'running').length} job(s) stuck in queue
+                </p>
+                <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Redis may be unavailable. Cancel stuck jobs then re-run — agents now work without Redis.</p>
+              </div>
+              <button onClick={async () => {
+                try {
+                  await fetch(BASE + '/v1/agents/cases/' + id + '/cancel-queued', {
+                    method: 'POST', headers: { Authorization: 'Bearer ' + token }
+                  });
+                  refresh();
+                } catch {}
+              }} style={{ padding: '8px 16px', background: '#9a3412', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                ✕ Cancel Stuck Jobs
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
             {AGENTS.map(({ type, Icon, label, desc }) => {
               const isRunning = runningAgent === type;

@@ -373,6 +373,21 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ data: { latest: grouped, all: jobs } });
   });
 
+  // POST /v1/agents/cases/:case_id/cancel-queued — cancel all stuck queued jobs
+  fastify.post('/cases/:case_id/cancel-queued', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    const { case_id } = request.params as { case_id: string };
+
+    const result = await fastify.prisma.agentJob.updateMany({
+      where: { case_id, tenant_id, status: { in: ['queued', 'running'] } },
+      data: { status: 'failed', error_message: 'Cancelled by user', completed_at: new Date() },
+    });
+
+    return reply.send({ data: { cancelled: result.count, message: `${result.count} stuck job(s) cancelled` } });
+  });
+
   // GET /v1/agents/jobs/:id — get single agent job status + output
   fastify.get('/jobs/:id', {
     preHandler: [fastify.authenticate],
