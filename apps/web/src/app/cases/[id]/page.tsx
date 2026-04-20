@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import DocumentsTab from './DocumentsTab';
+import StrategyIntelPanel from './StrategyIntelPanel';
+import PrecedentPanel from './PrecedentPanel';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
@@ -12,7 +14,7 @@ import {
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
   Eye, Download, Monitor, Languages, Sparkles, Clock,
-  BookMarked, Save,
+  BookMarked, Save, TrendingUp, Scale,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -26,6 +28,8 @@ const TABS = [
   { key: 'drafts',        Icon: BookOpen,    labelKey: 'drafts' },
   { key: 'presentations', Icon: Monitor,     labelKey: 'presentations' },
   { key: 'timeline',      Icon: Clock,       labelKey: 'case_timeline' },
+  { key: 'intel',         Icon: TrendingUp,  labelKey: 'strategy_intel' },
+  { key: 'precedents',    Icon: Scale,       labelKey: 'precedents' },
   { key: 'filings',       Icon: BookMarked,  labelKey: 'filings' },
 ];
 
@@ -1799,6 +1803,38 @@ export default function CaseDetailPage() {
       {/* ─── DRAFTS ─────────────────────────────────────── */}
       {activeTab === 'drafts' && (
         <DraftingWorkspace caseId={id} token={token!} caseData={c} />
+      )}
+
+      {/* ─── STRATEGY INTELLIGENCE ───────────────────── */}
+      {activeTab === 'intel' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: '0 0 2px' }}>Strategy Intelligence</h2>
+              <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>AI analysis of win probability, key risks, and tactical recommendations</p>
+            </div>
+            <button onClick={() => handleRunAgent('strategy')} disabled={!!runningAgent} style={{ ...btnPrimary, opacity: runningAgent ? 0.5 : 1, fontSize: '12px' }}>
+              <Play size={12} /> Re-run Strategy
+            </button>
+          </div>
+          <StrategyIntelPanel caseId={id} token={token || ''} onRunAgent={handleRunAgent} />
+        </div>
+      )}
+
+      {/* ─── PRECEDENT SEARCH ────────────────────────────── */}
+      {activeTab === 'precedents' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: '0 0 2px' }}>Precedent Research</h2>
+              <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Favourable judgments, adverse cases with distinction strategy, and applicable statutes</p>
+            </div>
+            <button onClick={() => handleRunAgent('research')} disabled={!!runningAgent} style={{ ...btnPrimary, opacity: runningAgent ? 0.5 : 1, fontSize: '12px', background: '#5b21b6' }}>
+              <Play size={12} /> Re-run Research
+            </button>
+          </div>
+          <PrecedentPanel caseId={id} token={token || ''} onRunAgent={handleRunAgent} />
+        </div>
       )}
 
       {/* ─── FILINGS ────────────────────────────────────── */}
