@@ -132,10 +132,15 @@ export default function GlobalUpload() {
 
       {open && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 3000,
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 3000,
           background: 'rgba(0,0,0,0.55)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           padding: '24px',
+          boxSizing: 'border-box',
         }} onClick={e => { if (e.target === e.currentTarget) reset(); }}>
           <div style={{
             background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '540px',

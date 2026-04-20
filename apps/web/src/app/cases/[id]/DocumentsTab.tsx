@@ -4,6 +4,7 @@ import {
   Folder, FolderOpen, FileText, Image, File, Upload, Plus,
   Grid, List, ChevronRight, Home, MoreVertical, Download,
   Trash2, FolderPlus, Copy, Eye, X, Check, AlertCircle,
+  Languages, Loader2,
 } from 'lucide-react';
 import { useLang } from '@/hooks/useLanguage';
 
@@ -30,6 +31,96 @@ function formatBytes(b: number) {
   return (b / 1048576).toFixed(1) + ' MB';
 }
 function uid() { return Math.random().toString(36).slice(2, 10); }
+
+// ── Translate Modal Component ────────────────────────────────
+function TranslateItem({ docId, filename, token }: { docId: string; filename: string; token: string }) {
+  const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'|'english'>('idle');
+  const [result, setResult] = useState<any>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    fetch(`${BASE}/v1/documents/${docId}/translation`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(j => {
+        if (j.data?.status === 'done') { setResult(j.data); setStatus(j.data.is_already_english ? 'english' : 'done'); }
+      }).catch(() => {});
+  }, [docId, token]);
+
+  const trigger = async (force = false) => {
+    setStatus('loading'); setResult(null);
+    await fetch(`${BASE}/v1/documents/${docId}/translate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ force }),
+    });
+    const poll = setInterval(async () => {
+      const r = await fetch(`${BASE}/v1/documents/${docId}/translation`, { headers: { Authorization: `Bearer ${token}` } });
+      const j = await r.json();
+      if (j.data?.status === 'done') { clearInterval(poll); setResult(j.data); setStatus(j.data.is_already_english ? 'english' : 'done'); setShowModal(true); }
+      else if (j.data?.status === 'failed') { clearInterval(poll); setStatus('error'); }
+    }, 3000);
+    setTimeout(() => clearInterval(poll), 180000);
+  };
+
+  return (
+    <>
+      <button onClick={() => {
+        if (status === 'done' && result) { setShowModal(true); }
+        else { trigger(); }
+      }} style={{
+        display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 14px',
+        background: 'none', border: 'none', cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+        fontSize: '13px', fontWeight: 500, color: '#191c1e', fontFamily: 'Manrope, sans-serif', textAlign: 'left',
+      }}
+        onMouseEnter={e => (e.currentTarget.style.background = '#f4f5f7')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+        {status === 'loading'
+          ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Translating...</>
+          : status === 'done' ? <><Languages size={13} /> View Translation</>
+          : status === 'english' ? <><Languages size={13} /> Already English</>
+          : <><Languages size={13} /> Translate</>}
+      </button>
+
+      {showModal && result && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+          onClick={() => setShowModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '680px', width: '100%', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 4px' }}>English Translation</h3>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{filename} · Detected: {result.detected_language}</p>
+              </div>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#74777f', padding: '4px' }}>✕</button>
+            </div>
+            {result.summary && (
+              <div style={{ background: '#d5e3ff30', borderRadius: '8px', padding: '12px', marginBottom: '16px', border: '1px solid rgba(2,36,72,0.1)' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 4px' }}>SUMMARY</p>
+                <p style={{ fontSize: '13px', color: '#191c1e', margin: 0, lineHeight: 1.6 }}>{result.summary}</p>
+              </div>
+            )}
+            {result.legal_terms?.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY LEGAL TERMS</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {result.legal_terms.map((t: string, i: number) => <span key={i} style={{ fontSize: '11px', fontWeight: 600, color: '#735c00', background: '#ffe08850', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>)}
+                </div>
+              </div>
+            )}
+            {result.translation && (
+              <div>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>FULL TRANSLATION</p>
+                <div style={{ fontSize: '13px', color: '#191c1e', lineHeight: 1.8, whiteSpace: 'pre-wrap', background: '#f8fafc', borderRadius: '8px', padding: '16px' }}>{result.translation}</div>
+                <button onClick={() => navigator.clipboard.writeText(result.translation)}
+                  style={{ marginTop: '12px', padding: '8px 16px', background: 'transparent', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', color: '#43474e' }}>
+                  Copy Translation
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 // ── Main Component ────────────────────────────────────────────
 export default function DocumentsTab({
@@ -636,6 +727,11 @@ export default function DocumentsTab({
                 <CtxItem icon={<Download size={13} />} label="Download" onClick={() => { downloadDoc(docs.find(d => d.id === contextMenu.id)!); setContextMenu(null); }} />
                 <CtxItem icon={<Copy size={13} />} label="Copy name" onClick={() => { navigator.clipboard.writeText(docs.find(d => d.id === contextMenu.id)?.filename || ''); setContextMenu(null); }} />
                 <CtxItem icon={<span style={{fontSize:'11px',fontWeight:700}}>✎</span>} label="Rename" onClick={() => { const d = docs.find(x => x.id === contextMenu.id); if(d) startRename(d.id, 'doc', d.filename); }} />
+                <div style={{ height: '1px', background: 'rgba(196,198,207,0.2)', margin: '4px 0' }} />
+                {contextMenu && (() => {
+                  const d = docs.find(x => x.id === contextMenu.id);
+                  return d ? <TranslateItem key={d.id} docId={d.id} filename={d.filename} token={token} /> : null;
+                })()}
                 <div style={{ height: '1px', background: 'rgba(196,198,207,0.2)', margin: '4px 0' }} />
                 <CtxItem icon={<Trash2 size={13} />} label="Delete" danger onClick={() => { deleteDoc(contextMenu.id); setContextMenu(null); }} />
               </>
