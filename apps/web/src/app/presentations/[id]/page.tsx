@@ -720,13 +720,13 @@ export default function PresentationBuilderPage() {
             </button>
             {showGenPanel && (
               <div style={{ position: 'absolute', top: '44px', right: 0, background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '12px', padding: '16px', width: '260px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 200 }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', margin: '0 0 8px' }}>tr('priority').toUpperCase()</p>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', margin: '0 0 8px' }}>{tr('priority').toUpperCase()}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
                   {['defence', 'prosecution', 'petitioner', 'respondent'].map(p => (
                     <button key={p} onClick={() => setGenPerspective(p)} style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid', borderColor: genPerspective === p ? '#022448' : 'rgba(196,198,207,0.4)', background: genPerspective === p ? '#022448' : '#fff', color: genPerspective === p ? '#fff' : '#43474e', fontWeight: genPerspective === p ? 700 : 400, fontSize: '12px', cursor: 'pointer', textTransform: 'capitalize', fontFamily: 'Manrope, sans-serif' }}>{p}</button>
                   ))}
                 </div>
-                <p style={{ fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', margin: '0 0 8px' }}>tr('case_type').toUpperCase()</p>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', margin: '0 0 8px' }}>{tr('case_type').toUpperCase()}</p>
                 {[{ key: 'arguments', label: '⚖️ Arguments on Merits' }, { key: 'bail', label: '🔓 Bail Application' }, { key: 'evidence', label: '📄 Evidence Summary' }, { key: 'hearing', label: '📋 Hearing Submissions' }].map(f => (
                   <button key={f.key} onClick={() => setGenFocus(f.key)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px', background: genFocus === f.key ? '#ede9fe' : 'transparent', color: genFocus === f.key ? '#5b21b6' : '#43474e', fontWeight: genFocus === f.key ? 700 : 400, marginBottom: '2px', fontFamily: 'Manrope, sans-serif' }}>{f.label}</button>
                 ))}
@@ -754,7 +754,7 @@ export default function PresentationBuilderPage() {
         {/* Slide panel */}
         <div style={{ width: '200px', background: '#fff', borderRight: '1px solid rgba(196,198,207,0.2)', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
           <div style={{ padding: '10px 8px 8px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em' }}>tr('slides').toUpperCase()</span>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em' }}>{tr('slides').toUpperCase()}</span>
             <button onClick={() => setShowAddSlide(!showAddSlide)} style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'none', border: '1px solid rgba(2,36,72,0.15)', borderRadius: '5px', padding: '3px 6px', cursor: 'pointer', fontSize: '11px', color: '#022448', fontWeight: 700, fontFamily: 'Manrope, sans-serif' }}>
               <Plus size={11} /> Add
             </button>
@@ -808,7 +808,7 @@ export default function PresentationBuilderPage() {
 
               {/* Speaker notes */}
               <div style={{ width: '100%', maxWidth: '800px', marginTop: '12px' }}>
-                <label style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', display: 'block', marginBottom: '5px' }}>tr('speaker_notes').toUpperCase()</label>
+                <label style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', display: 'block', marginBottom: '5px' }}>{tr('speaker_notes').toUpperCase()}</label>
                 <textarea
                   value={selectedSlide.notes || ''}
                   onChange={e => updateSlide({ ...selectedSlide, notes: e.target.value })}
@@ -819,7 +819,7 @@ export default function PresentationBuilderPage() {
             </>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#74777f' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>tr('no_presentations')</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>{tr('no_presentations')}</p>
               <button onClick={() => setShowAddSlide(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px', background: '#022448', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
                 <Plus size={14} /> Add First Slide
               </button>

@@ -58,6 +58,7 @@ const lbl: React.CSSProperties = {
 export default function NewCasePage() {
   const { token, user } = useAuthStore();
   const router = useRouter();
+  const { tr } = useLang();
 
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
@@ -172,7 +173,7 @@ export default function NewCasePage() {
           <Scale size={22} color="#ffe088" />
         </div>
         <div>
-          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '1.6rem', fontWeight: 700, color: '#022448', margin: 0 }}>tr('new_case')</h1>
+          <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '1.6rem', fontWeight: 700, color: '#022448', margin: 0 }}>{tr('new_case')}</h1>
           <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>Step {step + 1} of {STEPS.length} — {STEPS[step]}</p>
         </div>
       </div>
@@ -287,7 +288,7 @@ export default function NewCasePage() {
                 placeholder="Hon. Justice..." style={inp} />
             </div>
             <div>
-              <label style={lbl}>tr('priority')</label>
+              <label style={lbl}>{tr('priority')}</label>
               <select value={form.priority} onChange={e => set('priority', e.target.value)} style={{ ...inp, appearance: 'none' }}>
                 {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>

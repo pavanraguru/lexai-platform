@@ -633,7 +633,7 @@ function FileForPageInner() {
           {filteredFilings.length === 0 && (
             <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', padding: '48px', textAlign: 'center' }}>
               <Search size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#74777f', margin: '0 0 4px' }}>tr('no_filings_found')</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#74777f', margin: '0 0 4px' }}>{tr('no_filings_found')}</p>
               <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Try different search terms or clear filters</p>
             </div>
           )}

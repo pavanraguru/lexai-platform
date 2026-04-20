@@ -48,7 +48,7 @@ export default function SettingsPage() {
       <div style={{ ...card }}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <User size={14} color="#022448" />
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>tr('your_profile').toUpperCase()</p>
+          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>{tr('your_profile').toUpperCase()}</p>
         </div>
         <div style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
@@ -131,7 +131,7 @@ export default function SettingsPage() {
       <div style={card}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Shield size={14} color="#022448" />
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>tr('security').toUpperCase()</p>
+          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>{tr('security').toUpperCase()}</p>
         </div>
         {[
           { label: 'Data Storage', value: 'AWS Mumbai (ap-south-1)', sub: 'All data stored in India' },
@@ -152,7 +152,7 @@ export default function SettingsPage() {
       <div style={card}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <CreditCard size={14} color="#022448" />
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>tr('subscription').toUpperCase()</p>
+          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>{tr('subscription').toUpperCase()}</p>
         </div>
         <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div>

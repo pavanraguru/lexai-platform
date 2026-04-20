@@ -126,7 +126,7 @@ export default function BillingPage() {
       {showTimeForm && (
         <div style={{ background: '#f8f9fb', border: '1px solid rgba(2,36,72,0.1)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: 0 }}>tr('log_time')</h3>
+            <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, color: '#022448', margin: 0 }}>{tr('log_time')}</h3>
             <button onClick={() => setShowTimeForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#74777f' }}><X size={16} /></button>
           </div>
           <form onSubmit={handleLogTime} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -150,7 +150,7 @@ export default function BillingPage() {
               <input type="number" value={Math.round(parseInt(tf.hourly_rate_paise) / 100)} onChange={e => setTf({ ...tf, hourly_rate_paise: String(parseInt(e.target.value || '0') * 100) })} placeholder="5000" style={inp} />
             </div>
             <div>
-              <label style={lbl}>tr('billable')</label>
+              <label style={lbl}>{tr('billable')}</label>
               <select value={tf.billable ? 'true' : 'false'} onChange={e => setTf({ ...tf, billable: e.target.value === 'true' })} style={{ ...inp, appearance: 'none' }}>
                 <option value="true">Yes — Billable</option>
                 <option value="false">No — Internal</option>
@@ -165,7 +165,7 @@ export default function BillingPage() {
               <button type="submit" disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '10px 20px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Saving...' : 'Log Time'}
               </button>
-              <button type="button" onClick={() => setShowTimeForm(false)} style={{ padding: '10px 16px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>tr('cancel')</button>
+              <button type="button" onClick={() => setShowTimeForm(false)} style={{ padding: '10px 16px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>{tr('cancel')}</button>
             </div>
           </form>
         </div>
@@ -189,7 +189,7 @@ export default function BillingPage() {
         ) : (invoices as any[]).length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '12px', padding: '36px 32px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', display: 'inline-block', minWidth: '300px' }}>
             <Receipt size={40} color="#c4c6cf" style={{ marginBottom: '16px' }} />
-            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>tr('no_invoices_yet')</p>
+            <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 8px' }}>{tr('no_invoices_yet')}</p>
             <p style={{ fontSize: '14px', color: '#74777f', margin: 0 }}>Log time entries then generate your first invoice</p>
           </div>
         ) : (
