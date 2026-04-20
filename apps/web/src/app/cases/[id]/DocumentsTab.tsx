@@ -33,7 +33,7 @@ function formatBytes(b: number) {
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
 // ── Translate Modal Component ────────────────────────────────
-function TranslateItem({ docId, filename, token }: { docId: string; filename: string; token: string }) {
+function TranslateItem({ docId, filename, token, caseId, onRefresh }: { docId: string; filename: string; token: string; caseId: string; onRefresh: () => void }) {
   const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'|'english'>('idle');
   const [result, setResult] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
@@ -56,7 +56,7 @@ function TranslateItem({ docId, filename, token }: { docId: string; filename: st
     const poll = setInterval(async () => {
       const r = await fetch(`${BASE}/v1/documents/${docId}/translation`, { headers: { Authorization: `Bearer ${token}` } });
       const j = await r.json();
-      if (j.data?.status === 'done') { clearInterval(poll); setResult(j.data); setStatus(j.data.is_already_english ? 'english' : 'done'); setShowModal(true); }
+      if (j.data?.status === 'done') { clearInterval(poll); setResult(j.data); setStatus(j.data.is_already_english ? 'english' : 'done'); setShowModal(true); if (!j.data.is_already_english) uploadTranslationAsPdf(j.data); }
       else if (j.data?.status === 'failed') { clearInterval(poll); setStatus('error'); }
     }, 3000);
     setTimeout(() => clearInterval(poll), 180000);
@@ -94,6 +94,73 @@ function TranslateItem({ docId, filename, token }: { docId: string; filename: st
       iframe.contentWindow!.print();
       setTimeout(() => { document.body.removeChild(iframe); setCreatingPdf(false); setPdfDone(true); }, 1000);
     }, 500);
+  };
+
+  const uploadTranslationAsPdf = async (res: any) => {
+    if (!res?.translation || !caseId) return;
+    try {
+      // Build PDF HTML
+      const safeFilename = filename.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const safeTranslation = res.translation.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const safeSummary = (res.summary || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"/>'
+        + '<style>body{font-family:serif;font-size:13pt;line-height:1.8;margin:60px;color:#111}'
+        + 'h1{font-size:18pt;font-weight:800;color:#022448;margin-bottom:6px}'
+        + '.meta{font-size:10pt;color:#666;margin-bottom:20px}'
+        + '.label{font-size:8pt;font-weight:bold;letter-spacing:.1em;color:#888;text-transform:uppercase;margin:16px 0 4px}'
+        + '.summary{background:#f0f4ff;border-left:3px solid #022448;padding:12px;font-size:12pt;margin-bottom:16px}'
+        + '.body{white-space:pre-wrap;font-size:12pt;line-height:1.9}'
+        + '.footer{margin-top:32px;font-size:9pt;color:#aaa;border-top:1px solid #eee;padding-top:8px}'
+        + '</style></head><body>'
+        + '<h1>English Translation</h1>'
+        + '<div class="meta">Source: ' + safeFilename + ' &middot; Detected: ' + (res.detected_language || 'Unknown') + '</div>'
+        + (safeSummary ? '<div class="label">Summary</div><div class="summary">' + safeSummary + '</div>' : '')
+        + '<div class="label">Full Translation</div>'
+        + '<div class="body">' + safeTranslation + '</div>'
+        + '<div class="footer">Translated by LexAI India &middot; ' + new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}) + '</div>'
+        + '</body></html>';
+
+      // Convert HTML to Blob using a hidden iframe + canvas approach
+      // Since we can't use puppeteer client-side, we'll create a text blob with the translation
+      // and upload it as a .txt file — the PDF visual is handled by the print flow
+      const baseName = filename.replace(/\.[^.]+$/, '');
+      const pdfFilename = `${baseName} — English Translation (PDF).txt`;
+      const nl = '\n';
+      const textContent = 'ENGLISH TRANSLATION' + nl
+        + 'Source: ' + filename + nl
+        + 'Detected Language: ' + (res.detected_language || 'Unknown') + nl
+        + 'Translated: ' + new Date().toLocaleDateString('en-IN') + nl + nl
+        + (res.summary ? 'SUMMARY' + nl + res.summary + nl + nl : '')
+        + 'FULL TRANSLATION' + nl + nl
+        + (res.translation || '');
+
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      const fileSize = blob.size;
+
+      // Step 1: Presign
+      const pr = await fetch(`${BASE}/v1/documents/presign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ filename: pdfFilename, mime_type: 'text/plain', case_id: caseId, file_size_bytes: fileSize }),
+      });
+      if (!pr.ok) return;
+      const { data: presign } = await pr.json();
+
+      // Step 2: Upload to S3
+      const up = await fetch(presign.presigned_url, { method: 'PUT', body: blob, headers: { 'Content-Type': 'text/plain' } });
+      if (!up.ok) return;
+
+      // Step 3: Register
+      await fetch(`${BASE}/v1/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ case_id: caseId, filename: pdfFilename, s3_key: presign.s3_key, mime_type: 'text/plain', file_size_bytes: fileSize }),
+      });
+
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to upload translation document:', err);
+    }
   };
 
   return (
@@ -773,7 +840,7 @@ export default function DocumentsTab({
                 <div style={{ height: '1px', background: 'rgba(196,198,207,0.2)', margin: '4px 0' }} />
                 {contextMenu && (() => {
                   const d = docs.find(x => x.id === contextMenu.id);
-                  return d ? <TranslateItem key={d.id} docId={d.id} filename={d.filename} token={token} /> : null;
+                  return d ? <TranslateItem key={d.id} docId={d.id} filename={d.filename} token={token} caseId={caseId} onRefresh={onRefresh} /> : null;
                 })()}
                 <div style={{ height: '1px', background: 'rgba(196,198,207,0.2)', margin: '4px 0' }} />
                 <CtxItem icon={<Trash2 size={13} />} label="Delete" danger onClick={() => { deleteDoc(contextMenu.id); setContextMenu(null); }} />
