@@ -131,7 +131,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const readyCount = allDocuments.filter(d => d.processing_status === 'ready').length;
-    fastify.log.info(\`[Agents] Case \${case_id}: \${readyCount}/\${documents.length} docs OCR-ready\`);
+    fastify.log.info(`[Agents] Case ${case_id}: ${readyCount}/${documents.length} docs OCR-ready`);
 
     // Get prior agent outputs for context injection
     const priorOutputs: Record<string, string> = {};

@@ -276,7 +276,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
     }
 
     const readyDocs = documents.filter(d => d.processing_status === 'ready' && d.extracted_text);
-    console.log(\`[Agent Worker] \${readyDocs.length}/\${documents.length} docs have OCR text\`);
+    console.log(`[Agent Worker] ${readyDocs.length}/${documents.length} docs have OCR text`);
 
     // Build document context — use OCR text where available, filename/category as fallback
     const MAX_CHARS_PER_DOC = 4000;
@@ -299,7 +299,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
       })
       .join('\n\n');
 
-    console.log(\`[Agent Worker] Doc context: \${totalChars} chars, \${readyDocs.length}/\${documents.length} with OCR text\`);
+    console.log(`[Agent Worker] Doc context: ${totalChars} chars, ${readyDocs.length}/${documents.length} with OCR text`);
 
     // Build prior outputs context
     const priorOutputs: Record<string, any> = {};
