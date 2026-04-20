@@ -9,6 +9,7 @@ import {
   Users, Receipt, Settings, Bell, Plus, ChevronLeft,
   Scale, LogOut, Menu, X, ChevronRight, BookMarked,
   CheckCheck, AlertCircle, Bot, Gavel, Clock,
+  BarChart2,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import GlobalUpload from '../GlobalUpload';
@@ -25,6 +26,7 @@ const NAV = [
   { href: '/drafts',    Icon: FileText,         labelKey: 'drafts' },
   { href: '/clients',   Icon: Users,            labelKey: 'clients' },
   { href: '/invoices',  Icon: Receipt,          labelKey: 'billing' },
+  { href: '/insights',  Icon: BarChart2,        labelKey: 'insights' },
   { href: '/settings',  Icon: Settings,         labelKey: 'settings' },
 ];
 

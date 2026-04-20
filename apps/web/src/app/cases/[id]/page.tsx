@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import DocumentsTab from './DocumentsTab';
 import StrategyIntelPanel from './StrategyIntelPanel';
 import PrecedentPanel from './PrecedentPanel';
+import DraftingSidebar from './DraftingSidebar';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
@@ -422,7 +423,8 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
   if (editingDraft) {
 
     return (
-      <div style={{ maxWidth: '860px' }}>
+      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
         {/* Editor toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <button onClick={() => setEditingDraft(null)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', color: '#43474e', fontFamily: 'Manrope, sans-serif' }}>
@@ -545,6 +547,8 @@ Use AI Generate above to get a complete draft pre-filled with your case details,
             boxSizing: 'border-box', boxShadow: '0 2px 8px rgba(2,36,72,0.05)',
           }}
         />
+        </div>
+        <DraftingSidebar caseId={caseId} token={token} caseData={caseData} />
       </div>
     );
   }

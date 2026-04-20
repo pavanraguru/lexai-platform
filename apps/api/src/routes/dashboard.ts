@@ -13,6 +13,89 @@ async function safeFind(fn: () => Promise<any[]>): Promise<any[]> {
   try { return await fn(); } catch { return []; }
 }
 
+// GET /v1/dashboard/analytics — Practice Insights aggregated data
+async function getAnalytics(fastify: any, tenant_id: string) {
+  const [cases, hearings, invoices] = await Promise.all([
+    fastify.prisma.case.findMany({
+      where: { tenant_id, deleted_at: null },
+      select: { id: true, case_type: true, status: true, created_at: true, outcome: true },
+    }),
+    fastify.prisma.hearing.findMany({
+      where: { case: { tenant_id } },
+      select: { id: true, date: true, outcome: true, case_id: true },
+    }),
+    fastify.prisma.invoice.findMany({
+      where: { tenant_id },
+      select: { id: true, total_paise: true, status: true, invoice_date: true },
+    }).catch(() => []),
+  ]);
+
+  const now = new Date();
+
+  // Case outcomes from hearing outcomes
+  let won = 0, settled = 0, lostOrPending = 0;
+  for (const c of cases) {
+    if (c.status === 'decided' || c.status === 'closed') {
+      const caseHearings = hearings.filter((h: any) => h.case_id === c.id && h.outcome);
+      const outcomes = caseHearings.map((h: any) => (h.outcome || '').toLowerCase());
+      if (outcomes.some((o: string) => o.includes('allow') || o.includes('grant') || o.includes('acquit') || o.includes('favour'))) won++;
+      else if (outcomes.some((o: string) => o.includes('settl') || o.includes('compro'))) settled++;
+      else lostOrPending++;
+    } else {
+      lostOrPending++;
+    }
+  }
+
+  const winRate = won + settled + lostOrPending > 0
+    ? Math.round((won / Math.max(won + settled + lostOrPending, 1)) * 100)
+    : 0;
+
+  // Matter volume — last 6 months
+  const volumeByMonth: Record<string, number> = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+    volumeByMonth[key] = 0;
+  }
+  for (const c of cases) {
+    const d = new Date(c.created_at);
+    const key = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+    if (key in volumeByMonth) volumeByMonth[key]++;
+  }
+
+  // Practice areas breakdown
+  const byType: Record<string, number> = {};
+  for (const c of cases) {
+    const t = c.case_type || 'other';
+    byType[t] = (byType[t] || 0) + 1;
+  }
+  const total = cases.length || 1;
+  const practiceAreas = Object.entries(byType)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([type, count]) => ({
+      type, count,
+      pct: Math.round((count / total) * 100),
+      label: type.replace(/_/g, ' ').replace(/\w/g, (c: string) => c.toUpperCase()),
+    }));
+
+  // Revenue
+  const totalRevPaise = (invoices as any[])
+    .filter((inv: any) => inv.status === 'paid')
+    .reduce((s: number, inv: any) => s + Number(inv.total_paise || 0), 0);
+
+  return {
+    win_rate: winRate,
+    active_matters: cases.filter((c: any) => !['closed', 'decided'].includes(c.status)).length,
+    total_cases: cases.length,
+    outcomes: { won, settled, lost_pending: lostOrPending },
+    volume_by_month: Object.entries(volumeByMonth).map(([month, count]) => ({ month, count })),
+    practice_areas: practiceAreas,
+    total_revenue_paise: totalRevPaise,
+    avg_revenue_per_matter_paise: cases.length > 0 ? Math.round(totalRevPaise / cases.length) : 0,
+  };
+}
+
 export const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/stats', {
@@ -119,5 +202,19 @@ export const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         upcoming_hearings:      upcomingHearings,
       },
     });
+  });
+
+  // GET /v1/dashboard/analytics — Practice Insights
+  fastify.get('/analytics', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    try {
+      const data = await getAnalytics(fastify, tenant_id);
+      return reply.send({ data });
+    } catch (err: any) {
+      fastify.log.error('[Analytics] ' + err.message);
+      return reply.status(500).send({ error: { code: 'ANALYTICS_ERROR', message: err.message } });
+    }
   });
 };
