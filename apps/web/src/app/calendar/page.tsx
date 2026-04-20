@@ -173,69 +173,176 @@ export default function CalendarPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 260px', gap: '20px', alignItems: 'start', maxWidth: '1000px' }}>
 
-        {/* Calendar Grid */}
-        <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid rgba(196,198,207,0.15)' }}>
-            {DAYS.map(d => (
-              <div key={d} style={{ padding: '10px 0', textAlign: 'center', fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em' }}>{d}</div>
-            ))}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-            {cells.map((day, i) => {
-              if (!day) return (
-                <div key={`e-${i}`} style={{ minHeight: '90px', padding: '6px', background: 'rgba(196,198,207,0.04)', borderRight: i % 7 !== 6 ? '1px solid rgba(196,198,207,0.08)' : 'none', borderBottom: '1px solid rgba(196,198,207,0.08)' }} />
-              );
-
-              const dateStr    = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-              const items      = dayMap[dateStr];
-              const holidays   = showHolidays ? (holidayMap[dateStr] || []) : [];
-              const isToday    = dateStr === today;
-              const isSelected = dateStr === selectedDate;
-              const isHoliday  = holidays.length > 0;
-              const hasConflict = isHoliday && (items?.hearings?.length || 0) > 0;
-              const hcfg       = isHoliday ? HOLIDAY_TYPE_CONFIG[holidays[0].type] : null;
-
-              return (
-                <div key={dateStr} onClick={() => setSelectedDate(dateStr)} style={{
-                  minHeight: '90px', padding: '6px', cursor: 'pointer', position: 'relative',
-                  borderRight: i % 7 !== 6 ? '1px solid rgba(196,198,207,0.08)' : 'none',
-                  borderBottom: '1px solid rgba(196,198,207,0.08)',
-                  background: isSelected ? 'rgba(2,36,72,0.05)' : isHoliday ? `${hcfg?.bg}55` : 'transparent',
-                }}>
-                  {hasConflict && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #ea580c, #dc2626)' }} />}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3px' }}>
-                    <span style={{ width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: isToday ? 800 : 600, background: isToday ? '#022448' : 'transparent', color: isToday ? '#fff' : isHoliday ? '#7f1d1d' : '#191c1e' }}>
-                      {day}
-                    </span>
-                    {isHoliday && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hcfg?.color, marginTop: '4px', marginRight: '2px' }} />}
-                  </div>
-                  {isHoliday && (
-                    <div style={{ fontSize: '7px', fontWeight: 800, color: hcfg?.color, marginBottom: '2px', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      🏛 {holidays[0].name}
+        {/* Left Column: Calendar + Agenda */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Calendar Grid */}
+          <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0px 2px 12px rgba(2,36,72,0.05)', overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid rgba(196,198,207,0.15)' }}>
+              {DAYS.map(d => (
+                <div key={d} style={{ padding: '10px 0', textAlign: 'center', fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em' }}>{d}</div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+              {cells.map((day, i) => {
+                if (!day) return (
+                  <div key={`e-${i}`} style={{ minHeight: '90px', padding: '6px', background: 'rgba(196,198,207,0.04)', borderRight: i % 7 !== 6 ? '1px solid rgba(196,198,207,0.08)' : 'none', borderBottom: '1px solid rgba(196,198,207,0.08)' }} />
+                );
+  
+                const dateStr    = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const items      = dayMap[dateStr];
+                const holidays   = showHolidays ? (holidayMap[dateStr] || []) : [];
+                const isToday    = dateStr === today;
+                const isSelected = dateStr === selectedDate;
+                const isHoliday  = holidays.length > 0;
+                const hasConflict = isHoliday && (items?.hearings?.length || 0) > 0;
+                const hcfg       = isHoliday ? HOLIDAY_TYPE_CONFIG[holidays[0].type] : null;
+  
+                return (
+                  <div key={dateStr} onClick={() => setSelectedDate(dateStr)} style={{
+                    minHeight: '90px', padding: '6px', cursor: 'pointer', position: 'relative',
+                    borderRight: i % 7 !== 6 ? '1px solid rgba(196,198,207,0.08)' : 'none',
+                    borderBottom: '1px solid rgba(196,198,207,0.08)',
+                    background: isSelected ? 'rgba(2,36,72,0.05)' : isHoliday ? `${hcfg?.bg}55` : 'transparent',
+                  }}>
+                    {hasConflict && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #ea580c, #dc2626)' }} />}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3px' }}>
+                      <span style={{ width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: isToday ? 800 : 600, background: isToday ? '#022448' : 'transparent', color: isToday ? '#fff' : isHoliday ? '#7f1d1d' : '#191c1e' }}>
+                        {day}
+                      </span>
+                      {isHoliday && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hcfg?.color, marginTop: '4px', marginRight: '2px' }} />}
                     </div>
-                  )}
-                  {items?.hearings.slice(0, 2).map((h: any, hi: number) => {
-                    const colors = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
-                    return (
-                      <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: '3px', background: colors.bg, borderRadius: '3px', padding: '1px 5px', marginBottom: '2px', outline: hasConflict ? '1px solid #ea580c' : 'none' }}>
-                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: colors.dot, flexShrink: 0 }} />
-                        <span style={{ fontSize: '8px', fontWeight: 800, color: colors.text }}>{purposeLabel[h.purpose] || 'HRNG'}</span>
+                    {isHoliday && (
+                      <div style={{ fontSize: '7px', fontWeight: 800, color: hcfg?.color, marginBottom: '2px', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        🏛 {holidays[0].name}
                       </div>
-                    );
-                  })}
-                  {items?.tasks.slice(0, 1).map((_: any, ti: number) => (
-                    <div key={`t${ti}`} style={{ display: 'flex', alignItems: 'center', gap: '3px', background: '#ffe08830', borderRadius: '3px', padding: '1px 5px', marginBottom: '2px' }}>
-                      <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#735c00', flexShrink: 0 }} />
-                      <span style={{ fontSize: '8px', fontWeight: 800, color: '#735c00' }}>TASK</span>
-                    </div>
-                  ))}
-                  {items && (items.hearings.length + items.tasks.length) > 2 && (
-                    <span style={{ fontSize: '9px', color: '#74777f', fontWeight: 600 }}>+{items.hearings.length + items.tasks.length - 2} more</span>
-                  )}
-                </div>
-              );
-            })}
+                    )}
+                    {items?.hearings.slice(0, 2).map((h: any, hi: number) => {
+                      const colors = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
+                      return (
+                        <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: '3px', background: colors.bg, borderRadius: '3px', padding: '1px 5px', marginBottom: '2px', outline: hasConflict ? '1px solid #ea580c' : 'none' }}>
+                          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: colors.dot, flexShrink: 0 }} />
+                          <span style={{ fontSize: '8px', fontWeight: 800, color: colors.text }}>{purposeLabel[h.purpose] || 'HRNG'}</span>
+                        </div>
+                      );
+                    })}
+                    {items?.tasks.slice(0, 1).map((_: any, ti: number) => (
+                      <div key={`t${ti}`} style={{ display: 'flex', alignItems: 'center', gap: '3px', background: '#ffe08830', borderRadius: '3px', padding: '1px 5px', marginBottom: '2px' }}>
+                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#735c00', flexShrink: 0 }} />
+                        <span style={{ fontSize: '8px', fontWeight: 800, color: '#735c00' }}>TASK</span>
+                      </div>
+                    ))}
+                    {items && (items.hearings.length + items.tasks.length) > 2 && (
+                      <span style={{ fontSize: '9px', color: '#74777f', fontWeight: 600 }}>+{items.hearings.length + items.tasks.length - 2} more</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+  {/* Agenda */}
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px', maxWidth: '700px' }}>
+            <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: 0 }}>
+              Agenda: {selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </h2>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {selectedHolidays.map((h: CourtHoliday, i: number) => {
+                const cfg = HOLIDAY_TYPE_CONFIG[h.type];
+                return <span key={i} style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', background: cfg.bg, color: cfg.color }}>🏛 {h.name}</span>;
+              })}
+              {(selectedItems?.hearings.length || 0) > 0 && (
+                <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '99px', background: '#ffe088', color: '#745c00' }}>
+                  {selectedItems.hearings.length} Hearing{selectedItems.hearings.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          </div>
+  
+          {/* Holiday notices */}
+          {selectedHolidays.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', maxWidth: '700px' }}>
+              {selectedHolidays.map((h: CourtHoliday, i: number) => {
+                const cfg = HOLIDAY_TYPE_CONFIG[h.type];
+                const hasConflict = (selectedItems?.hearings?.length || 0) > 0;
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', background: hasConflict ? '#fff7ed' : cfg.bg, border: `1px solid ${hasConflict ? '#fdba74' : cfg.color}33`, borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '20px', lineHeight: 1 }}>🏛</div>
+                    <div>
+                      <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: '13px', color: hasConflict ? '#c2410c' : cfg.color }}>
+                        {h.name}{hasConflict ? ' — Hearing Conflict' : ''}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#74777f' }}>
+                        {cfg.label}{h.description ? ` · ${h.description}` : ''}
+                        {hasConflict ? ' · Please verify with the court registry that proceedings will take place.' : ''}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+  
+          {!selectedItems?.hearings?.length && !selectedItems?.tasks?.length && !selectedHolidays.length ? (
+            <div style={{ background: '#fff', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', maxWidth: '700px' }}>
+              <Calendar size={36} color="#c4c6cf" style={{ marginBottom: '12px' }} />
+              <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 4px', fontWeight: 600 }}>{tr('no_hearings_date')}</p>
+              <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Click any date on the calendar to see its schedule</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '700px' }}>
+              {selectedItems?.hearings.map((h: any) => {
+                const colors    = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
+                const onHoliday = selectedHolidays.length > 0;
+                return (
+                  <div key={h.id} style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: `1px solid ${onHoliday ? '#fdba74' : 'rgba(196,198,207,0.15)'}`, boxShadow: '0px 1px 4px rgba(2,36,72,0.05)' }}>
+                    {onHoliday && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', padding: '6px 10px', background: '#fff7ed', borderRadius: '6px' }}>
+                        <AlertTriangle size={12} color="#ea580c" />
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#c2410c' }}>Scheduled on a court holiday — verify with registry</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                      <div style={{ flexShrink: 0, textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '20px', minWidth: '52px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#43474e' }}>{h.time || '--:--'}</div>
+                        <div style={{ fontSize: '10px', color: '#74777f' }}>IST</div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', background: colors.bg, color: colors.text, borderRadius: '2px', textTransform: 'uppercase' }}>{h.purpose?.replace(/_/g,' ')}</span>
+                          {h.court_room && <span style={{ fontSize: '11px', fontWeight: 700, color: '#43474e' }}>{h.court_room}</span>}
+                        </div>
+                        <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.case?.title}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#74777f', marginBottom: '14px' }}>
+                          <MapPin size={12} />
+                          <span>{h.case?.court}</span>
+                          {h.case?.cnr_number && <><span>·</span><span style={{ fontFamily: 'monospace' }}>{h.case.cnr_number}</span></>}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                          <Link href={`/cases/${h.case?.id}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
+                            <ExternalLink size={13} /> VIEW CASE FILE
+                          </Link>
+                          <Link href={`/cases/${h.case?.id}?tab=drafts`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
+                            <FileText size={13} /> BRIEFING NOTE
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {selectedItems?.tasks.map((t: any) => (
+                <div key={t.id} style={{ background: '#fffbeb', borderRadius: '10px', padding: '12px 16px', border: '1px solid rgba(202,138,4,0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#854d0e', margin: 0 }}>{t.title}</p>
+                    <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0' }}>Task due · {t.case?.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Sidebar */}
@@ -342,109 +449,6 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Agenda */}
-      <div style={{ marginTop: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px', maxWidth: '700px' }}>
-          <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: 0 }}>
-            Agenda: {selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </h2>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {selectedHolidays.map((h: CourtHoliday, i: number) => {
-              const cfg = HOLIDAY_TYPE_CONFIG[h.type];
-              return <span key={i} style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', background: cfg.bg, color: cfg.color }}>🏛 {h.name}</span>;
-            })}
-            {(selectedItems?.hearings.length || 0) > 0 && (
-              <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '99px', background: '#ffe088', color: '#745c00' }}>
-                {selectedItems.hearings.length} Hearing{selectedItems.hearings.length > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Holiday notices */}
-        {selectedHolidays.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', maxWidth: '700px' }}>
-            {selectedHolidays.map((h: CourtHoliday, i: number) => {
-              const cfg = HOLIDAY_TYPE_CONFIG[h.type];
-              const hasConflict = (selectedItems?.hearings?.length || 0) > 0;
-              return (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', background: hasConflict ? '#fff7ed' : cfg.bg, border: `1px solid ${hasConflict ? '#fdba74' : cfg.color}33`, borderRadius: '10px', padding: '14px 16px' }}>
-                  <div style={{ fontSize: '20px', lineHeight: 1 }}>🏛</div>
-                  <div>
-                    <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: '13px', color: hasConflict ? '#c2410c' : cfg.color }}>
-                      {h.name}{hasConflict ? ' — Hearing Conflict' : ''}
-                    </p>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#74777f' }}>
-                      {cfg.label}{h.description ? ` · ${h.description}` : ''}
-                      {hasConflict ? ' · Please verify with the court registry that proceedings will take place.' : ''}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {!selectedItems?.hearings?.length && !selectedItems?.tasks?.length && !selectedHolidays.length ? (
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '48px', textAlign: 'center', border: '1px solid rgba(196,198,207,0.2)', maxWidth: '700px' }}>
-            <Calendar size={36} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-            <p style={{ fontSize: '14px', color: '#74777f', margin: '0 0 4px', fontWeight: 600 }}>{tr('no_hearings_date')}</p>
-            <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Click any date on the calendar to see its schedule</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '700px' }}>
-            {selectedItems?.hearings.map((h: any) => {
-              const colors    = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
-              const onHoliday = selectedHolidays.length > 0;
-              return (
-                <div key={h.id} style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: `1px solid ${onHoliday ? '#fdba74' : 'rgba(196,198,207,0.15)'}`, boxShadow: '0px 1px 4px rgba(2,36,72,0.05)' }}>
-                  {onHoliday && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', padding: '6px 10px', background: '#fff7ed', borderRadius: '6px' }}>
-                      <AlertTriangle size={12} color="#ea580c" />
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#c2410c' }}>Scheduled on a court holiday — verify with registry</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: '20px' }}>
-                    <div style={{ flexShrink: 0, textAlign: 'center', borderRight: '1px solid rgba(196,198,207,0.2)', paddingRight: '20px', minWidth: '52px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#43474e' }}>{h.time || '--:--'}</div>
-                      <div style={{ fontSize: '10px', color: '#74777f' }}>IST</div>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', background: colors.bg, color: colors.text, borderRadius: '2px', textTransform: 'uppercase' }}>{h.purpose?.replace(/_/g,' ')}</span>
-                        {h.court_room && <span style={{ fontSize: '11px', fontWeight: 700, color: '#43474e' }}>{h.court_room}</span>}
-                      </div>
-                      <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#022448', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.case?.title}</h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#74777f', marginBottom: '14px' }}>
-                        <MapPin size={12} />
-                        <span>{h.case?.court}</span>
-                        {h.case?.cnr_number && <><span>·</span><span style={{ fontFamily: 'monospace' }}>{h.case.cnr_number}</span></>}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                        <Link href={`/cases/${h.case?.id}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
-                          <ExternalLink size={13} /> VIEW CASE FILE
-                        </Link>
-                        <Link href={`/cases/${h.case?.id}?tab=drafts`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
-                          <FileText size={13} /> BRIEFING NOTE
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {selectedItems?.tasks.map((t: any) => (
-              <div key={t.id} style={{ background: '#fffbeb', borderRadius: '10px', padding: '12px 16px', border: '1px solid rgba(202,138,4,0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#854d0e', margin: 0 }}>{t.title}</p>
-                  <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0' }}>Task due · {t.case?.title}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
