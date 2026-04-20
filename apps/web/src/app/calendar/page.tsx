@@ -343,7 +343,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Agenda */}
-      <div style={{ marginTop: '32px' }}>
+      <div style={{ marginTop: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px', maxWidth: '700px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.5rem', color: '#022448', margin: 0 }}>
             Agenda: {selectedDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
