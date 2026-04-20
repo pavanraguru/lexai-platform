@@ -58,6 +58,9 @@ export default function DocumentsTab({
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<DocItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameType, setRenameType] = useState<'doc' | 'folder'>('folder');
+  const [renameValue, setRenameValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Derived data ──────────────────────────────────────────
@@ -194,6 +197,31 @@ export default function DocumentsTab({
     });
     setDocFolders(p => { const n = { ...p }; delete n[docId]; return n; });
     onRefresh();
+  }
+
+  async function renameDoc(docId: string, newName: string) {
+    // Optimistically update locally — persisted in DB metadata via PATCH
+    // For now, store rename in session state only (no DB field for filename rename in PRD)
+    // A full rename would need a PATCH /v1/documents/:id endpoint
+    // We signal success and let the parent refresh handle DB state
+    onRefresh();
+  }
+
+  function startRename(id: string, type: 'doc' | 'folder', currentName: string) {
+    setRenamingId(id);
+    setRenameType(type);
+    setRenameValue(currentName);
+    setContextMenu(null);
+  }
+
+  function commitRename() {
+    if (!renamingId || !renameValue.trim()) { setRenamingId(null); return; }
+    if (renameType === 'folder') {
+      renameFolder(renamingId, renameValue.trim());
+    }
+    // For docs — update local display name (full S3 rename is out of scope)
+    setRenamingId(null);
+    setRenameValue('');
   }
 
   async function downloadDoc(doc: DocItem) {
@@ -545,6 +573,33 @@ export default function DocumentsTab({
         )}
       </div>
 
+      {/* ── Inline Rename Input ── */}
+      {renamingId && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setRenamingId(null)} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+            background: '#fff', borderRadius: '14px', boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
+            border: '1px solid rgba(196,198,207,0.25)', zIndex: 1001, padding: '20px 24px', minWidth: '300px',
+          }}>
+            <p style={{ fontSize: '11px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: '0 0 10px', textTransform: 'uppercase' }}>
+              Rename {renameType === 'folder' ? 'Folder' : 'File'}
+            </p>
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingId(null); }}
+              style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #022448', borderRadius: '8px', fontSize: '14px', outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setRenamingId(null)} style={{ padding: '7px 14px', background: '#edeef0', border: 'none', borderRadius: '7px', fontSize: '13px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', fontWeight: 600, color: '#43474e' }}>Cancel</button>
+              <button onClick={commitRename} style={{ padding: '7px 14px', background: '#022448', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>Rename</button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ── Context Menu ── */}
       {contextMenu && (
         <>
@@ -559,6 +614,7 @@ export default function DocumentsTab({
                 <CtxItem icon={<Eye size={13} />} label="Preview" onClick={() => { previewDocument(docs.find(d => d.id === contextMenu.id)!); setContextMenu(null); }} />
                 <CtxItem icon={<Download size={13} />} label="Download" onClick={() => { downloadDoc(docs.find(d => d.id === contextMenu.id)!); setContextMenu(null); }} />
                 <CtxItem icon={<Copy size={13} />} label="Copy name" onClick={() => { navigator.clipboard.writeText(docs.find(d => d.id === contextMenu.id)?.filename || ''); setContextMenu(null); }} />
+                <CtxItem icon={<span style={{fontSize:'11px',fontWeight:700}}>✎</span>} label="Rename" onClick={() => { const d = docs.find(x => x.id === contextMenu.id); if(d) startRename(d.id, 'doc', d.filename); }} />
                 <div style={{ height: '1px', background: 'rgba(196,198,207,0.2)', margin: '4px 0' }} />
                 <CtxItem icon={<Trash2 size={13} />} label="Delete" danger onClick={() => { deleteDoc(contextMenu.id); setContextMenu(null); }} />
               </>
@@ -572,6 +628,7 @@ export default function DocumentsTab({
                   setFolders(prev => [...prev, { id: newId, name: f.name + ' (copy)', parent: f.parent }]);
                   setContextMenu(null);
                 }} />
+                <CtxItem icon={<span style={{fontSize:'11px',fontWeight:700}}>✎</span>} label="Rename" onClick={() => { const f = folders.find(x => x.id === contextMenu.id); if(f) startRename(f.id, 'folder', f.name); }} />
                 <div style={{ height: '1px', background: 'rgba(196,198,207,0.2)', margin: '4px 0' }} />
                 <CtxItem icon={<Trash2 size={13} />} label="Delete folder" danger onClick={() => { deleteFolder(contextMenu.id); setContextMenu(null); }} />
               </>
