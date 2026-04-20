@@ -121,8 +121,8 @@ export default function GlobalUpload() {
   const errorCount = files.filter(f => f.status === 'error').length;
 
   return (
-    <>
-      <button onClick={() => setOpen(true)} style={{
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(o => !o)} style={{
         display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 11px',
         borderRadius: '8px', background: '#022448', color: '#fff', border: 'none',
         cursor: 'pointer', fontSize: '12px', fontWeight: 700, fontFamily: 'Manrope, sans-serif',
@@ -130,23 +130,22 @@ export default function GlobalUpload() {
         <Upload size={13} /> Import
       </button>
 
+      {/* Click-outside backdrop */}
+      {open && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2999 }}
+          onClick={reset} />
+      )}
+
       {open && (
         <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
+          position: 'absolute', top: 'calc(100% + 10px)', right: 0,
           zIndex: 3000,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
-          boxSizing: 'border-box',
-        }} onClick={e => { if (e.target === e.currentTarget) reset(); }}>
-          <div style={{
-            background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '540px',
-            maxHeight: '88vh', display: 'flex', flexDirection: 'column',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
-          }}>
+          background: '#fff', borderRadius: '20px', width: '520px',
+          maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1)',
+          border: '1px solid rgba(196,198,207,0.2)',
+          overflow: 'hidden',
+        }}>
             {/* Header */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px', borderBottom:'1px solid rgba(196,198,207,0.2)', flexShrink:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
@@ -297,8 +296,7 @@ export default function GlobalUpload() {
               )}
             </div>
           </div>
-        </div>
       )}
-    </>
+    </div>
   );
 }
