@@ -357,13 +357,47 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
     setEditingDraft(data.data);
   };
 
-  const downloadDraft = (draft: any) => {
-    const text = draft.content?.text || draft.content?.content || '';
-    const blob = new Blob([String(text)], { type: 'text/plain' });
+  const downloadDraft = (draft: any, fmt: 'txt' | 'pdf' = 'txt') => {
+    const text = String(draft.content?.text || draft.content?.content || '');
+    const title = draft.title || 'Untitled Draft';
+    const safeTitle = title.replace(/[^a-zA-Z0-9 ]/g, ' ').trim();
+
+    if (fmt === 'pdf') {
+      const safeText = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"/>'
+        + '<style>body{font-family:"Times New Roman",serif;font-size:13pt;line-height:1.8;margin:72px;color:#111}'
+        + 'h1{font-size:16pt;font-weight:800;margin:0 0 8px}'
+        + '.meta{font-size:9pt;color:#888;margin-bottom:32px;padding-bottom:12px;border-bottom:1px solid #eee}'
+        + '.body{white-space:pre-wrap;font-size:12pt;line-height:2}'
+        + '.footer{margin-top:40px;padding-top:10px;border-top:1px solid #eee;font-size:9pt;color:#aaa;display:flex;justify-content:space-between}'
+        + '@page{margin:2.5cm}'
+        + '</style></head><body>'
+        + '<h1>' + safeTitle + '</h1>'
+        + '<div class="meta">' + (caseData?.title ? 'Case: ' + caseData.title.replace(/</g,'&lt;') + ' &nbsp;·&nbsp; ' : '')
+        + 'Created by LexAI India &nbsp;·&nbsp; ' + new Date().toLocaleDateString('en-IN') + '</div>'
+        + '<div class="body">' + safeText + '</div>'
+        + '<div class="footer"><span>' + safeTitle + '</span><span>Page <span class="page"></span></span></div>'
+        + '</body></html>';
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:210mm;height:297mm;';
+      document.body.appendChild(iframe);
+      iframe.contentDocument!.open();
+      iframe.contentDocument!.write(html);
+      iframe.contentDocument!.close();
+      setTimeout(() => {
+        iframe.contentWindow!.focus();
+        iframe.contentWindow!.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      }, 400);
+      return;
+    }
+
+    // Plain text download
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (draft.title || 'draft').replace(/[^a-zA-Z0-9]/g, '_') + '.txt';
+    a.download = safeTitle.replace(/ /g,'_') + '.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -403,9 +437,14 @@ function DraftingWorkspace({ caseId, token, caseData }: { caseId: string; token:
             <button onClick={() => saveDraft(editingDraft, editorText)} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', background: saving ? '#dcfce7' : '#022448', color: saving ? '#15803d' : '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif' }}>
               <Save size={13} /> {saving ? tr('saving') : tr('save')}
             </button>
-            <button onClick={() => downloadDraft({ ...editingDraft, content: { text: editorText } })} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-              <Download size={13} /> Download
-            </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button onClick={() => downloadDraft({ ...editingDraft, content: { text: editorText } }, 'pdf')} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                <Download size={13} /> PDF
+              </button>
+              <button onClick={() => downloadDraft({ ...editingDraft, content: { text: editorText } }, 'txt')} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 10px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                <Download size={13} /> TXT
+              </button>
+            </div>
           </div>
         </div>
 
@@ -585,7 +624,7 @@ Use AI Generate above to get a complete draft pre-filled with your case details,
                   <button onClick={() => openDraft(draft)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
                     <Eye size={13} /> Open
                   </button>
-                  <button onClick={() => downloadDraft(draft)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 10px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                  <button onClick={() => downloadDraft(draft, 'pdf')} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 10px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
                     <Download size={13} />
                   </button>
                   <button onClick={() => deleteDraft(draft.id)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 10px', background: '#ffdad6', color: '#93000a', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
@@ -1027,6 +1066,88 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
   );
 }
 
+// ── Limitation Period Calculator ──────────────────────────────
+function LimitationCalc({ caseType }: { caseType: string }) {
+  const LIMITS: Record<string, { article: string; period: string; days: number; description: string }> = {
+    civil_district:      { article: 'Art. 113', period: '3 years',  days: 1095, description: 'General suits — from date of cause of action' },
+    writ_hc:             { article: 'Art. 113', period: '3 years',  days: 1095, description: 'Writ petitions — though courts have discretion' },
+    criminal_sessions:   { article: 'S.468 CrPC', period: '3 years', days: 1095, description: 'For offences punishable > 1 year imprisonment' },
+    criminal_magistrate: { article: 'S.468 CrPC', period: '1 year',  days: 365,  description: 'For offences punishable up to 1 year' },
+    corporate_nclt:      { article: 'NCLT Rules', period: '3 years', days: 1095, description: 'Company law matters under Companies Act 2013' },
+    family:              { article: 'Art. 54 LA', period: '1 year',  days: 365,  description: 'Matrimonial relief — from date of accrual' },
+    labour:              { article: 'ID Act',     period: '3 years', days: 1095, description: 'Industrial disputes from date of discharge/dismissal' },
+    ip:                  { article: 'Art. 113',   period: '3 years', days: 1095, description: 'IP infringement suits' },
+    tax:                 { article: 'IT Act',     period: '4 years', days: 1460, description: 'Tax reassessment period' },
+    arbitration:         { article: 'Art. 137',   period: '3 years', days: 1095, description: 'Arbitration references — from date of cause' },
+    consumer:            { article: 'CP Act',     period: '2 years', days: 730,  description: 'Consumer complaints from date of deficiency' },
+    motor_accident:      { article: 'Art. 113',   period: '3 years', days: 1095, description: 'Motor accident claims' },
+  };
+
+  const limit = LIMITS[caseType] || LIMITS.civil_district;
+  const [startDate, setStartDate] = useState('');
+  const [result, setResult] = useState<{ deadline: Date; daysLeft: number; warning: boolean } | null>(null);
+
+  const calculate = () => {
+    if (!startDate) return;
+    const start = new Date(startDate);
+    const deadline = new Date(start);
+    deadline.setDate(deadline.getDate() + limit.days);
+    const today = new Date();
+    const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
+    setResult({ deadline, daysLeft, warning: daysLeft < 30 });
+  };
+
+  return (
+    <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(196,198,207,0.2)', padding: '18px 20px', marginTop: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+        <span style={{ fontSize: '16px' }}>⚖️</span>
+        <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: 0 }}>Limitation Period Calculator</h3>
+        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: '#d5e3ff', color: '#001c3b' }}>{limit.article} · {limit.period}</span>
+      </div>
+      <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px' }}>{limit.description}</p>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '180px' }}>
+          <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px' }}>Date of Cause of Action</label>
+          <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setResult(null); }}
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' }} />
+        </div>
+        <button onClick={calculate} disabled={!startDate}
+          style={{ padding: '9px 18px', background: startDate ? '#022448' : '#edeef0', color: startDate ? '#fff' : '#74777f', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: startDate ? 'pointer' : 'not-allowed', fontFamily: 'Manrope, sans-serif', flexShrink: 0 }}>
+          Calculate
+        </button>
+      </div>
+      {result && (
+        <div style={{ marginTop: '14px', padding: '14px 16px', borderRadius: '10px', background: result.warning ? '#ffdad6' : result.daysLeft < 90 ? '#fff7ed' : '#dcfce7', border: '1px solid ' + (result.warning ? '#ffb4ab' : result.daysLeft < 90 ? '#fdba74' : '#86efac') }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Filing Deadline</p>
+              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.3rem', fontWeight: 700, color: '#022448', margin: 0 }}>
+                {result.deadline.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Days Remaining</p>
+              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.3rem', fontWeight: 800, color: result.warning ? '#93000a' : result.daysLeft < 90 ? '#c2410c' : '#15803d', margin: 0 }}>
+                {result.daysLeft > 0 ? result.daysLeft + ' days' : 'EXPIRED ' + Math.abs(result.daysLeft) + ' days ago'}
+              </p>
+            </div>
+          </div>
+          {result.warning && result.daysLeft > 0 && (
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#93000a', margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              ⚠ Urgent: Less than 30 days remaining — file immediately
+            </p>
+          )}
+          {result.daysLeft <= 0 && (
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#93000a', margin: '10px 0 0' }}>
+              ⚠ Limitation period has expired. Condonation of delay application may be required under Section 5 of the Limitation Act.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useAuthStore();
@@ -1372,6 +1493,10 @@ export default function CaseDetailPage() {
               </div>
             ))}
           </div>
+
+          {/* Limitation Period Calculator */}
+          <LimitationCalc caseType={c.case_type || 'civil_district'} />
+
         </div>
       )}
 
@@ -1512,9 +1637,34 @@ export default function CaseDetailPage() {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <p style={{ color: '#74777f', fontSize: '13px', margin: 0 }}>{activeTasks.length} active · {doneTasks.length} done</p>
-            <button onClick={() => setShowTaskForm(!showTaskForm)} style={btnPrimary}>
-              <Plus size={14} /> Add Task
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => {
+                const templates: Record<string, string[]> = {
+                  bail_application: ['Draft bail application', 'File bail application', 'Serve notice to prosecution', 'Attend bail hearing', 'Collect surety documents'],
+                  criminal_sessions: ['Review chargesheet', 'Interview witnesses', 'Draft opening statement', 'Prepare cross-examination questions', 'File written arguments'],
+                  criminal_magistrate: ['Review FIR', 'Draft bail application', 'Attend plea hearing', 'File written statement'],
+                  civil_district: ['Draft plaint', 'File plaint with court fee', 'Serve summons on defendant', 'File evidence affidavit', 'Draft written arguments'],
+                  writ_hc: ['Draft writ petition', 'File petition', 'Serve respondents', 'File counter affidavit reply', 'Attend hearing'],
+                  family: ['Draft petition', 'File petition', 'Attend mediation', 'File maintenance application', 'Attend hearing'],
+                  corporate_nclt: ['Draft company petition', 'File petition with NCLT', 'Serve all respondents', 'File rejoinder', 'Draft final arguments'],
+                };
+                const caseTemplates = templates[c.case_type as keyof typeof templates] || templates.civil_district;
+                if (confirm(`Create ${caseTemplates.length} standard tasks for ${(c.case_type || 'this case type').replace(/_/g,' ')}?`)) {
+                  Promise.all(caseTemplates.map(title =>
+                    fetch(BASE + '/v1/tasks', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                      body: JSON.stringify({ case_id: id, title, priority: 'normal', status: 'todo' }),
+                    })
+                  )).then(() => refresh()).catch(console.error);
+                }
+              }} style={{ ...btnGhost, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                📋 Use Template
+              </button>
+              <button onClick={() => setShowTaskForm(!showTaskForm)} style={btnPrimary}>
+                <Plus size={14} /> Add Task
+              </button>
+            </div>
           </div>
 
           {showTaskForm && (

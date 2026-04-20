@@ -11,6 +11,7 @@ import {
   Type, AlignLeft, Image, Clock, MessageSquare, Minus,
   ChevronUp, ChevronDown, Save, Loader2, LayoutGrid,
   Bold, PaintBucket, Palette, Maximize2,
+  Download,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -740,6 +741,33 @@ export default function PresentationBuilderPage() {
           <button onClick={() => save()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', background: saved ? '#dcfce7' : '#022448', color: saved ? '#15803d' : '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
             {saving ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={13} />}
             {saved ? 'Saved!' : saving ? 'Saving...' : 'Save'}
+          </button>
+
+          <button onClick={() => {
+            // Export slides as printable PDF
+            const slideData = slides as any[];
+            const slideHtml = slideData.map((slide: any, i: number) => {
+              const bg = slide.customBg || '#022448';
+              const tc = slide.customText || '#ffffff';
+              const content_text = slide.content || '';
+              return '<div style="page-break-after:always;background:' + bg + ';color:' + tc + ';padding:60px;min-height:540px;display:flex;flex-direction:column;justify-content:center;font-family:serif;">'
+                + '<div style="font-size:9pt;opacity:0.6;margin-bottom:16px;letter-spacing:0.1em;text-transform:uppercase">' + (slide.type || 'slide').toUpperCase() + ' ' + (i+1) + '</div>'
+                + (slide.title ? '<h2 style="font-size:28pt;font-weight:800;margin:0 0 20px;line-height:1.2">' + slide.title.replace(/</g,'&lt;') + '</h2>' : '')
+                + (content_text ? '<p style="font-size:14pt;line-height:1.8;opacity:0.9;white-space:pre-wrap">' + String(content_text).replace(/</g,'&lt;') + '</p>' : '')
+                + '</div>';
+            }).join('');
+            const html = '<!DOCTYPE html><html><head><meta charset="utf-8"/>'
+              + '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:serif}@page{size:A4 landscape;margin:0}@media print{div{page-break-inside:avoid}}</style>'
+              + '</head><body>' + slideHtml + '</body></html>';
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:297mm;height:210mm;';
+            document.body.appendChild(iframe);
+            iframe.contentDocument!.open();
+            iframe.contentDocument!.write(html);
+            iframe.contentDocument!.close();
+            setTimeout(() => { iframe.contentWindow!.focus(); iframe.contentWindow!.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 500);
+          }} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+            <Download size={13} /> Export PDF
           </button>
 
           <Link href={`/presentations/${id}/present`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', background: '#ffe088', color: '#745c00', borderRadius: '7px', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}>
