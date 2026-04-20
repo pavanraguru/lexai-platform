@@ -17,8 +17,8 @@ async function safeFind(fn: () => Promise<any[]>): Promise<any[]> {
 async function getAnalytics(fastify: any, tenant_id: string) {
   const [cases, hearings, invoices] = await Promise.all([
     fastify.prisma.case.findMany({
-      where: { tenant_id, deleted_at: null },
-      select: { id: true, case_type: true, status: true, created_at: true, outcome: true },
+      where: { tenant_id },
+      select: { id: true, case_type: true, status: true, created_at: true },
     }),
     fastify.prisma.hearing.findMany({
       where: { case: { tenant_id } },
@@ -32,15 +32,18 @@ async function getAnalytics(fastify: any, tenant_id: string) {
 
   const now = new Date();
 
-  // Case outcomes from hearing outcomes
+  // Case outcomes — derive from hearing outcomes + case status
   let won = 0, settled = 0, lostOrPending = 0;
-  for (const c of cases) {
-    if (c.status === 'decided' || c.status === 'closed') {
-      const caseHearings = hearings.filter((h: any) => h.case_id === c.id && h.outcome);
-      const outcomes = caseHearings.map((h: any) => (h.outcome || '').toLowerCase());
-      if (outcomes.some((o: string) => o.includes('allow') || o.includes('grant') || o.includes('acquit') || o.includes('favour'))) won++;
-      else if (outcomes.some((o: string) => o.includes('settl') || o.includes('compro'))) settled++;
-      else lostOrPending++;
+  for (const c of (cases as any[])) {
+    const caseHearings = (hearings as any[]).filter((h: any) => h.case_id === c.id && h.outcome);
+    const outcomeTexts = caseHearings.map((h: any) => (h.outcome || '').toLowerCase());
+    const isDecided = c.status === 'decided' || c.status === 'closed';
+    if (isDecided && outcomeTexts.some((o: string) => o.includes('allow') || o.includes('grant') || o.includes('acquit') || o.includes('favour') || o.includes('disposed') || o.includes('decree'))) {
+      won++;
+    } else if (outcomeTexts.some((o: string) => o.includes('settl') || o.includes('compro') || o.includes('consent'))) {
+      settled++;
+    } else if (isDecided) {
+      lostOrPending++;
     } else {
       lostOrPending++;
     }
@@ -76,7 +79,7 @@ async function getAnalytics(fastify: any, tenant_id: string) {
     .map(([type, count]) => ({
       type, count,
       pct: Math.round((count / total) * 100),
-      label: type.replace(/_/g, ' ').replace(/\w/g, (c: string) => c.toUpperCase()),
+      label: type.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
     }));
 
   // Revenue

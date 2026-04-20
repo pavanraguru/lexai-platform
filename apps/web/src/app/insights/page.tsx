@@ -170,14 +170,22 @@ export default function InsightsPage() {
     </div>
   );
 
-  if (!analytics) return (
-    <div style={{ padding: '32px 28px' }}>
-      <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: 0 }}>Practice Insights</h1>
-      <p style={{ color: '#74777f', marginTop: '8px' }}>Unable to load analytics. Please try again.</p>
-    </div>
-  );
+  // Use empty fallback so page always renders
+  const safeAnalytics = analytics || {
+    win_rate: 0,
+    active_matters: 0,
+    total_cases: 0,
+    outcomes: { won: 0, settled: 0, lost_pending: 0 },
+    volume_by_month: [
+      { month: 'Jan', count: 0 }, { month: 'Feb', count: 0 }, { month: 'Mar', count: 0 },
+      { month: 'Apr', count: 0 }, { month: 'May', count: 0 }, { month: 'Jun', count: 0 },
+    ],
+    practice_areas: [],
+    avg_revenue_per_matter_paise: 0,
+    total_revenue_paise: 0,
+  };
 
-  const { win_rate, active_matters, total_cases, outcomes, volume_by_month, practice_areas, avg_revenue_per_matter_paise } = analytics;
+  const { win_rate, active_matters, total_cases, outcomes, volume_by_month, practice_areas, avg_revenue_per_matter_paise } = safeAnalytics;
 
   return (
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
@@ -186,6 +194,15 @@ export default function InsightsPage() {
         <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2rem', fontWeight: 700, color: '#022448', margin: '0 0 4px' }}>Practice Insights</h1>
         <p style={{ fontSize: '14px', color: '#74777f', margin: 0 }}>Track wins, efficiency and revenue across your entire practice</p>
       </div>
+      {!analytics && !isLoading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+          <span style={{ fontSize: '16px' }}>⚠️</span>
+          <div>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#c2410c', margin: '0 0 2px' }}>Analytics data unavailable</p>
+            <p style={{ fontSize: '12px', color: '#9a3412', margin: 0 }}>The server returned an error. Charts below show empty state. Try refreshing the page.</p>
+          </div>
+        </div>
+      )}
 
       {/* KPI row */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
