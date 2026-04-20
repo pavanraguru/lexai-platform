@@ -681,28 +681,35 @@ export default function DocumentsTab({
             </div>
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f5f7' }}>
               {previewUrl ? (() => {
-                const mime = previewDoc.mime_type || '';
-                const isImage = mime.startsWith('image/');
-                const isPdf = mime === 'application/pdf';
-                const isOffice = mime.includes('word') || mime.includes('excel') || mime.includes('powerpoint') ||
+                const mime = (previewDoc.mime_type || '').toLowerCase();
+                const fname = (previewDoc.filename || '').toLowerCase();
+                // Detect by MIME first, then fall back to filename extension
+                const isImage = mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|tiff?|svg)$/i.test(fname);
+                const isPdf = mime === 'application/pdf' || fname.endsWith('.pdf');
+                const isOffice = !isPdf && !isImage && (
+                  mime.includes('word') || mime.includes('excel') || mime.includes('powerpoint') ||
                   mime.includes('spreadsheet') || mime.includes('presentation') ||
-                  previewDoc.filename.match(/\.(docx?|xlsx?|pptx?)$/i);
-                const isText = mime.startsWith('text/') || previewDoc.filename.match(/\.txt$/i);
+                  mime.includes('officedocument') ||
+                  /\.(docx?|xlsx?|pptx?)$/i.test(fname)
+                );
+                const isText = !isPdf && !isImage && !isOffice && (
+                  mime.startsWith('text/') || /\.(txt|csv|json|xml|md)$/i.test(fname)
+                );
                 if (isImage) return (
-                  <img src={previewUrl} alt={previewDoc.filename} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  <img src={previewUrl} alt={previewDoc.filename} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
                 );
                 if (isPdf) return (
-                  <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title={previewDoc.filename} />
+                  <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title={previewDoc.filename} />
                 );
                 if (isOffice) return (
                   <iframe
                     src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`}
-                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
                     title={previewDoc.filename}
                   />
                 );
                 if (isText) return (
-                  <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none', background: '#fff', fontFamily: 'monospace' }} title={previewDoc.filename} />
+                  <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }} title={previewDoc.filename} />
                 );
                 // Unsupported — show download prompt
                 return (
