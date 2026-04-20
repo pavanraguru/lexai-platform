@@ -69,7 +69,7 @@ TASK: Analyse the provided legal documents and extract:
 
 CRITICAL: FIR filing delay >12 hours is highly significant — flag it prominently as a HIGH importance fact.
 
-Return ONLY valid JSON matching this exact schema. No markdown, no explanation:
+Return ONLY valid JSON. NO markdown code fences, NO backticks, NO ```json wrapper, NO explanation text before or after. Start your response with { and end with }:
 {
   "exhibits": [{"number": "E-1", "description": "...", "doc_id": "...", "page": 1}],
   "key_facts": [{"fact": "...", "doc_id": "...", "page": 1, "importance": "high|medium|low"}],
@@ -101,7 +101,7 @@ Identify:
 
 All timestamps must be in IST (UTC+5:30).
 
-Return ONLY valid JSON:
+Return ONLY valid JSON (no markdown fences, start with {, end with }):
 {
   "events": [{
     "date": "YYYY-MM-DD",
@@ -137,7 +137,7 @@ TASK: Analyse this deposition for:
 
 Use Indian court terminology: Examination-in-Chief, Cross-Examination, Re-Examination.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON (no markdown fences, start with {, end with }):
 {
   "witness_name": "...",
   "witness_type": "PW|DW|CW",
@@ -169,7 +169,7 @@ TASK: Identify relevant Indian law for this case:
 
 IMPORTANT DISCLAIMER: Include this exact disclaimer in your output.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON (no markdown fences, start with {, end with }):
 {
   "applicable_statutes": [{"act": "...", "section": "...", "description": "...", "relevance": "..."}],
   "favorable_precedents": [{
@@ -213,7 +213,7 @@ TASK: Prepare complete court strategy for ${perspective} in ${caseData.court}:
 5. Top 3 strengths for the client
 6. Top 3 vulnerabilities with mitigation strategies
 
-Return ONLY valid JSON:
+Return ONLY valid JSON (no markdown fences, start with {, end with }):
 {
   "perspective": "${perspective}",
   "opening_statement": "In the matter of... [full opening statement text]",
@@ -376,18 +376,43 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
     const outputTokens = response.usage.output_tokens;
     const costINR = calculateCostINR(inputTokens, outputTokens);
 
-    // Parse JSON output
+    // Parse JSON output — robust extraction handling all Claude formatting styles
     let parsedOutput: any;
     try {
-      // Strip any markdown code fences if Claude adds them
-      const clean = rawOutput.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-      parsedOutput = JSON.parse(clean);
+      // Strategy 1: Try direct parse first (ideal case)
+      let jsonStr = rawOutput.trim();
+      
+      // Strategy 2: Strip ```json ... ``` or ``` ... ``` fences (most common)
+      const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]+?)```/);
+      if (fenceMatch) {
+        jsonStr = fenceMatch[1].trim();
+      }
+      
+      // Strategy 3: Extract first { } block if there's preamble text
+      if (!jsonStr.startsWith('{')) {
+        const braceStart = jsonStr.indexOf('{');
+        if (braceStart !== -1) {
+          // Find matching closing brace
+          let depth = 0;
+          let end = -1;
+          for (let i = braceStart; i < jsonStr.length; i++) {
+            if (jsonStr[i] === '{') depth++;
+            else if (jsonStr[i] === '}') {
+              depth--;
+              if (depth === 0) { end = i; break; }
+            }
+          }
+          if (end !== -1) jsonStr = jsonStr.slice(braceStart, end + 1);
+        }
+      }
+      
+      parsedOutput = JSON.parse(jsonStr);
       parsedOutput.agent_type = agent_type;
       parsedOutput.case_id = case_id;
+      console.log('[Agent Worker] JSON parsed successfully, keys:', Object.keys(parsedOutput).join(', '));
     } catch (parseErr) {
-      console.error('[Agent Worker] JSON parse failed, retrying with stricter prompt');
-      // On parse failure, retry with explicit JSON-only instruction
-      throw new Error(`Failed to parse Claude output as JSON: ${rawOutput.substring(0, 200)}`);
+      console.error('[Agent Worker] JSON parse failed. Raw output preview:', rawOutput.substring(0, 300));
+      throw new Error('Failed to parse Claude output as JSON: ' + rawOutput.substring(0, 200));
     }
 
     // Update job with completed status and output
@@ -470,7 +495,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
             type: 'agent_completed',
             title: `${agent_type.charAt(0).toUpperCase() + agent_type.slice(1)} Agent completed`,
             message: `AI analysis for "${caseRecord.title}" is ready. Cost: ₹${costINR}`,
-            action_url: `/cases/${case_id}/agents`,
+            action_url: `/cases/${case_id}`,
             related_case_id: case_id,
           },
         });
@@ -514,7 +539,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
             type: 'agent_failed',
             title: `${agent_type} Agent failed`,
             message: `Error: ${error.message}`,
-            action_url: `/cases/${case_id}/agents`,
+            action_url: `/cases/${case_id}`,
             related_case_id: case_id,
           },
         });
