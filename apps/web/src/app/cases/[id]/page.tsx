@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import DocumentsTab from './DocumentsTab';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
@@ -1376,122 +1377,14 @@ export default function CaseDetailPage() {
 
       {/* ─── DOCUMENTS ──────────────────────────────────── */}
       {activeTab === 'documents' && (
-        <div>
-          {/* Upload zone */}
-          <div style={{ border: '2px dashed rgba(196,198,207,0.5)', borderRadius: '16px', padding: '40px', textAlign: 'center', marginBottom: '16px', background: '#fff' }}>
-            <Upload size={32} color="#c4c6cf" style={{ marginBottom: '12px' }} />
-            <p style={{ fontWeight: 700, fontSize: '14px', color: '#022448', margin: '0 0 6px' }}>{tr('upload_documents')}</p>
-            <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 16px' }}>FIR, Charge Sheet, Evidence, Deposition — PDF or Image up to 50MB</p>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', ...btnPrimary }}>
-              <Upload size={14} /> Choose File
-              <input type="file" style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file || !c) return;
-                setError('');
-                try {
-                  // Get presigned URL
-                  const presignRes = await fetch(`${BASE}/v1/documents/presign`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ filename: file.name, mime_type: file.type, case_id: id, file_size_bytes: file.size }),
-                  });
-                  if (!presignRes.ok) throw new Error('Failed to get upload URL');
-                  const presignJson = await presignRes.json();
-                  const { presigned_url, s3_key } = presignJson.data;
-                  if (!presigned_url) throw new Error('No upload URL returned from server');
-                  // Upload directly to S3
-                  const uploadRes = await fetch(presigned_url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-                  if (!uploadRes.ok) throw new Error('Failed to upload file to S3');
-                  // Register document
-                  await apiCall('/v1/documents', 'POST', {
-                    case_id: id, filename: file.name, s3_key,
-                    mime_type: file.type, file_size_bytes: file.size,
-                  });
-                  refresh();
-                } catch (err: any) { setError(err.message); }
-              }} />
-            </label>
-          </div>
-          {/* Document list */}
-          {(c.documents || []).length === 0 ? (
-            <div style={{ ...cardStyle, padding: '32px', textAlign: 'center' }}>
-              <p style={{ color: '#74777f', fontSize: '14px' }}>{tr('no_documents_yet')}</p>
-            </div>
-          ) : (
-            <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              {(c.documents || []).filter((doc: any) => !doc.filename?.includes('English Translation')).map((doc: any, i: number) => (
-                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', borderBottom: i < c.documents.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
-                  <FileText size={20} color="#022448" style={{ flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#191c1e', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.filename}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
-                      {doc.doc_category && <span style={{ fontSize: '9px', fontWeight: 800, color: '#735c00', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{doc.doc_category.replace(/_/g, ' ')}</span>}
-                      <span style={{ fontSize: '11px', color: doc.processing_status === 'ready' ? '#15803d' : doc.processing_status === 'processing' ? '#735c00' : '#74777f' }}>
-                        {doc.processing_status === 'ready' ? '✓ Processed' : doc.processing_status === 'processing' ? '⟳ Processing...' : doc.processing_status === 'pending' ? '○ Pending OCR' : '⚠ ' + doc.processing_status}
-                      </span>
-                      {(doc.processing_status === 'pending' || doc.processing_status === 'failed') && (
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`${BASE}/v1/documents/${doc.id}/retry-ocr`, {
-                                method: 'POST', headers: { Authorization: `Bearer ${token}` },
-                              });
-                              const json = await res.json();
-                              if (!res.ok) { setError(json.error?.message || 'Retry failed'); return; }
-                              refresh();
-                            } catch { setError('Retry failed'); }
-                          }}
-                          style={{ fontSize: '10px', fontWeight: 700, color: '#022448', background: 'transparent', border: '1px solid rgba(2,36,72,0.2)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                          ↺ Retry OCR
-                        </button>
-                      )}
-                      {doc.page_count && <span style={{ fontSize: '11px', color: '#74777f' }}>{doc.page_count}pp</span>}
-                    </div>
-                  </div>
-                  {/* Translate + Preview + Download */}
-                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
-                    {doc.processing_status === 'ready' && !doc.filename?.includes('English Translation') && (
-                      <TranslateButton doc={doc} token={token!} />
-                    )}
-                    <button
-                      title="Preview in browser"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(`${BASE}/v1/documents/${doc.id}/preview`, {
-                            headers: { Authorization: `Bearer ${token}` },
-                          });
-                          const json = await res.json();
-                          if (json.data?.preview_url) window.open(json.data.preview_url, '_blank');
-                        } catch { alert('Preview failed'); }
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', background: '#d5e3ff', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 700, color: '#022448', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                      <Eye size={13} /> Preview
-                    </button>
-                    <button
-                      title="Download file"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(`${BASE}/v1/documents/${doc.id}/download`, {
-                            headers: { Authorization: `Bearer ${token}` },
-                          });
-                          const json = await res.json();
-                          if (json.data?.download_url) {
-                            const a = document.createElement('a');
-                            a.href = json.data.download_url;
-                            a.download = doc.filename;
-                            a.click();
-                          }
-                        } catch { alert('Download failed'); }
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', background: '#edeef0', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 700, color: '#43474e', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                      <Download size={13} /> Download
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <DocumentsTab
+          caseId={id}
+          token={token || ''}
+          documents={c.documents || []}
+          onRefresh={refresh}
+          cardStyle={cardStyle}
+          btnPrimary={btnPrimary}
+        />
       )}
 
       {/* ─── HEARINGS ───────────────────────────────────── */}

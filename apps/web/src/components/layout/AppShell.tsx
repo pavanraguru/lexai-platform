@@ -11,6 +11,7 @@ import {
   CheckCheck, AlertCircle, Bot, Gavel, Clock,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
+import GlobalUpload from '../GlobalUpload';
 import { useLang } from '@/hooks/useLanguage';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -405,6 +406,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <GlobalUpload />
             <LanguageSwitcher />
             <Link href="/cases/new" title="New Case" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', color: '#74777f', textDecoration: 'none' }}>
               <Plus size={18} />
