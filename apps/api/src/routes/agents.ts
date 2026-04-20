@@ -8,6 +8,9 @@ import { FastifyPluginAsync } from 'fastify';
 import { Queue } from 'bullmq';
 import { z } from 'zod';
 import { PLAN_LIMITS } from '@lexai/core';
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const RunAgentSchema = z.object({
   research_focus: z.string().optional(), // for research agent
@@ -31,6 +34,129 @@ const AGENT_DEPENDENCIES: Record<string, string[]> = {
   research:   [],
   strategy:   ['evidence', 'timeline', 'deposition', 'research'],
 };
+
+// ── Inline agent runner (fallback when Redis/BullMQ unavailable) ──────────────
+async function runAgentInline(fastify: any, job_id: string, agent_type: string, case_id: string, tenant_id: string) {
+  console.log(`[Agents Inline] Starting ${agent_type} for case ${case_id}`);
+
+  await fastify.prisma.agentJob.update({
+    where: { id: job_id },
+    data: { status: 'running', started_at: new Date() },
+  });
+
+  try {
+    const agentJob = await fastify.prisma.agentJob.findUnique({ where: { id: job_id } });
+    if (!agentJob) throw new Error('Job not found');
+
+    const cfg = agentJob.input_config as any;
+    const caseData = cfg.case_metadata;
+
+    // Fetch documents
+    const documents = await fastify.prisma.document.findMany({
+      where: { id: { in: cfg.doc_ids } },
+      select: { id: true, filename: true, doc_category: true, extracted_text: true, processing_status: true },
+    });
+
+    if (!documents.length) throw new Error('No documents found for this case.');
+
+    // Build doc context
+    const MAX = 4000;
+    let total = 0;
+    const docContext = documents.map((d: any) => {
+      if (d.extracted_text) {
+        const t = d.extracted_text.substring(0, MAX);
+        return `--- ${d.filename} (${d.doc_category || 'doc'}) ---\n${t}`;
+      }
+      return `--- ${d.filename} (${d.doc_category || 'doc'}) [no OCR text yet] ---`;
+    }).filter((c: string) => { if (total >= 16000) return false; total += c.length; return true; }).join('\n\n');
+
+    // Build prior outputs
+    const priorOutputs: Record<string, any> = {};
+    if (cfg.prior_agent_outputs) {
+      for (const [t, jid] of Object.entries(cfg.prior_agent_outputs as Record<string, string>)) {
+        const pj = await fastify.prisma.agentJob.findUnique({ where: { id: jid }, select: { output: true } });
+        if (pj?.output) priorOutputs[t] = pj.output;
+      }
+    }
+
+    // Prompts (condensed for inline use)
+    const courtAddress = caseData.court_level === 'supreme_court' || caseData.court_level === 'high_court' ? 'My Lord' : 'Your Honour';
+    const baseContext = `Case: ${caseData.title || 'Unknown'}\nCourt: ${caseData.court || 'Unknown'}\nType: ${caseData.case_type || 'Unknown'}\nPerspective: ${caseData.perspective || 'defence'}`;
+
+    const prompts: Record<string, { system: string; user: string }> = {
+      evidence: {
+        system: `You are a senior Indian advocate's AI assistant. Analyse evidence from the provided documents.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"exhibits":[{"number":"E-A","description":"...","doc_id":"...","relevance":"...","strength":"Strong|Moderate|Weak"}],"key_facts":["..."],"contradictions":["..."],"missing_evidence":["..."]}`,
+        user: `Analyse evidence:\n\n${docContext}`,
+      },
+      timeline: {
+        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
+        user: `Reconstruct timeline:\n\n${docContext}`,
+      },
+      research: {
+        system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
+        user: `Research Indian law for this case:\n\n${docContext.substring(0, 12000)}`,
+      },
+      deposition: {
+        system: `You are a senior Indian advocate's AI assistant specialising in deposition analysis.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"witness_name":"...","inconsistencies":[{"statement":"...","contradiction":"...","page":"..."}],"cross_examination_questions":["..."],"credibility_assessment":"High|Medium|Low","credibility_reasoning":"..."}`,
+        user: `Analyse this deposition:\n\n${docContext}`,
+      },
+      strategy: {
+        system: `You are a senior Indian advocate's AI assistant. Develop court strategy.\n${baseContext}\nAddress court as ${courtAddress}.\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"perspective":"defence","opening_statement":"In the matter of...","closing_skeleton":"1. Summary...","bench_questions":[{"question":"...","suggested_answer":"..."}],"sentiment":{"label":"Favorable|Neutral|Unfavorable","score":65,"reasoning":"...","evidence_strength":"Strong|Moderate|Weak","precedent_strength":"Strong|Moderate|Weak","timeline_consistency":"Consistent|Minor Gaps|Major Gaps","witness_credibility":"High|Medium|Low"},"strengths":["..."],"vulnerabilities":[{"issue":"...","mitigation":"..."}]}`,
+        user: `Develop strategy.\n\nEVIDENCE: ${JSON.stringify(priorOutputs.evidence || {}).substring(0, 2000)}\nRESEARCH: ${JSON.stringify(priorOutputs.research || {}).substring(0, 2000)}\nDOCS:\n${docContext.substring(0, 4000)}`,
+      },
+    };
+
+    const p = prompts[agent_type];
+    if (!p) throw new Error(`Unknown agent type: ${agent_type}`);
+
+    // Call Claude
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: agent_type === 'strategy' ? 4000 : 2000,
+      system: p.system,
+      messages: [{ role: 'user', content: p.user }],
+    });
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Parse JSON robustly
+    let parsed: any;
+    let jsonStr = raw.trim();
+    const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]+?)```/);
+    if (fenceMatch) jsonStr = fenceMatch[1].trim();
+    if (!jsonStr.startsWith('{')) {
+      const start = jsonStr.indexOf('{');
+      if (start !== -1) {
+        let depth = 0, end = -1;
+        for (let i = start; i < jsonStr.length; i++) {
+          if (jsonStr[i] === '{') depth++;
+          else if (jsonStr[i] === '}' && --depth === 0) { end = i; break; }
+        }
+        if (end !== -1) jsonStr = jsonStr.slice(start, end + 1);
+      }
+    }
+    parsed = JSON.parse(jsonStr);
+    parsed.agent_type = agent_type;
+    parsed.case_id = case_id;
+
+    const inputTokens = response.usage.input_tokens;
+    const outputTokens = response.usage.output_tokens;
+    const costINR = Math.round(((inputTokens / 1e6) * 3 + (outputTokens / 1e6) * 15) * 83.5 * 100) / 100;
+
+    await fastify.prisma.agentJob.update({
+      where: { id: job_id },
+      data: { status: 'completed', output: parsed, tokens_input: inputTokens, tokens_output: outputTokens, cost_inr: costINR, completed_at: new Date() },
+    });
+
+    console.log(`[Agents Inline] ✅ ${agent_type} done. Tokens: ${inputTokens}+${outputTokens}. Cost: ₹${costINR}`);
+  } catch (err: any) {
+    console.error(`[Agents Inline] ❌ ${agent_type} failed:`, err.message);
+    await fastify.prisma.agentJob.update({
+      where: { id: job_id },
+      data: { status: 'failed', error_message: String(err.message).substring(0, 500), completed_at: new Date() },
+    }).catch(() => {});
+  }
+}
 
 export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
@@ -173,19 +299,6 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    // Enqueue BullMQ job
-    const agentQueue = new Queue('agent-jobs', { connection: fastify.redis });
-    await agentQueue.add(`run-${agent_type}`, {
-      job_id: agentJob.id,
-      agent_type,
-      case_id,
-      tenant_id,
-    }, {
-      jobId: agentJob.id,
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 5000 },
-    });
-
     // Increment usage counter
     if (subscription) {
       await fastify.prisma.subscription.update({
@@ -194,12 +307,45 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
+    // Try BullMQ first; fall back to inline execution if Redis unavailable
+    let usedInline = false;
+    try {
+      const agentQueue = new Queue('agent-jobs', {
+        connection: fastify.redis,
+      });
+      await agentQueue.add(`run-${agent_type}`, {
+        job_id: agentJob.id,
+        agent_type,
+        case_id,
+        tenant_id,
+      }, {
+        jobId: agentJob.id,
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 3000 },
+      });
+      fastify.log.info(`[Agents] Job ${agentJob.id} queued via BullMQ`);
+    } catch (queueErr: any) {
+      // Redis unavailable — run directly in-process (no Redis needed)
+      fastify.log.warn(`[Agents] BullMQ unavailable (${queueErr.message}), running agent inline`);
+      usedInline = true;
+      // Fire-and-forget: run agent without blocking the HTTP response
+      setImmediate(async () => {
+        try {
+          await runAgentInline(fastify, agentJob.id, agent_type, case_id, tenant_id);
+        } catch (err: any) {
+          fastify.log.error(`[Agents] Inline agent failed: ${err.message}`);
+        }
+      });
+    }
+
     return reply.status(202).send({
       data: {
         job_id: agentJob.id,
-        status: 'queued',
+        status: usedInline ? 'running' : 'queued',
         agent_type,
-        message: 'Agent job queued. Connect to Supabase Realtime on agent_jobs table to receive updates.',
+        message: usedInline
+          ? 'Agent running directly (Redis unavailable). Poll job status for updates.'
+          : 'Agent job queued. Poll job status for updates.',
       }
     });
   });
