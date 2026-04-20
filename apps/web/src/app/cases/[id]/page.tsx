@@ -1278,23 +1278,42 @@ export default function CaseDetailPage() {
 
   const handleRunAgent = async (agentType: string) => {
     if (!c) return;
-    const readyDocs = (c.documents || []).filter((d: any) => d.processing_status === 'ready');
-    if (readyDocs.length === 0) {
-      setError('No processed documents found. Upload a document and wait for OCR to complete first.');
-      return;
-    }
     setRunningAgent(agentType); setError('');
     try {
-      const res = await fetch(`${BASE}/v1/agents/cases/${id}/run/${agentType}`, {
+      const res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({}),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
+
+      const jobId = json.data?.job_id;
       refresh();
-    } catch (err: any) { setError(err.message); }
-    setRunningAgent(null);
+
+      // Poll until done (inline agents complete in 30-90s)
+      if (jobId) {
+        const poll = setInterval(async () => {
+          try {
+            const jr = await fetch(BASE + '/v1/agents/jobs/' + jobId, {
+              headers: { Authorization: 'Bearer ' + token },
+            });
+            const jd = await jr.json();
+            const status = jd.data?.status;
+            if (status === 'completed' || status === 'failed') {
+              clearInterval(poll);
+              setRunningAgent(null);
+              refresh();
+            }
+          } catch { clearInterval(poll); setRunningAgent(null); }
+        }, 3000);
+        // Safety timeout after 3 minutes
+        setTimeout(() => { clearInterval(poll); setRunningAgent(null); refresh(); }, 180000);
+      }
+    } catch (err: any) {
+      setError(err.message);
+      setRunningAgent(null);
+    }
   };
 
   const handleCreatePresentation = async (e: React.FormEvent) => {

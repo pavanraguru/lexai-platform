@@ -307,45 +307,22 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    // Try BullMQ first; fall back to inline execution if Redis unavailable
-    let usedInline = false;
-    try {
-      const agentQueue = new Queue('agent-jobs', {
-        connection: fastify.redis,
-      });
-      await agentQueue.add(`run-${agent_type}`, {
-        job_id: agentJob.id,
-        agent_type,
-        case_id,
-        tenant_id,
-      }, {
-        jobId: agentJob.id,
-        attempts: 2,
-        backoff: { type: 'exponential', delay: 3000 },
-      });
-      fastify.log.info(`[Agents] Job ${agentJob.id} queued via BullMQ`);
-    } catch (queueErr: any) {
-      // Redis unavailable — run directly in-process (no Redis needed)
-      fastify.log.warn(`[Agents] BullMQ unavailable (${queueErr.message}), running agent inline`);
-      usedInline = true;
-      // Fire-and-forget: run agent without blocking the HTTP response
-      setImmediate(async () => {
-        try {
-          await runAgentInline(fastify, agentJob.id, agent_type, case_id, tenant_id);
-        } catch (err: any) {
-          fastify.log.error(`[Agents] Inline agent failed: ${err.message}`);
-        }
-      });
-    }
+    // Run agent directly in-process (no Redis/BullMQ dependency)
+    // Fire-and-forget: starts immediately, doesn't block HTTP response
+    setImmediate(async () => {
+      try {
+        await runAgentInline(fastify, agentJob.id, agent_type, case_id, tenant_id);
+      } catch (err: any) {
+        fastify.log.error(`[Agents] Inline agent failed: ${err.message}`);
+      }
+    });
 
     return reply.status(202).send({
       data: {
         job_id: agentJob.id,
-        status: usedInline ? 'running' : 'queued',
+        status: 'running',
         agent_type,
-        message: usedInline
-          ? 'Agent running directly (Redis unavailable). Poll job status for updates.'
-          : 'Agent job queued. Poll job status for updates.',
+        message: 'Agent started. Poll /v1/agents/jobs/' + agentJob.id + ' for status updates.',
       }
     });
   });

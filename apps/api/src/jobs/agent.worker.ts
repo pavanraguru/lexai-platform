@@ -69,7 +69,7 @@ TASK: Analyse the provided legal documents and extract:
 
 CRITICAL: FIR filing delay >12 hours is highly significant — flag it prominently as a HIGH importance fact.
 
-Return ONLY valid JSON. NO markdown code fences, NO backticks, NO ```json wrapper, NO explanation text before or after. Start your response with { and end with }:
+Return ONLY valid JSON. NO markdown, NO code fences, NO json wrapper, NO extra text. ONLY output raw JSON starting with { and ending with }:
 {
   "exhibits": [{"number": "E-1", "description": "...", "doc_id": "...", "page": 1}],
   "key_facts": [{"fact": "...", "doc_id": "...", "page": 1, "importance": "high|medium|low"}],
