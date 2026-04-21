@@ -1183,7 +1183,6 @@ export default function CaseDetailPage() {
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [cancellingAgent, setCancellingAgent] = useState(false);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-  const [cancellingAgent, setCancellingAgent] = useState(false);
 
   // Presentation state
   const [creatingPresentation, setCreatingPresentation] = useState(false);
