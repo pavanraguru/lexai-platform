@@ -18,7 +18,15 @@ const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
 });
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const prisma = new PrismaClient();
+// Use connection_limit=1 in the worker — it runs as a separate process
+// and must not exhaust the Supabase connection pool
+const rawUrl = process.env.DATABASE_URL || '';
+const dbUrl = rawUrl.includes('connection_limit')
+  ? rawUrl
+  : rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'connection_limit=1&pool_timeout=20&pgbouncer=true';
+const prisma = new PrismaClient({
+  datasources: { db: { url: dbUrl } },
+});
 
 // ── Indian Legal Context injected into every agent prompt ────
 const INDIAN_LEGAL_CONTEXT = `
