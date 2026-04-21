@@ -1181,6 +1181,7 @@ export default function CaseDetailPage() {
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [cancellingAgent, setCancellingAgent] = useState(false);
 
   // Presentation state
   const [creatingPresentation, setCreatingPresentation] = useState(false);
@@ -1314,6 +1315,18 @@ export default function CaseDetailPage() {
       setError(err.message);
       setRunningAgent(null);
     }
+  };
+
+  const handleCancelAgent = async () => {
+    setCancellingAgent(true);
+    try {
+      await fetch(BASE + '/v1/agents/cases/' + id + '/cancel-queued', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + token }
+      });
+      setRunningAgent(null);
+      refresh();
+    } catch {}
+    setCancellingAgent(false);
   };
 
   const handleCreatePresentation = async (e: React.FormEvent) => {
@@ -1769,67 +1782,70 @@ export default function CaseDetailPage() {
       {/* ─── AGENTS ─────────────────────────────────────── */}
       {activeTab === 'agents' && (
         <div>
-          {/* Stuck jobs banner */}
-          {(agents as any[]).some((j: any) => j.status === 'queued' || j.status === 'running') && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', margin: '0 0 2px' }}>
-                  {(agents as any[]).filter((j: any) => j.status === 'queued' || j.status === 'running').length} job(s) stuck in queue
-                </p>
-                <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Redis may be unavailable. Cancel stuck jobs then re-run — agents now work without Redis.</p>
-              </div>
-              <button onClick={async () => {
-                try {
-                  await fetch(BASE + '/v1/agents/cases/' + id + '/cancel-queued', {
-                    method: 'POST', headers: { Authorization: 'Bearer ' + token }
-                  });
-                  refresh();
-                } catch {}
-              }} style={{ padding: '8px 16px', background: '#9a3412', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                ✕ Cancel Stuck Jobs
-              </button>
-            </div>
-          )}
+          {/* Agent cards */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
             {AGENTS.map(({ type, Icon, label, desc }) => {
               const isRunning = runningAgent === type;
               const lastRun = agents.find((j: any) => j.agent_type === type);
+              const isDone = lastRun?.status === 'completed';
+              const isFailed = lastRun?.status === 'failed';
+              const lastRunTime = lastRun?.completed_at || lastRun?.created_at;
               return (
                 <div key={type} style={{ ...cardStyle, padding: '20px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon size={18} color="#022448" />
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: isDone ? '#dcfce7' : isFailed ? '#ffdad6' : '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={18} color={isDone ? '#15803d' : isFailed ? '#93000a' : '#022448'} />
                     </div>
-                    {lastRun?.status === 'completed' && (
-                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>
-                    )}
+                    {isDone && <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>}
+                    {isFailed && <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#ffdad6', color: '#93000a', borderRadius: '2px' }}>FAILED</span>}
                   </div>
-                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 4px' }}>{label}</h3>
-                  <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px', lineHeight: 1.5 }}>{desc}</p>
-                  <button onClick={() => handleRunAgent(type)} disabled={!!runningAgent} style={{
-                    ...btnPrimary, width: '100%', justifyContent: 'center',
-                    opacity: runningAgent && !isRunning ? 0.4 : 1,
-                    background: isRunning ? '#edeef0' : '#022448',
-                    color: isRunning ? '#43474e' : '#fff',
-                  }}>
-                    {isRunning ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Running...</> : <><Play size={13} /> Run Agent</>}
-                  </button>
+                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 2px' }}>{label}</h3>
+                  <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 4px', lineHeight: 1.5 }}>{desc}</p>
+                  {isDone && lastRunTime && (
+                    <p style={{ fontSize: '10px', color: '#15803d', margin: '0 0 10px', fontWeight: 600 }}>
+                      📄 Saved to Drafts · {new Date(lastRunTime).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </p>
+                  )}
+                  {isDone && lastRun?.cost_inr && (
+                    <p style={{ fontSize: '10px', color: '#74777f', margin: '0 0 10px' }}>Cost: ₹{Number(lastRun.cost_inr).toFixed(2)}</p>
+                  )}
+                  {!isDone && !isFailed && <div style={{ marginBottom: '10px' }} />}
+                  {isRunning ? (
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button disabled style={{ ...btnPrimary, flex: 1, justifyContent: 'center', background: '#edeef0', color: '#43474e', cursor: 'not-allowed' }}>
+                        <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Running...
+                      </button>
+                      <button onClick={handleCancelAgent} disabled={cancellingAgent} title="Cancel this agent" style={{ padding: '9px 12px', background: '#ffdad6', color: '#93000a', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 700 }}>
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => handleRunAgent(type)} disabled={!!runningAgent} style={{
+                      ...btnPrimary, width: '100%', justifyContent: 'center',
+                      opacity: runningAgent ? 0.4 : 1,
+                      background: isFailed ? '#93000a' : '#022448',
+                    }}>
+                      <Play size={13} /> {isDone ? 'Re-run' : isFailed ? '↺ Retry' : 'Run Agent'}
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
 
+          {/* Run history */}
           {agents.length > 0 && (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              <p style={sectionHeader}>{tr('run_history').toUpperCase()}</p>
-              {agents.slice(0, 8).map((job: any) => (
+              <p style={sectionHeader}>RUN HISTORY</p>
+              {agents.slice(0, 10).map((job: any) => (
                 <div key={job.id} style={{ padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
                       <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
-                        {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {new Date(job.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
                         {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
+                        {job.tokens_input ? ` · ${job.tokens_input + (job.tokens_output || 0)} tokens` : ''}
                       </p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1839,6 +1855,11 @@ export default function CaseDetailPage() {
                       }}>
                         {job.status.toUpperCase()}
                       </span>
+                      {job.status === 'completed' && (
+                        <span style={{ fontSize: '9px', fontWeight: 700, padding: '3px 8px', borderRadius: '2px', background: '#d5e3ff', color: '#022448' }}>
+                          📄 IN DRAFTS
+                        </span>
+                      )}
                       {job.status === 'failed' && (
                         <button onClick={() => handleRunAgent(job.agent_type)} disabled={!!runningAgent}
                           style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>

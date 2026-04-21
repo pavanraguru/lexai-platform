@@ -94,7 +94,7 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
       },
       research: {
         system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
-        user: `Research Indian law for this case:\n\n${docContext.substring(0, 12000)}`,
+        user: `Research Indian law for this case:\n\n${docContext.substring(0, 6000)}`,
       },
       deposition: {
         system: `You are a senior Indian advocate's AI assistant specialising in deposition analysis.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"witness_name":"...","inconsistencies":[{"statement":"...","contradiction":"...","page":"..."}],"cross_examination_questions":["..."],"credibility_assessment":"High|Medium|Low","credibility_reasoning":"..."}`,
@@ -112,7 +112,7 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
     // Call Claude
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: agent_type === 'strategy' ? 4000 : 2000,
+      max_tokens: agent_type === 'strategy' ? 4000 : agent_type === 'research' ? 3000 : 2000,
       system: p.system,
       messages: [{ role: 'user', content: p.user }],
     });
@@ -149,6 +149,162 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
     });
 
     console.log(`[Agents Inline] ✅ ${agent_type} done. Tokens: ${inputTokens}+${outputTokens}. Cost: ₹${costINR}`);
+
+    // ── Auto-save agent output to Drafts (timestamped + versioned) ──
+    try {
+      const agentLabels: Record<string, string> = {
+        evidence: 'Evidence Analysis', timeline: 'Case Timeline',
+        research: 'Legal Research Memo', deposition: 'Deposition Analysis', strategy: 'Case Strategy',
+      };
+      const docTypes: Record<string, string> = {
+        evidence: 'other', timeline: 'other', research: 'other',
+        deposition: 'other', strategy: 'other',
+      };
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+      const draftTitle = `${agentLabels[agent_type] || agent_type} — ${dateStr} ${timeStr}`;
+
+      // Build human-readable draft text from parsed output
+      let draftText = '';
+      if (agent_type === 'evidence') {
+        const lines: string[] = [];
+        lines.push('EVIDENCE ANALYSIS REPORT');
+        lines.push('========================');
+        if (parsed.key_facts?.length) {
+          lines.push('\nKEY FACTS:');
+          parsed.key_facts.forEach((f: string, i: number) => lines.push(`${i+1}. ${f}`));
+        }
+        if (parsed.exhibits?.length) {
+          lines.push('\nEXHIBITS:');
+          parsed.exhibits.forEach((e: any) => lines.push(`• Exhibit ${e.number || ''}: ${e.description || ''} — Strength: ${e.strength || ''}`));
+        }
+        if (parsed.contradictions?.length) {
+          lines.push('\nCONTRADICTIONS:');
+          (Array.isArray(parsed.contradictions) ? parsed.contradictions : []).forEach((c: any) => lines.push(`• ${typeof c === 'string' ? c : c.description || JSON.stringify(c)}`));
+        }
+        if (parsed.missing_evidence?.length) {
+          lines.push('\nMISSING EVIDENCE:');
+          parsed.missing_evidence.forEach((m: string) => lines.push(`• ${m}`));
+        }
+        draftText = lines.join('\n');
+      } else if (agent_type === 'timeline') {
+        const lines: string[] = ['CASE TIMELINE', '============='];
+        (parsed.events || []).forEach((e: any) => {
+          lines.push(`\n[${e.date || ''}${e.time ? ' ' + e.time : ''}] ${e.description || ''}`);
+          if (e.event_type) lines.push(`   Type: ${e.event_type} | Importance: ${e.importance_score || ''}/10`);
+        });
+        if (parsed.prosecution_gaps?.length) {
+          lines.push('\nPROSECUTION GAPS:');
+          parsed.prosecution_gaps.forEach((g: string) => lines.push(`• ${g}`));
+        }
+        if (parsed.defence_opportunities?.length) {
+          lines.push('\nDEFENCE OPPORTUNITIES:');
+          parsed.defence_opportunities.forEach((o: string) => lines.push(`• ${o}`));
+        }
+        draftText = lines.join('\n');
+      } else if (agent_type === 'research') {
+        const lines: string[] = ['LEGAL RESEARCH MEMO', '==================='];
+        if (parsed.applicable_statutes?.length) {
+          lines.push('\nAPPLICABLE STATUTES:');
+          parsed.applicable_statutes.forEach((s: any) => {
+            lines.push(`\n${s.act} — ${s.section}`);
+            if (s.description) lines.push(`  ${s.description}`);
+            if (s.relevance) lines.push(`  Relevance: ${s.relevance}`);
+          });
+        }
+        if (parsed.favorable_precedents?.length) {
+          lines.push('\nFAVOURABLE PRECEDENTS:');
+          parsed.favorable_precedents.forEach((p: any) => {
+            lines.push(`\n${p.citation} (${p.court}, ${p.year})`);
+            if (p.held) lines.push(`  Held: ${p.held}`);
+            if (p.relevance) lines.push(`  Why it helps: ${p.relevance}`);
+          });
+        }
+        if (parsed.adverse_precedents?.length) {
+          lines.push('\nADVERSE PRECEDENTS:');
+          parsed.adverse_precedents.forEach((p: any) => {
+            lines.push(`\n${p.citation} (${p.court}, ${p.year})`);
+            if (p.held) lines.push(`  Held: ${p.held}`);
+            if (p.how_to_distinguish) lines.push(`  How to distinguish: ${p.how_to_distinguish}`);
+          });
+        }
+        if (parsed.disclaimer) lines.push(`\n⚠️  ${parsed.disclaimer}`);
+        draftText = lines.join('\n');
+      } else if (agent_type === 'deposition') {
+        const lines: string[] = ['DEPOSITION ANALYSIS', '==================='];
+        if (parsed.witness_name) lines.push(`\nWitness: ${parsed.witness_name}`);
+        if (parsed.credibility_assessment) lines.push(`Credibility: ${parsed.credibility_assessment}`);
+        if (parsed.credibility_reasoning) lines.push(`Reasoning: ${parsed.credibility_reasoning}`);
+        if (parsed.inconsistencies?.length) {
+          lines.push('\nINCONSISTENCIES:');
+          parsed.inconsistencies.forEach((i: any, idx: number) => {
+            lines.push(`\n${idx+1}. Statement: ${i.statement || ''}`);
+            if (i.contradiction) lines.push(`   Contradiction: ${i.contradiction}`);
+            if (i.page) lines.push(`   Page: ${i.page}`);
+          });
+        }
+        if (parsed.cross_examination_questions?.length) {
+          lines.push('\nCROSS-EXAMINATION QUESTIONS:');
+          parsed.cross_examination_questions.forEach((q: string, i: number) => lines.push(`${i+1}. ${q}`));
+        }
+        draftText = lines.join('\n');
+      } else if (agent_type === 'strategy') {
+        const lines: string[] = ['CASE STRATEGY', '============='];
+        if (parsed.sentiment) {
+          lines.push(`\nWin Probability: ${parsed.sentiment.score}% (${parsed.sentiment.label})`);
+          if (parsed.sentiment.reasoning) lines.push(`Reasoning: ${parsed.sentiment.reasoning}`);
+        }
+        if (parsed.opening_statement) {
+          lines.push('\nOPENING STATEMENT:');
+          lines.push(parsed.opening_statement);
+        }
+        if (parsed.strengths?.length) {
+          lines.push('\nSTRENGTHS:');
+          parsed.strengths.forEach((s: string) => lines.push(`✓ ${s}`));
+        }
+        if (parsed.vulnerabilities?.length) {
+          lines.push('\nKEY RISKS:');
+          parsed.vulnerabilities.forEach((v: any) => {
+            lines.push(`• ${v.issue}`);
+            if (v.mitigation) lines.push(`  Mitigation: ${v.mitigation}`);
+          });
+        }
+        if (parsed.closing_skeleton) {
+          lines.push('\nCLOSING SKELETON:');
+          lines.push(parsed.closing_skeleton);
+        }
+        draftText = lines.join('\n');
+      } else {
+        draftText = JSON.stringify(parsed, null, 2);
+      }
+
+      // Check if a draft for this agent type already exists — if so, increment version
+      const existingDraft = await fastify.prisma.draft.findFirst({
+        where: { case_id, tenant_id, promoted_from_job: { not: null } },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+      const nextVersion = (existingDraft?.version || 0) + 1;
+
+      await fastify.prisma.draft.create({
+        data: {
+          tenant_id,
+          case_id,
+          title: draftTitle,
+          doc_type: docTypes[agent_type] as any || 'other',
+          content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: draftText }] }] },
+          version: nextVersion,
+          word_count: draftText.split(' ').length,
+          promoted_from_job: job_id,
+          created_by: 'system',
+          last_modified_by: 'system',
+        },
+      });
+      console.log(`[Agents Inline] 📄 Draft saved: "${draftTitle}" (v${nextVersion})`);
+    } catch (draftErr: any) {
+      console.warn('[Agents Inline] Draft auto-save failed (non-fatal):', draftErr.message);
+    }
   } catch (err: any) {
     console.error(`[Agents Inline] ❌ ${agent_type} failed:`, err.message);
     await fastify.prisma.agentJob.update({
