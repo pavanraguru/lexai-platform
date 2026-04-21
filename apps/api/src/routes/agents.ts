@@ -111,7 +111,7 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
 
     // Call Claude
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: agent_type === 'strategy' ? 4000 : 2000,
       system: p.system,
       messages: [{ role: 'user', content: p.user }],
@@ -279,7 +279,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         agent_version: AGENT_VERSIONS[agent_type],
         status: 'queued',
         triggered_by: user_id,
-        model_used: 'claude-sonnet-4-5',
+        model_used: 'claude-sonnet-4-6',
         input_config: {
           doc_ids: documents.map(d => d.id),
           case_metadata: {

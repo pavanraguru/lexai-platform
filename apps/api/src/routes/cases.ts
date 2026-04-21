@@ -177,6 +177,8 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
             id: true, agent_type: true, status: true,
             model_used: true, cost_inr: true,
             created_at: true, completed_at: true,
+            output: true, error_message: true,
+            tokens_input: true, tokens_output: true,
           },
         },
         _count: {

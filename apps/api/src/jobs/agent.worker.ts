@@ -353,7 +353,7 @@ const worker = new Worker('agent-jobs', async (job: Job) => {
     while (true) {
       try {
         response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-5',
+          model: 'claude-sonnet-4-6',
           max_tokens: agent_type === 'strategy' ? 4000 : 2000,
           system: systemPrompt,
           messages: [{ role: 'user', content: userMessage }],
