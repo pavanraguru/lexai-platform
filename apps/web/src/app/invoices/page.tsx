@@ -146,6 +146,8 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ due_date: '', notes: '', gst_rate: 18 });
   const [step, setStep] = useState<1|2|3>(1);
 
   const unbilledForCase = timeEntries.filter(e => !e.billed && (!caseId || e.case_id === caseId));
@@ -420,6 +422,64 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
           </div>
         )}
       </div>
+      {/* ── Edit Invoice Modal ── */}
+      {editingInvoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingInvoice(null); }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(2,36,72,0.15)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <div>
+                <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: '0 0 2px' }}>Edit Invoice</h2>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{editingInvoice.invoice_number}</p>
+              </div>
+              <button onClick={() => setEditingInvoice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', padding: '4px' }}>
+                <X size={18}/>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={lbl}>Due Date</label>
+                <input type="date" value={editForm.due_date}
+                  onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
+                  style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>GST Rate (%)</label>
+                <select value={editForm.gst_rate}
+                  onChange={e => setEditForm(f => ({ ...f, gst_rate: Number(e.target.value) }))}
+                  style={{ ...inp, appearance: 'none' }}>
+                  <option value={0}>0% — Exempt</option>
+                  <option value={5}>5%</option>
+                  <option value={12}>12%</option>
+                  <option value={18}>18% — Standard</option>
+                  <option value={28}>28%</option>
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Notes / Payment Terms</label>
+                <textarea value={editForm.notes} rows={3}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="e.g. Payment due within 30 days. Please transfer to A/c XXXX."
+                  style={{ ...inp, resize: 'none' }} />
+              </div>
+            </div>
+
+            {error && <p style={{ fontSize: '12px', color: '#ba1a1a', margin: '12px 0 0' }}>{error}</p>}
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '22px' }}>
+              <button onClick={handleSaveEdit} disabled={saving}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button onClick={() => setEditingInvoice(null)}
+                style={{ padding: '11px 18px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -494,6 +554,35 @@ export default function BillingPage() {
       body: JSON.stringify({ amount_paise: (invoices as any[]).find(i => i.id === id)?.balance_paise }),
     });
     qc.invalidateQueries({ queryKey: ['invoices'] });
+  };
+
+  const openEdit = (inv: any) => {
+    setEditingInvoice(inv);
+    setEditForm({
+      due_date: inv.due_date ? inv.due_date.split('T')[0] : '',
+      notes: inv.notes || '',
+      gst_rate: inv.gst_rate || 18,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingInvoice) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE}/v1/invoices/${editingInvoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          due_date: editForm.due_date || null,
+          notes: editForm.notes || null,
+          gst_rate: editForm.gst_rate,
+        }),
+      });
+      if (!res.ok) { const j = await res.json(); throw new Error(j.error?.message || 'Failed to update'); }
+      setEditingInvoice(null);
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (err: any) { setError(err.message); }
+    setSaving(false);
   };
 
   return (
@@ -643,6 +732,12 @@ export default function BillingPage() {
                       style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 11px', background: '#f0f4ff', color: '#022448', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
                       <Printer size={13}/> PDF
                     </button>
+                    {inv.status !== 'paid' && (
+                      <button onClick={() => openEdit(inv)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 11px', background: '#f4f5f7', color: '#43474e', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                        <Edit2 size={13}/> Edit
+                      </button>
+                    )}
                     {inv.status === 'draft' && (
                       <button onClick={() => handleIssue(inv.id)}
                         style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 11px', background: '#022448', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
