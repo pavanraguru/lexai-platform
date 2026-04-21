@@ -287,20 +287,17 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
       });
       const nextVersion = (existingDraft?.version || 0) + 1;
 
-      await fastify.prisma.draft.create({
-        data: {
-          tenant_id,
-          case_id,
-          title: draftTitle,
-          doc_type: docTypes[agent_type] as any || 'other',
-          content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: draftText }] }] },
-          version: nextVersion,
-          word_count: draftText.split(' ').length,
-          promoted_from_job: job_id,
-          created_by: 'system',
-          last_modified_by: 'system',
-        },
-      });
+      const draftId = crypto.randomUUID();
+      const draftNow = new Date().toISOString();
+      const draftContent = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: draftText }] }] });
+      await fastify.prisma.$executeRawUnsafe(
+        `INSERT INTO drafts (id, tenant_id, case_id, title, doc_type, content, version, word_count, promoted_from_job, created_by, last_modified_by, last_modified_at, created_at)
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::"DraftDocType", $6::jsonb, $7, $8, $9::uuid, $10, $10, $11::timestamptz, $11::timestamptz)
+         ON CONFLICT DO NOTHING`,
+        draftId, tenant_id, case_id, draftTitle, 'other',
+        draftContent, nextVersion, draftText.split(' ').length,
+        job_id, 'system', draftNow
+      );
       console.log(`[Agents Inline] 📄 Draft saved: "${draftTitle}" (v${nextVersion})`);
     } catch (draftErr: any) {
       console.warn('[Agents Inline] Draft auto-save failed (non-fatal):', draftErr.message);
