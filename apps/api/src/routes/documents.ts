@@ -7,7 +7,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Queue } from 'bullmq';
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -126,33 +125,10 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    // Enqueue OCR processing job — always catch so upload succeeds even if Redis is down/over-limit
-    try {
-      const ocrQueue = new Queue('document-ocr', {
-        connection: fastify.redis,
-      });
-      await ocrQueue.add('process-document', {
-        document_id: document.id,
-        s3_key: body.s3_key,
-        mime_type: body.mime_type,
-        tenant_id,
-        case_id: body.case_id,
-      }, {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 2000 },
-      });
-      fastify.log.info(`[Documents] OCR job queued for ${document.id}`);
-    } catch (queueErr: any) {
-      // Redis unavailable or over request limit — document is saved, OCR skipped.
-      // User can still view and manually re-process the document.
-      fastify.log.warn(`[Documents] OCR queue unavailable (${queueErr.message}) — document saved, OCR pending`);
-      try {
-        await fastify.prisma.document.update({
-          where: { id: document.id },
-          data: { processing_status: 'pending' }, // keep as pending, not failed — can retry
-        });
-      } catch {} // ignore secondary error
-    }
+    // OCR is handled by the polling worker (ocr.worker.ts) which picks up
+    // any document with processing_status='pending' every 5 seconds.
+    // No queue push needed — document is already saved with status 'pending'.
+    fastify.log.info(`[Documents] Document ${document.id} saved as pending — OCR worker will pick it up`);
 
     await fastify.prisma.auditLog.create({
       data: {
