@@ -1935,19 +1935,11 @@ export default function CaseDetailPage() {
                       </div>
                     )}
 
-                    {isExpanded && output && (() => {
-                      const copyText = (text: string) => navigator.clipboard.writeText(text).catch(() => {});
-                      const SectionHeader = ({ title, count, color = '#022448' }: { title: string; count?: number; color?: string }) => (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                          <p style={{ fontSize: '10px', fontWeight: 800, color, letterSpacing: '0.06em', margin: 0 }}>{title}{count !== undefined ? ` (${count})` : ''}</p>
-                          <button onClick={() => {}} style={{ display: 'none' }} />
-                        </div>
-                      );
-                      return (
+                    {isExpanded && output && (
                       <div style={{ padding: '20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
                         {/* Copy all button */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                          <button onClick={() => copyText(JSON.stringify(output, null, 2))}
+                          <button onClick={() => navigator.clipboard.writeText(JSON.stringify(output, null, 2).catch(()=>{}))}
                             style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
                             Copy All Data
                           </button>
@@ -1958,7 +1950,7 @@ export default function CaseDetailPage() {
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>EXHIBITS ({output.exhibits.length})</p>
-                              <button onClick={() => copyText(output.exhibits.map((e: any) => `${e.number}: ${e.description}`).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.exhibits.map((e: any).catch(()=>{}) => `${e.number}: ${e.description}`).join('
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
@@ -1976,7 +1968,7 @@ export default function CaseDetailPage() {
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>KEY FACTS ({output.key_facts.length})</p>
-                              <button onClick={() => copyText(output.key_facts.map((f: any, i: number) => `${i+1}. ${typeof f === 'string' ? f : f.fact}`).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.key_facts.map((f: any, i: number).catch(()=>{}) => `${i+1}. ${typeof f === 'string' ? f : f.fact}`).join('
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
@@ -1993,7 +1985,7 @@ export default function CaseDetailPage() {
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: 0 }}>CONTRADICTIONS ({output.contradictions.length})</p>
-                              <button onClick={() => copyText(output.contradictions.map((c: any) => typeof c === 'string' ? c : c.description).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.contradictions.map((c: any).catch(()=>{}) => typeof c === 'string' ? c : c.description).join('
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
@@ -2021,7 +2013,7 @@ export default function CaseDetailPage() {
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>TIMELINE EVENTS ({output.events.length})</p>
-                              <button onClick={() => copyText(output.events.map((e: any) => `${e.date}${e.time ? ' ' + e.time : ''}: ${e.description}`).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.events.map((e: any).catch(()=>{}) => `${e.date}${e.time ? ' ' + e.time : ''}: ${e.description}`).join('
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
@@ -2064,7 +2056,7 @@ export default function CaseDetailPage() {
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>APPLICABLE STATUTES ({output.applicable_statutes.length})</p>
-                              <button onClick={() => copyText(output.applicable_statutes.map((s: any) => `${s.act} ${s.section}: ${s.description}`).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.applicable_statutes.map((s: any).catch(()=>{}) => `${s.act} ${s.section}: ${s.description}`).join('
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
@@ -2082,7 +2074,7 @@ export default function CaseDetailPage() {
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: 0 }}>FAVOURABLE PRECEDENTS ({output.favorable_precedents.length})</p>
-                              <button onClick={() => copyText(output.favorable_precedents.map((p: any) => `${p.citation} (${p.court}, ${p.year}): ${p.held}`).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.favorable_precedents.map((p: any).catch(()=>{}) => `${p.citation} (${p.court}, ${p.year}): ${p.held}`).join('
 
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
@@ -2101,7 +2093,7 @@ export default function CaseDetailPage() {
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: 0 }}>ADVERSE PRECEDENTS ({output.adverse_precedents.length})</p>
-                              <button onClick={() => copyText(output.adverse_precedents.map((p: any) => `${p.citation}: ${p.held}
+                              <button onClick={() => navigator.clipboard.writeText(output.adverse_precedents.map((p: any).catch(()=>{}) => `${p.citation}: ${p.held}
 How to distinguish: ${p.how_to_distinguish}`).join('
 
 '))}
@@ -2134,7 +2126,7 @@ How to distinguish: ${p.how_to_distinguish}`).join('
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>OPENING STATEMENT</p>
-                              <button onClick={() => copyText(output.opening_statement)}
+                              <button onClick={() => navigator.clipboard.writeText(output.opening_statement).catch(()=>{})}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
                             <p style={{ fontSize: '12px', color: '#43474e', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap', background: '#fff', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(196,198,207,0.3)' }}>
@@ -2147,7 +2139,7 @@ How to distinguish: ${p.how_to_distinguish}`).join('
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>BENCH QUESTIONS ({output.bench_questions.length})</p>
-                              <button onClick={() => copyText(output.bench_questions.map((q: any, i: number) => `Q${i+1}: ${q.question}
+                              <button onClick={() => navigator.clipboard.writeText(output.bench_questions.map((q: any, i: number).catch(()=>{}) => `Q${i+1}: ${q.question}
 A: ${q.suggested_answer}`).join('
 
 '))}
@@ -2190,7 +2182,7 @@ A: ${q.suggested_answer}`).join('
                           <div style={{ marginBottom: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>INCONSISTENCIES ({output.inconsistencies.length})</p>
-                              <button onClick={() => copyText(output.inconsistencies.map((inc: any, i: number) => `${i+1}. ${typeof inc === 'string' ? inc : inc.statement || inc.description}`).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.inconsistencies.map((inc: any, i: number).catch(()=>{}) => `${i+1}. ${typeof inc === 'string' ? inc : inc.statement || inc.description}`).join('
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
@@ -2212,7 +2204,7 @@ A: ${q.suggested_answer}`).join('
                           <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#5b21b6', letterSpacing: '0.06em', margin: 0 }}>CROSS-EXAMINATION QUESTIONS ({output.cross_examination_questions.length})</p>
-                              <button onClick={() => copyText(output.cross_examination_questions.map((q: any, i: number) => `${i+1}. ${typeof q === 'string' ? q : q.question}`).join('
+                              <button onClick={() => navigator.clipboard.writeText(output.cross_examination_questions.map((q: any, i: number).catch(()=>{}) => `${i+1}. ${typeof q === 'string' ? q : q.question}`).join('
 '))}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
@@ -2234,8 +2226,7 @@ A: ${q.suggested_answer}`).join('
                           </div>
                         )}
                       </div>
-                      );
-                    })()}
+                    )}
                   </div>
                 );
               })}
