@@ -235,6 +235,7 @@ export default function CalendarPage() {
                       <span style={{ fontSize: '9px', color: '#74777f', fontWeight: 600 }}>+{items.hearings.length + items.tasks.length - 2} more</span>
                     )}
                   </div>
+                  </Link>
                 );
               })}
             </div>
@@ -295,7 +296,8 @@ export default function CalendarPage() {
                 const colors    = PURPOSE_COLORS[h.purpose] || PURPOSE_COLORS.default;
                 const onHoliday = selectedHolidays.length > 0;
                 return (
-                  <div key={h.id} style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: `1px solid ${onHoliday ? '#fdba74' : 'rgba(196,198,207,0.15)'}`, boxShadow: '0px 1px 4px rgba(2,36,72,0.05)' }}>
+                  <Link key={h.id} href={`/cases/${h.case?.id}?tab=hearings`} style={{ textDecoration: 'none', display: 'block' }}>
+                  <div style={{ background: '#fff', borderRadius: '10px', padding: '20px', border: `1px solid ${onHoliday ? '#fdba74' : 'rgba(196,198,207,0.15)'}`, boxShadow: '0px 1px 4px rgba(2,36,72,0.05)', cursor: 'pointer', transition: 'box-shadow 0.15s, border-color 0.15s' }}>
                     {onHoliday && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', padding: '6px 10px', background: '#fff7ed', borderRadius: '6px' }}>
                         <AlertTriangle size={12} color="#ea580c" />
@@ -332,13 +334,16 @@ export default function CalendarPage() {
                 );
               })}
               {selectedItems?.tasks.map((t: any) => (
-                <div key={t.id} style={{ background: '#fffbeb', borderRadius: '10px', padding: '12px 16px', border: '1px solid rgba(202,138,4,0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#854d0e', margin: 0 }}>{t.title}</p>
-                    <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0' }}>Task due · {t.case?.title}</p>
+                <Link key={t.id} href={`/cases/${t.case_id}?tab=tasks`} style={{ textDecoration: 'none', display: 'block' }}>
+                  <div style={{ background: '#fffbeb', borderRadius: '10px', padding: '12px 16px', border: '1px solid rgba(202,138,4,0.2)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: 'box-shadow 0.15s' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ca8a04', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: '#854d0e', margin: 0 }}>{t.title}</p>
+                      <p style={{ fontSize: '11px', color: '#a16207', margin: '2px 0 0' }}>Task due · {t.case?.title}</p>
+                    </div>
+                    <ExternalLink size={13} color="#a16207" />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
