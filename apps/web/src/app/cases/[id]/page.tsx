@@ -1172,6 +1172,7 @@ export default function CaseDetailPage() {
   // Hearing state
   const [showHearingForm, setShowHearingForm] = useState(false);
   const [showOutcome, setShowOutcome] = useState<string | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
   const [hf, setHf] = useState({ date: '', time: '', purpose: 'misc', court_room: '', judge_name: '', client_instruction: '' });
   const [of_, setOf_] = useState({ outcome: '', order_summary: '', next_hearing_date: '' });
 
@@ -1250,6 +1251,16 @@ export default function CaseDetailPage() {
       refresh();
     } catch (err: any) { setError(err.message); }
     setSaving(false);
+  };
+
+  const handleDeleteAgent = async (jobId: string) => {
+    if (!confirm('Delete this agent run from history?')) return;
+    setDeletingJobId(jobId);
+    try {
+      await apiCall('/v1/agents/jobs/' + jobId, 'DELETE');
+      refresh();
+    } catch {}
+    setDeletingJobId(null);
   };
 
   const handleOutcome = async (e: React.FormEvent) => {
@@ -1635,18 +1646,59 @@ export default function CaseDetailPage() {
 
           {/* Past */}
           {pastHearings.length > 0 && (
-            <div style={{ ...cardStyle, overflow: 'hidden', opacity: 0.75 }}>
+            <div style={{ ...cardStyle, overflow: 'hidden' }}>
               <p style={sectionHeader}>{tr('past').toUpperCase()}</p>
               {[...pastHearings].reverse().map((h: any) => (
-                <div key={h.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
-                  <CheckCircle2 size={16} color="#15803d" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#43474e', margin: 0 }}>
-                      {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      <span style={{ marginLeft: '8px', fontSize: '11px', color: '#74777f', fontWeight: 400, textTransform: 'capitalize' }}>{h.purpose?.replace(/_/g, ' ')}</span>
-                    </p>
-                    {h.outcome && <p style={{ fontSize: '12px', color: '#74777f', margin: '2px 0 0' }}>{h.outcome}</p>}
+                <div key={h.id} style={{ padding: '16px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flex: 1 }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: h.outcome ? '#dcfce7' : '#edeef0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
+                        <CheckCircle2 size={15} color={h.outcome ? '#15803d' : '#74777f'} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#191c1e' }}>
+                            {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', background: '#edeef0', color: '#43474e', borderRadius: '2px', textTransform: 'capitalize' }}>
+                            {h.purpose?.replace(/_/g, ' ')}
+                          </span>
+                          {h.time && <span style={{ fontSize: '11px', color: '#74777f' }}>{h.time} IST</span>}
+                        </div>
+                        {h.outcome ? (
+                          <div style={{ background: '#f0fdf4', border: '1px solid rgba(21,128,61,0.15)', borderRadius: '8px', padding: '10px 12px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Outcome</p>
+                            <p style={{ fontSize: '13px', color: '#191c1e', margin: 0, fontWeight: 600 }}>{h.outcome}</p>
+                            {h.order_summary && <p style={{ fontSize: '12px', color: '#43474e', margin: '4px 0 0', lineHeight: 1.5 }}>{h.order_summary}</p>}
+                          </div>
+                        ) : (
+                          <div style={{ background: '#fff7ed', border: '1px solid rgba(180,83,9,0.15)', borderRadius: '8px', padding: '8px 12px' }}>
+                            <p style={{ fontSize: '12px', color: '#b45309', margin: 0 }}>No outcome recorded yet</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setShowOutcome(h.id); setOf_({ outcome: h.outcome || '', order_summary: h.order_summary || '', next_hearing_date: '' }); }}
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 10px', background: '#f4f5f7', color: '#43474e', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', flexShrink: 0 }}>
+                      {h.outcome ? 'Edit' : '+ Record'}
+                    </button>
                   </div>
+                  {showOutcome === h.id && (
+                    <form onSubmit={handleOutcome} style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(196,198,207,0.15)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                        <div><label style={lbl}>What happened? *</label><input type="text" required value={of_.outcome} onChange={e => setOf_({ ...of_, outcome: e.target.value })} placeholder="e.g. Arguments heard, next date given" style={inp()} /></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div><label style={lbl}>Order Summary</label><input type="text" value={of_.order_summary} onChange={e => setOf_({ ...of_, order_summary: e.target.value })} placeholder="Brief summary" style={inp()} /></div>
+                          <div><label style={lbl}>Next Hearing Date</label><input type="date" value={of_.next_hearing_date} onChange={e => setOf_({ ...of_, next_hearing_date: e.target.value })} style={inp()} /></div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save Outcome'}</button>
+                        <button type="button" onClick={() => setShowOutcome(null)} style={btnGhost}>Cancel</button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               ))}
             </div>
@@ -1866,6 +1918,11 @@ export default function CaseDetailPage() {
                             ↺ Retry
                           </button>
                         )}
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteAgent(job.id); }} disabled={deletingJobId === job.id}
+                          style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: 'none', color: '#74777f', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}
+                          title="Delete from history">
+                          {deletingJobId === job.id ? '...' : '✕'}
+                        </button>
                       </div>
                     </div>
 

@@ -85,23 +85,23 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
 
     const prompts: Record<string, { system: string; user: string }> = {
       evidence: {
-        system: `You are a senior Indian advocate's AI assistant. Analyse evidence from the provided documents.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"exhibits":[{"number":"E-A","description":"...","doc_id":"...","relevance":"...","strength":"Strong|Moderate|Weak"}],"key_facts":["..."],"contradictions":["..."],"missing_evidence":["..."]}`,
+        system: `You are a senior Indian advocate's AI assistant. Analyse evidence from the provided documents.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. NO ```json fences, NO backticks, NO explanation. Start your response with { and end with }:\n{"exhibits":[{"number":"E-A","description":"...","doc_id":"...","relevance":"...","strength":"Strong|Moderate|Weak"}],"key_facts":["..."],"contradictions":["..."],"missing_evidence":["..."]}`,
         user: `Analyse evidence:\n\n${docContext}`,
       },
       timeline: {
-        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
+        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. NO ```json fences, NO backticks, NO explanation. Start your response with { and end with }:\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
         user: `Reconstruct timeline:\n\n${docContext}`,
       },
       research: {
-        system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
-        user: `Research Indian law for this case:\n\n${docContext.substring(0, 6000)}`,
+        system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. NO ```json fences, NO backticks, NO explanation. Start your response with { and end with }:\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
+        user: `Research Indian law for this case:\n\n${docContext.substring(0, 12000)}`,
       },
       deposition: {
-        system: `You are a senior Indian advocate's AI assistant specialising in deposition analysis.\n${baseContext}\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"witness_name":"...","inconsistencies":[{"statement":"...","contradiction":"...","page":"..."}],"cross_examination_questions":["..."],"credibility_assessment":"High|Medium|Low","credibility_reasoning":"..."}`,
+        system: `You are a senior Indian advocate's AI assistant specialising in deposition analysis.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. NO ```json fences, NO backticks, NO explanation. Start your response with { and end with }:\n{"witness_name":"...","inconsistencies":[{"statement":"...","contradiction":"...","page":"..."}],"cross_examination_questions":["..."],"credibility_assessment":"High|Medium|Low","credibility_reasoning":"..."}`,
         user: `Analyse this deposition:\n\n${docContext}`,
       },
       strategy: {
-        system: `You are a senior Indian advocate's AI assistant. Develop court strategy.\n${baseContext}\nAddress court as ${courtAddress}.\nReturn ONLY valid JSON (no markdown fences, start with {, end with }):\n{"perspective":"defence","opening_statement":"In the matter of...","closing_skeleton":"1. Summary...","bench_questions":[{"question":"...","suggested_answer":"..."}],"sentiment":{"label":"Favorable|Neutral|Unfavorable","score":65,"reasoning":"...","evidence_strength":"Strong|Moderate|Weak","precedent_strength":"Strong|Moderate|Weak","timeline_consistency":"Consistent|Minor Gaps|Major Gaps","witness_credibility":"High|Medium|Low"},"strengths":["..."],"vulnerabilities":[{"issue":"...","mitigation":"..."}]}`,
+        system: `You are a senior Indian advocate's AI assistant. Develop court strategy.\n${baseContext}\nAddress court as ${courtAddress}.\nCRITICAL: Return ONLY a raw JSON object. NO ```json fences, NO backticks, NO explanation. Start your response with { and end with }:\n{"perspective":"defence","opening_statement":"In the matter of...","closing_skeleton":"1. Summary...","bench_questions":[{"question":"...","suggested_answer":"..."}],"sentiment":{"label":"Favorable|Neutral|Unfavorable","score":65,"reasoning":"...","evidence_strength":"Strong|Moderate|Weak","precedent_strength":"Strong|Moderate|Weak","timeline_consistency":"Consistent|Minor Gaps|Major Gaps","witness_credibility":"High|Medium|Low"},"strengths":["..."],"vulnerabilities":[{"issue":"...","mitigation":"..."}]}`,
         user: `Develop strategy.\n\nEVIDENCE: ${JSON.stringify(priorOutputs.evidence || {}).substring(0, 2000)}\nRESEARCH: ${JSON.stringify(priorOutputs.research || {}).substring(0, 2000)}\nDOCS:\n${docContext.substring(0, 4000)}`,
       },
     };
@@ -112,30 +112,39 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
     // Call Claude
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: agent_type === 'strategy' ? 4000 : agent_type === 'research' ? 3000 : 2000,
+      max_tokens: agent_type === 'strategy' ? 4000 : 2000,
       system: p.system,
       messages: [{ role: 'user', content: p.user }],
     });
 
     const raw = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    // Parse JSON robustly
+    // Parse JSON robustly — handle all Claude output formats
     let parsed: any;
-    let jsonStr = raw.trim();
-    const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]+?)```/);
-    if (fenceMatch) jsonStr = fenceMatch[1].trim();
-    if (!jsonStr.startsWith('{')) {
-      const start = jsonStr.indexOf('{');
-      if (start !== -1) {
-        let depth = 0, end = -1;
-        for (let i = start; i < jsonStr.length; i++) {
-          if (jsonStr[i] === '{') depth++;
-          else if (jsonStr[i] === '}' && --depth === 0) { end = i; break; }
+    try {
+      let jsonStr = raw.trim();
+      // Remove code fences: ```json ... ``` or ``` ... ```
+      jsonStr = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+      // If still has fences anywhere, extract the JSON block
+      const fenceMatch = jsonStr.match(/```(?:json)?[\s\n]*([\s\S]+?)[\s\n]*```/);
+      if (fenceMatch) jsonStr = fenceMatch[1].trim();
+      // Extract first complete JSON object
+      if (!jsonStr.startsWith('{')) {
+        const start = jsonStr.indexOf('{');
+        if (start !== -1) {
+          let depth = 0, end = -1;
+          for (let i = start; i < jsonStr.length; i++) {
+            if (jsonStr[i] === '{') depth++;
+            else if (jsonStr[i] === '}' && --depth === 0) { end = i; break; }
+          }
+          if (end !== -1) jsonStr = jsonStr.slice(start, end + 1);
         }
-        if (end !== -1) jsonStr = jsonStr.slice(start, end + 1);
       }
+      parsed = JSON.parse(jsonStr);
+    } catch (parseErr: any) {
+      console.error('[Agents Inline] JSON parse failed. Raw:', raw.substring(0, 300));
+      throw new Error('AI returned an invalid response format. Please retry the agent.');
     }
-    parsed = JSON.parse(jsonStr);
     parsed.agent_type = agent_type;
     parsed.case_id = case_id;
 
@@ -149,159 +158,6 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
     });
 
     console.log(`[Agents Inline] ✅ ${agent_type} done. Tokens: ${inputTokens}+${outputTokens}. Cost: ₹${costINR}`);
-
-    // ── Auto-save agent output to Drafts (timestamped + versioned) ──
-    try {
-      const agentLabels: Record<string, string> = {
-        evidence: 'Evidence Analysis', timeline: 'Case Timeline',
-        research: 'Legal Research Memo', deposition: 'Deposition Analysis', strategy: 'Case Strategy',
-      };
-      const docTypes: Record<string, string> = {
-        evidence: 'other', timeline: 'other', research: 'other',
-        deposition: 'other', strategy: 'other',
-      };
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
-      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
-      const draftTitle = `${agentLabels[agent_type] || agent_type} — ${dateStr} ${timeStr}`;
-
-      // Build human-readable draft text from parsed output
-      let draftText = '';
-      if (agent_type === 'evidence') {
-        const lines: string[] = [];
-        lines.push('EVIDENCE ANALYSIS REPORT');
-        lines.push('========================');
-        if (parsed.key_facts?.length) {
-          lines.push('\nKEY FACTS:');
-          parsed.key_facts.forEach((f: string, i: number) => lines.push(`${i+1}. ${f}`));
-        }
-        if (parsed.exhibits?.length) {
-          lines.push('\nEXHIBITS:');
-          parsed.exhibits.forEach((e: any) => lines.push(`• Exhibit ${e.number || ''}: ${e.description || ''} — Strength: ${e.strength || ''}`));
-        }
-        if (parsed.contradictions?.length) {
-          lines.push('\nCONTRADICTIONS:');
-          (Array.isArray(parsed.contradictions) ? parsed.contradictions : []).forEach((c: any) => lines.push(`• ${typeof c === 'string' ? c : c.description || JSON.stringify(c)}`));
-        }
-        if (parsed.missing_evidence?.length) {
-          lines.push('\nMISSING EVIDENCE:');
-          parsed.missing_evidence.forEach((m: string) => lines.push(`• ${m}`));
-        }
-        draftText = lines.join('\n');
-      } else if (agent_type === 'timeline') {
-        const lines: string[] = ['CASE TIMELINE', '============='];
-        (parsed.events || []).forEach((e: any) => {
-          lines.push(`\n[${e.date || ''}${e.time ? ' ' + e.time : ''}] ${e.description || ''}`);
-          if (e.event_type) lines.push(`   Type: ${e.event_type} | Importance: ${e.importance_score || ''}/10`);
-        });
-        if (parsed.prosecution_gaps?.length) {
-          lines.push('\nPROSECUTION GAPS:');
-          parsed.prosecution_gaps.forEach((g: string) => lines.push(`• ${g}`));
-        }
-        if (parsed.defence_opportunities?.length) {
-          lines.push('\nDEFENCE OPPORTUNITIES:');
-          parsed.defence_opportunities.forEach((o: string) => lines.push(`• ${o}`));
-        }
-        draftText = lines.join('\n');
-      } else if (agent_type === 'research') {
-        const lines: string[] = ['LEGAL RESEARCH MEMO', '==================='];
-        if (parsed.applicable_statutes?.length) {
-          lines.push('\nAPPLICABLE STATUTES:');
-          parsed.applicable_statutes.forEach((s: any) => {
-            lines.push(`\n${s.act} — ${s.section}`);
-            if (s.description) lines.push(`  ${s.description}`);
-            if (s.relevance) lines.push(`  Relevance: ${s.relevance}`);
-          });
-        }
-        if (parsed.favorable_precedents?.length) {
-          lines.push('\nFAVOURABLE PRECEDENTS:');
-          parsed.favorable_precedents.forEach((p: any) => {
-            lines.push(`\n${p.citation} (${p.court}, ${p.year})`);
-            if (p.held) lines.push(`  Held: ${p.held}`);
-            if (p.relevance) lines.push(`  Why it helps: ${p.relevance}`);
-          });
-        }
-        if (parsed.adverse_precedents?.length) {
-          lines.push('\nADVERSE PRECEDENTS:');
-          parsed.adverse_precedents.forEach((p: any) => {
-            lines.push(`\n${p.citation} (${p.court}, ${p.year})`);
-            if (p.held) lines.push(`  Held: ${p.held}`);
-            if (p.how_to_distinguish) lines.push(`  How to distinguish: ${p.how_to_distinguish}`);
-          });
-        }
-        if (parsed.disclaimer) lines.push(`\n⚠️  ${parsed.disclaimer}`);
-        draftText = lines.join('\n');
-      } else if (agent_type === 'deposition') {
-        const lines: string[] = ['DEPOSITION ANALYSIS', '==================='];
-        if (parsed.witness_name) lines.push(`\nWitness: ${parsed.witness_name}`);
-        if (parsed.credibility_assessment) lines.push(`Credibility: ${parsed.credibility_assessment}`);
-        if (parsed.credibility_reasoning) lines.push(`Reasoning: ${parsed.credibility_reasoning}`);
-        if (parsed.inconsistencies?.length) {
-          lines.push('\nINCONSISTENCIES:');
-          parsed.inconsistencies.forEach((i: any, idx: number) => {
-            lines.push(`\n${idx+1}. Statement: ${i.statement || ''}`);
-            if (i.contradiction) lines.push(`   Contradiction: ${i.contradiction}`);
-            if (i.page) lines.push(`   Page: ${i.page}`);
-          });
-        }
-        if (parsed.cross_examination_questions?.length) {
-          lines.push('\nCROSS-EXAMINATION QUESTIONS:');
-          parsed.cross_examination_questions.forEach((q: string, i: number) => lines.push(`${i+1}. ${q}`));
-        }
-        draftText = lines.join('\n');
-      } else if (agent_type === 'strategy') {
-        const lines: string[] = ['CASE STRATEGY', '============='];
-        if (parsed.sentiment) {
-          lines.push(`\nWin Probability: ${parsed.sentiment.score}% (${parsed.sentiment.label})`);
-          if (parsed.sentiment.reasoning) lines.push(`Reasoning: ${parsed.sentiment.reasoning}`);
-        }
-        if (parsed.opening_statement) {
-          lines.push('\nOPENING STATEMENT:');
-          lines.push(parsed.opening_statement);
-        }
-        if (parsed.strengths?.length) {
-          lines.push('\nSTRENGTHS:');
-          parsed.strengths.forEach((s: string) => lines.push(`✓ ${s}`));
-        }
-        if (parsed.vulnerabilities?.length) {
-          lines.push('\nKEY RISKS:');
-          parsed.vulnerabilities.forEach((v: any) => {
-            lines.push(`• ${v.issue}`);
-            if (v.mitigation) lines.push(`  Mitigation: ${v.mitigation}`);
-          });
-        }
-        if (parsed.closing_skeleton) {
-          lines.push('\nCLOSING SKELETON:');
-          lines.push(parsed.closing_skeleton);
-        }
-        draftText = lines.join('\n');
-      } else {
-        draftText = JSON.stringify(parsed, null, 2);
-      }
-
-      // Check if a draft for this agent type already exists — if so, increment version
-      const existingDraft = await fastify.prisma.draft.findFirst({
-        where: { case_id, tenant_id, promoted_from_job: { not: null } },
-        orderBy: { version: 'desc' },
-        select: { version: true },
-      });
-      const nextVersion = (existingDraft?.version || 0) + 1;
-
-      const draftId = crypto.randomUUID();
-      const draftNow = new Date().toISOString();
-      const draftContent = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: draftText }] }] });
-      await fastify.prisma.$executeRawUnsafe(
-        `INSERT INTO drafts (id, tenant_id, case_id, title, doc_type, content, version, word_count, promoted_from_job, created_by, last_modified_by, last_modified_at, created_at)
-         VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::"DraftDocType", $6::jsonb, $7, $8, $9::uuid, $10, $10, $11::timestamptz, $11::timestamptz)
-         ON CONFLICT DO NOTHING`,
-        draftId, tenant_id, case_id, draftTitle, 'other',
-        draftContent, nextVersion, draftText.split(' ').length,
-        job_id, 'system', draftNow
-      );
-      console.log(`[Agents Inline] 📄 Draft saved: "${draftTitle}" (v${nextVersion})`);
-    } catch (draftErr: any) {
-      console.warn('[Agents Inline] Draft auto-save failed (non-fatal):', draftErr.message);
-    }
   } catch (err: any) {
     console.error(`[Agents Inline] ❌ ${agent_type} failed:`, err.message);
     await fastify.prisma.agentJob.update({
@@ -538,6 +394,18 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /v1/agents/jobs/:id/promote — promote agent output to Draft
   // PRD DW-03 — Promote Agent Output
+  // DELETE /v1/agents/jobs/:id — delete an agent job from history
+  fastify.delete('/jobs/:id', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    const { id } = request.params as { id: string };
+    const job = await fastify.prisma.agentJob.findFirst({ where: { id, tenant_id } });
+    if (!job) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Job not found' } });
+    await fastify.prisma.agentJob.delete({ where: { id } });
+    return reply.send({ data: { deleted: true } });
+  });
+
   fastify.post('/jobs/:id/promote', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
