@@ -191,6 +191,9 @@ export const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       select: { plan: true },
     }).catch(() => null);
 
+    // Cache dashboard for 30s — reduces DB hits during demos and normal use
+    reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+
     return reply.send({
       data: {
         active_cases:           activeCases,
