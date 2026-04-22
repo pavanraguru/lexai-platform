@@ -1075,116 +1075,80 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
 }
 
 // ── Limitation Period Calculator ──────────────────────────────
-// ── Limitation Period Calculator ──────────────────────────────
 function LimitationCalc({ caseType }: { caseType: string }) {
   const LIMITS: Record<string, { article: string; period: string; days: number; description: string }> = {
-    civil_district:      { article: 'Art. 113',    period: '3 years', days: 1095, description: 'General suits from date of cause of action' },
-    writ_hc:             { article: 'Art. 113',    period: '3 years', days: 1095, description: 'Writ petitions - courts have discretion on delay' },
-    criminal_sessions:   { article: 'S.468 BNSS',  period: '3 years', days: 1095, description: 'Offences punishable with more than 1 year imprisonment' },
-    criminal_magistrate: { article: 'S.468 BNSS',  period: '1 year',  days: 365,  description: 'Offences punishable with up to 1 year imprisonment' },
-    corporate_nclt:      { article: 'NCLT Rules',  period: '3 years', days: 1095, description: 'Company law matters under Companies Act 2013' },
-    family:              { article: 'Art. 54 LA',  period: '1 year',  days: 365,  description: 'Matrimonial relief from date of accrual of right' },
-    labour:              { article: 'ID Act',      period: '3 years', days: 1095, description: 'Industrial disputes from date of discharge or dismissal' },
-    ip:                  { article: 'Art. 113',    period: '3 years', days: 1095, description: 'IP infringement suits' },
-    tax:                 { article: 'IT Act',      period: '4 years', days: 1460, description: 'Tax reassessment period' },
-    arbitration:         { article: 'Art. 137',    period: '3 years', days: 1095, description: 'Arbitration references from date of cause' },
-    consumer:            { article: 'CP Act S.69', period: '2 years', days: 730,  description: 'Consumer complaints from date of deficiency in service' },
+    civil_district:      { article: 'Art. 113', period: '3 years',  days: 1095, description: 'General suits — from date of cause of action' },
+    writ_hc:             { article: 'Art. 113', period: '3 years',  days: 1095, description: 'Writ petitions — though courts have discretion' },
+    criminal_sessions:   { article: 'S.468 CrPC', period: '3 years', days: 1095, description: 'For offences punishable > 1 year imprisonment' },
+    criminal_magistrate: { article: 'S.468 CrPC', period: '1 year',  days: 365,  description: 'For offences punishable up to 1 year' },
+    corporate_nclt:      { article: 'NCLT Rules', period: '3 years', days: 1095, description: 'Company law matters under Companies Act 2013' },
+    family:              { article: 'Art. 54 LA', period: '1 year',  days: 365,  description: 'Matrimonial relief — from date of accrual' },
+    labour:              { article: 'ID Act',     period: '3 years', days: 1095, description: 'Industrial disputes from date of discharge/dismissal' },
+    ip:                  { article: 'Art. 113',   period: '3 years', days: 1095, description: 'IP infringement suits' },
+    tax:                 { article: 'IT Act',     period: '4 years', days: 1460, description: 'Tax reassessment period' },
+    arbitration:         { article: 'Art. 137',   period: '3 years', days: 1095, description: 'Arbitration references — from date of cause' },
+    consumer:            { article: 'CP Act',     period: '2 years', days: 730,  description: 'Consumer complaints from date of deficiency' },
+    motor_accident:      { article: 'Art. 113',   period: '3 years', days: 1095, description: 'Motor accident claims' },
   };
 
   const limit = LIMITS[caseType] || LIMITS.civil_district;
-  const [lcDate, setLcDate] = useState('');
-  const [lcResult, setLcResult] = useState<null | { deadline: Date; daysLeft: number; pct: number }>(null);
+  const [startDate, setStartDate] = useState('');
+  const [result, setResult] = useState<{ deadline: Date; daysLeft: number; warning: boolean } | null>(null);
 
-  const runCalc = () => {
-    if (!lcDate) return;
-    const s = new Date(lcDate);
-    const d = new Date(s.getTime() + limit.days * 86400000);
-    const now = new Date();
-    const left = Math.ceil((d.getTime() - now.getTime()) / 86400000);
-    const elapsed = Math.ceil((now.getTime() - s.getTime()) / 86400000);
-    const pct = Math.min(100, Math.max(0, Math.round((elapsed / limit.days) * 100)));
-    setLcResult({ deadline: d, daysLeft: left, pct });
+  const calculate = () => {
+    if (!startDate) return;
+    const start = new Date(startDate);
+    const deadline = new Date(start);
+    deadline.setDate(deadline.getDate() + limit.days);
+    const today = new Date();
+    const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
+    setResult({ deadline, daysLeft, warning: daysLeft < 30 });
   };
 
-  const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const col = !lcResult ? '#022448' : lcResult.daysLeft <= 0 ? '#93000a' : lcResult.daysLeft < 30 ? '#ba1a1a' : lcResult.daysLeft < 90 ? '#c2410c' : '#15803d';
-  const bg = !lcResult ? '#d5e3ff' : lcResult.daysLeft <= 0 ? '#ffdad6' : lcResult.daysLeft < 30 ? '#ffdad6' : lcResult.daysLeft < 90 ? '#fff7ed' : '#dcfce7';
-
   return (
-    <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(196,198,207,0.2)', padding: '20px 24px', marginTop: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap' as const, gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '12px', color: '#022448', flexShrink: 0 }}>LA</div>
-          <div>
-            <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: 0 }}>Limitation Period Calculator</h3>
-            <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{limit.description}</p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '6px', background: '#d5e3ff', color: '#001c3b' }}>{limit.article}</span>
-          <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '6px', background: '#ffe088', color: '#735c00' }}>{limit.period}</span>
-        </div>
+    <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(196,198,207,0.2)', padding: '18px 20px', marginTop: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+        <span style={{ fontSize: '16px' }}>⚖️</span>
+        <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: 0 }}>Limitation Period Calculator</h3>
+        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: '#d5e3ff', color: '#001c3b' }}>{limit.article} · {limit.period}</span>
       </div>
-
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '16px' }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: '6px' }}>Date of Cause of Action</label>
-          <input type="date" value={lcDate} onChange={e => { setLcDate(e.target.value); setLcResult(null); }}
-            style={{ width: '100%', padding: '10px 13px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '14px', outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' as const }} />
+      <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px' }}>{limit.description}</p>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '180px' }}>
+          <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px' }}>Date of Cause of Action</label>
+          <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setResult(null); }}
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' }} />
         </div>
-        <button onClick={runCalc} disabled={!lcDate}
-          style={{ padding: '10px 24px', background: lcDate ? '#022448' : '#edeef0', color: lcDate ? '#fff' : '#74777f', border: 'none', borderRadius: '9px', fontSize: '14px', fontWeight: 700, cursor: lcDate ? 'pointer' : 'not-allowed', fontFamily: 'Manrope, sans-serif', flexShrink: 0 }}>
+        <button onClick={calculate} disabled={!startDate}
+          style={{ padding: '9px 18px', background: startDate ? '#022448' : '#edeef0', color: startDate ? '#fff' : '#74777f', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: startDate ? 'pointer' : 'not-allowed', fontFamily: 'Manrope, sans-serif', flexShrink: 0 }}>
           Calculate
         </button>
       </div>
-
-      {lcResult && (
-        <div>
-          <div style={{ marginBottom: '14px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#74777f', marginBottom: '6px' }}>
-              <span>Cause of action</span>
-              <span style={{ fontWeight: 700, color: col }}>{lcResult.pct}% elapsed</span>
-              <span>Deadline</span>
-            </div>
-            <div style={{ height: '8px', background: '#edeef0', borderRadius: '99px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: lcResult.pct + '%', background: col, borderRadius: '99px' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-            <div style={{ background: '#f8f9fb', borderRadius: '12px', padding: '16px 18px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase' as const, margin: '0 0 6px' }}>Filing Deadline</p>
-              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.4rem', fontWeight: 800, color: '#022448', margin: '0 0 2px' }}>
-                {lcResult.deadline.getDate()} {MO[lcResult.deadline.getMonth()]} {lcResult.deadline.getFullYear()}
-              </p>
-              <p style={{ fontSize: '11px', color: '#74777f', margin: 0 }}>
-                {lcResult.deadline.toLocaleDateString('en-IN', { weekday: 'long' })}
+      {result && (
+        <div style={{ marginTop: '14px', padding: '14px 16px', borderRadius: '10px', background: result.warning ? '#ffdad6' : result.daysLeft < 90 ? '#fff7ed' : '#dcfce7', border: '1px solid ' + (result.warning ? '#ffb4ab' : result.daysLeft < 90 ? '#fdba74' : '#86efac') }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Filing Deadline</p>
+              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.3rem', fontWeight: 700, color: '#022448', margin: 0 }}>
+                {result.deadline.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             </div>
-            <div style={{ background: bg, borderRadius: '12px', padding: '16px 18px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 800, color: col, letterSpacing: '0.06em', textTransform: 'uppercase' as const, margin: '0 0 6px' }}>
-                {lcResult.daysLeft > 0 ? 'Days Remaining' : 'Status'}
-              </p>
-              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.4rem', fontWeight: 800, color: col, margin: '0 0 2px' }}>
-                {lcResult.daysLeft > 0 ? String(lcResult.daysLeft) + ' days' : 'EXPIRED'}
-              </p>
-              <p style={{ fontSize: '11px', color: col, margin: 0, fontWeight: 600 }}>
-                {lcResult.daysLeft <= 0 ? String(Math.abs(lcResult.daysLeft)) + ' days overdue' : lcResult.daysLeft < 30 ? 'File immediately' : lcResult.daysLeft < 90 ? 'Approaching deadline' : 'Sufficient time'}
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Days Remaining</p>
+              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.3rem', fontWeight: 800, color: result.warning ? '#93000a' : result.daysLeft < 90 ? '#c2410c' : '#15803d', margin: 0 }}>
+                {result.daysLeft > 0 ? result.daysLeft + ' days' : 'EXPIRED ' + Math.abs(result.daysLeft) + ' days ago'}
               </p>
             </div>
           </div>
-
-          {lcResult.daysLeft <= 0 && (
-            <div style={{ padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', border: '1px solid #ffb4ab' }}>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#93000a', margin: '0 0 4px' }}>Limitation period has expired</p>
-              <p style={{ fontSize: '12px', color: '#93000a', margin: 0 }}>A Condonation of Delay application under Section 5 of the Limitation Act, 1963 may be required.</p>
-            </div>
+          {result.warning && result.daysLeft > 0 && (
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#93000a', margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              ⚠ Urgent: Less than 30 days remaining — file immediately
+            </p>
           )}
-          {lcResult.daysLeft > 0 && lcResult.daysLeft < 30 && (
-            <div style={{ padding: '12px 16px', background: '#fff7ed', borderRadius: '10px', border: '1px solid #fdba74' }}>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#c2410c', margin: '0 0 4px' }}>Urgent: Less than 30 days remaining</p>
-              <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>File the matter immediately to avoid requiring a Condonation of Delay application.</p>
-            </div>
+          {result.daysLeft <= 0 && (
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#93000a', margin: '10px 0 0' }}>
+              ⚠ Limitation period has expired. Condonation of delay application may be required under Section 5 of the Limitation Act.
+            </p>
           )}
         </div>
       )}
@@ -1192,14 +1156,12 @@ function LimitationCalc({ caseType }: { caseType: string }) {
   );
 }
 
-
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useAuthStore();
   const router = useRouter();
   const qc = useQueryClient();
   const { tr } = useLang();
-  // Read ?tab= from URL without useSearchParams (avoids Suspense requirement in Next 14)
   const getInitialTab = (): TabKey => {
     if (typeof window === 'undefined') return 'overview';
     const p = new URLSearchParams(window.location.search);
@@ -1224,8 +1186,6 @@ export default function CaseDetailPage() {
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
-  const [cancellingAgent, setCancellingAgent] = useState(false);
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   // Presentation state
   const [creatingPresentation, setCreatingPresentation] = useState(false);
@@ -1299,10 +1259,9 @@ export default function CaseDetailPage() {
     e.preventDefault(); if (!showOutcome) return;
     setSaving(true); setError('');
     try {
-      // Strip empty next_hearing_date — API regex requires YYYY-MM-DD format or omit entirely
       const payload: any = { outcome: of_.outcome, order_summary: of_.order_summary || undefined };
       if (of_.next_hearing_date && of_.next_hearing_date.trim()) payload.next_hearing_date = of_.next_hearing_date;
-      await apiCall(`/v1/hearings/${showOutcome}/outcome`, 'PATCH', payload);
+      await apiCall('/v1/hearings/' + showOutcome + '/outcome', 'PATCH', payload);
       setShowOutcome(null); setOf_({ outcome: '', order_summary: '', next_hearing_date: '' }); refresh();
     } catch (err: any) { setError(err.message); }
     setSaving(false);
@@ -1326,42 +1285,23 @@ export default function CaseDetailPage() {
 
   const handleRunAgent = async (agentType: string) => {
     if (!c) return;
+    const readyDocs = (c.documents || []).filter((d: any) => d.processing_status === 'ready');
+    if (readyDocs.length === 0) {
+      setError('No processed documents found. Upload a document and wait for OCR to complete first.');
+      return;
+    }
     setRunningAgent(agentType); setError('');
     try {
-      const res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
+      const res = await fetch(`${BASE}/v1/agents/cases/${id}/run/${agentType}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({}),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
-
-      const jobId = json.data?.job_id;
       refresh();
-
-      // Poll until done (inline agents complete in 30-90s)
-      if (jobId) {
-        const poll = setInterval(async () => {
-          try {
-            const jr = await fetch(BASE + '/v1/agents/jobs/' + jobId, {
-              headers: { Authorization: 'Bearer ' + token },
-            });
-            const jd = await jr.json();
-            const status = jd.data?.status;
-            if (status === 'completed' || status === 'failed') {
-              clearInterval(poll);
-              setRunningAgent(null);
-              refresh();
-            }
-          } catch { clearInterval(poll); setRunningAgent(null); }
-        }, 3000);
-        // Safety timeout after 3 minutes
-        setTimeout(() => { clearInterval(poll); setRunningAgent(null); refresh(); }, 180000);
-      }
-    } catch (err: any) {
-      setError(err.message);
-      setRunningAgent(null);
-    }
+    } catch (err: any) { setError(err.message); }
+    setRunningAgent(null);
   };
 
   const handleCreatePresentation = async (e: React.FormEvent) => {
@@ -1571,7 +1511,7 @@ export default function CaseDetailPage() {
 
         </div>
 
-        {/* Limitation Period Calculator — full width below */}
+        {/* Limitation Period Calculator */}
         <LimitationCalc caseType={c.case_type || 'civil_district'} />
       )}
 
@@ -1681,64 +1621,18 @@ export default function CaseDetailPage() {
 
           {/* Past */}
           {pastHearings.length > 0 && (
-            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+            <div style={{ ...cardStyle, overflow: 'hidden', opacity: 0.75 }}>
               <p style={sectionHeader}>{tr('past').toUpperCase()}</p>
               {[...pastHearings].reverse().map((h: any) => (
-                <div key={h.id} style={{ padding: '16px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: h.outcome ? '#dcfce7' : '#edeef0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
-                        <CheckCircle2 size={16} color={h.outcome ? '#15803d' : '#74777f'} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#191c1e' }}>
-                            {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', background: '#edeef0', color: '#43474e', borderRadius: '2px', textTransform: 'capitalize' }}>
-                            {h.purpose?.replace(/_/g, ' ')}
-                          </span>
-                          {h.time && <span style={{ fontSize: '11px', color: '#74777f' }}>{h.time} IST</span>}
-                        </div>
-                        {h.outcome ? (
-                          <div style={{ background: '#f0fdf4', border: '1px solid rgba(21,128,61,0.15)', borderRadius: '8px', padding: '10px 12px', marginTop: '6px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Outcome</p>
-                            <p style={{ fontSize: '13px', color: '#191c1e', margin: 0, fontWeight: 600 }}>{h.outcome}</p>
-                            {h.order_summary && (
-                              <p style={{ fontSize: '12px', color: '#43474e', margin: '4px 0 0', lineHeight: 1.5 }}>{h.order_summary}</p>
-                            )}
-                          </div>
-                        ) : (
-                          <div style={{ background: '#fff7ed', border: '1px solid rgba(180,83,9,0.15)', borderRadius: '8px', padding: '8px 12px', marginTop: '6px' }}>
-                            <p style={{ fontSize: '12px', color: '#b45309', margin: 0 }}>⚠️ No outcome recorded</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowOutcome(h.id);
-                        setOf_({ outcome: h.outcome || '', order_summary: h.order_summary || '', next_hearing_date: '' });
-                      }}
-                      style={{ ...btnGhost, flexShrink: 0, fontSize: '11px', padding: '6px 12px' }}>
-                      {h.outcome ? '✏️ Edit' : '+ Record'}
-                    </button>
+                <div key={h.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                  <CheckCircle2 size={16} color="#15803d" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#43474e', margin: 0 }}>
+                      {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <span style={{ marginLeft: '8px', fontSize: '11px', color: '#74777f', fontWeight: 400, textTransform: 'capitalize' }}>{h.purpose?.replace(/_/g, ' ')}</span>
+                    </p>
+                    {h.outcome && <p style={{ fontSize: '12px', color: '#74777f', margin: '2px 0 0' }}>{h.outcome}</p>}
                   </div>
-                  {showOutcome === h.id && (
-                    <form onSubmit={handleOutcome} style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(196,198,207,0.15)' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-                        <div><label style={lbl}>What happened? *</label><input type="text" required value={of_.outcome} onChange={e => setOf_({ ...of_, outcome: e.target.value })} placeholder="e.g. Arguments heard, next date given" style={inp()} /></div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <div><label style={lbl}>Order Summary</label><input type="text" value={of_.order_summary} onChange={e => setOf_({ ...of_, order_summary: e.target.value })} placeholder="Brief summary of the order" style={inp()} /></div>
-                          <div><label style={lbl}>Next Hearing Date</label><input type="date" value={of_.next_hearing_date} onChange={e => setOf_({ ...of_, next_hearing_date: e.target.value })} style={inp()} /></div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>{saving ? tr('saving') : 'Save Outcome'}</button>
-                        <button type="button" onClick={() => setShowOutcome(null)} style={btnGhost}>{tr('cancel')}</button>
-                      </div>
-                    </form>
-                  )}
                 </div>
               ))}
             </div>
@@ -1861,188 +1755,61 @@ export default function CaseDetailPage() {
       )}
 
       {/* ─── AGENTS ─────────────────────────────────────── */}
-      {activeTab === 'agents' && (() => {
-
-        const renderJobOutput = (job: any) => {
-          const o = job.output;
-          if (!o) return <p style={{ fontSize: '12px', color: '#74777f', padding: '12px 0', margin: 0 }}>No output data available.</p>;
-          const t = job.agent_type;
-          const Sec = ({ label, color = '#022448' }: { label: string; color?: string }) => (
-            <p style={{ fontSize: '10px', fontWeight: 800, color, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '14px 0 6px' }}>{label}</p>
-          );
-          const Card = ({ children, bg = '#fafafa', border = 'rgba(196,198,207,0.2)' }: any) => (
-            <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: '8px', padding: '10px 12px', marginBottom: '6px' }}>{children}</div>
-          );
-          const Pill = ({ text, bg, color }: any) => (
-            <span style={{ display: 'inline-block', background: bg, color, fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', marginRight: '5px', marginTop: '3px' }}>{text}</span>
-          );
-          const sc = (v: string) => v === 'Strong' || v === 'High' || v === 'Consistent' ? '#15803d' : v === 'Moderate' || v === 'Medium' || v === 'Minor Gaps' ? '#b45309' : '#93000a';
-          const sb = (v: string) => v === 'Strong' || v === 'High' || v === 'Consistent' ? '#dcfce7' : v === 'Moderate' || v === 'Medium' || v === 'Minor Gaps' ? '#fef9c3' : '#ffdad6';
-
-          if (t === 'evidence') return (
-            <div>
-              {o.key_facts?.length > 0 && <><Sec label="Key Facts" />{(o.key_facts as string[]).map((f: string, i: number) => <Card key={i}><p style={{ fontSize: '12px', color: '#191c1e', margin: 0, lineHeight: 1.6 }}>• {f}</p></Card>)}</>}
-              {o.exhibits?.length > 0 && <><Sec label="Exhibits" />{(o.exhibits as any[]).map((e: any, i: number) => <Card key={i} bg="#f0f9ff" border="rgba(2,36,72,0.1)"><p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>Exhibit {e.number}: {e.description}</p><p style={{ fontSize: '11px', color: '#43474e', margin: '0 0 4px', lineHeight: 1.5 }}>{e.relevance}</p>{e.strength && <Pill text={e.strength} bg={sb(e.strength)} color={sc(e.strength)} />}</Card>)}</>}
-              {o.contradictions?.length > 0 && <><Sec label="Contradictions" color="#b45309" />{(o.contradictions as any[]).map((c: any, i: number) => <Card key={i} bg="#fff7ed" border="rgba(180,83,9,0.15)"><p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>• {typeof c === 'string' ? c : c.description || JSON.stringify(c)}</p></Card>)}</>}
-              {o.missing_evidence?.length > 0 && <><Sec label="Missing Evidence" color="#93000a" />{(o.missing_evidence as string[]).map((m: string, i: number) => <Card key={i} bg="#fff8f8" border="rgba(186,26,26,0.1)"><p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>• {m}</p></Card>)}</>}
-            </div>
-          );
-          if (t === 'timeline') return (
-            <div>
-              {o.events?.length > 0 && <><Sec label={`${(o.events as any[]).length} Events`} />{(o.events as any[]).map((e: any, i: number) => (
-                <div key={i} style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-                  <div style={{ minWidth: '90px', textAlign: 'right', paddingTop: '3px', flexShrink: 0 }}>
-                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#022448', margin: 0 }}>{e.date}</p>
-                    {e.time && <p style={{ fontSize: '10px', color: '#74777f', margin: 0 }}>{e.time}</p>}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#022448', marginTop: '4px' }} />
-                    {i < (o.events as any[]).length - 1 && <div style={{ width: '1px', flex: 1, background: '#d5e3ff', marginTop: '2px' }} />}
-                  </div>
-                  <div style={{ flex: 1, paddingBottom: '10px' }}>
-                    <p style={{ fontSize: '12px', color: '#191c1e', margin: '0 0 3px', lineHeight: 1.5 }}>{e.description}</p>
-                    {e.event_type && <Pill text={e.event_type.replace(/_/g, ' ')} bg="#d5e3ff" color="#022448" />}
-                  </div>
-                </div>
-              ))}</>}
-              {o.prosecution_gaps?.length > 0 && <><Sec label="Prosecution Gaps" color="#93000a" />{(o.prosecution_gaps as string[]).map((g: string, i: number) => <Card key={i} bg="#fff8f8" border="rgba(186,26,26,0.1)"><p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>• {g}</p></Card>)}</>}
-              {o.defence_opportunities?.length > 0 && <><Sec label="Defence Opportunities" color="#15803d" />{(o.defence_opportunities as string[]).map((g: string, i: number) => <Card key={i} bg="#f0fdf4" border="rgba(21,128,61,0.12)"><p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>• {g}</p></Card>)}</>}
-            </div>
-          );
-          if (t === 'research') return (
-            <div>
-              {o.applicable_statutes?.length > 0 && <><Sec label={`${(o.applicable_statutes as any[]).length} Applicable Statutes`} color="#5b21b6" />{(o.applicable_statutes as any[]).map((s: any, i: number) => <Card key={i} bg="#f4f0ff" border="rgba(91,33,182,0.1)"><p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 2px' }}>{s.section} — {s.act}</p><p style={{ fontSize: '11px', color: '#43474e', margin: '0 0 2px', lineHeight: 1.5 }}>{s.description}</p>{s.relevance && <p style={{ fontSize: '11px', color: '#5b21b6', margin: 0, fontStyle: 'italic' }}>{s.relevance}</p>}</Card>)}</>}
-              {o.favorable_precedents?.length > 0 && <><Sec label={`${(o.favorable_precedents as any[]).length} Favourable Precedents`} color="#15803d" />{(o.favorable_precedents as any[]).map((p: any, i: number) => <Card key={i} bg="#f0fdf4" border="rgba(21,128,61,0.12)"><p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 1px' }}>{p.citation}</p><p style={{ fontSize: '10px', color: '#74777f', margin: '0 0 4px' }}>{p.court} · {p.year}</p><p style={{ fontSize: '11px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>{p.relevance && <p style={{ fontSize: '11px', color: '#15803d', margin: 0, fontWeight: 600 }}>↳ Why it helps: {p.relevance}</p>}</Card>)}</>}
-              {o.adverse_precedents?.length > 0 && <><Sec label={`${(o.adverse_precedents as any[]).length} Adverse Precedents`} color="#93000a" />{(o.adverse_precedents as any[]).map((p: any, i: number) => <Card key={i} bg="#fff8f8" border="rgba(186,26,26,0.1)"><p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 1px' }}>{p.citation}</p><p style={{ fontSize: '10px', color: '#74777f', margin: '0 0 4px' }}>{p.court} · {p.year}</p><p style={{ fontSize: '11px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>{p.how_to_distinguish && <p style={{ fontSize: '11px', color: '#b45309', margin: 0, fontWeight: 600 }}>↳ Distinguish: {p.how_to_distinguish}</p>}</Card>)}</>}
-              {o.disclaimer && <p style={{ fontSize: '10px', color: '#74777f', marginTop: '12px', fontStyle: 'italic' }}>⚠️ {o.disclaimer}</p>}
-            </div>
-          );
-          if (t === 'deposition') return (
-            <div>
-              {(o.witness_name || o.credibility_assessment) && <Card bg="#f0f4ff" border="rgba(2,36,72,0.1)">
-                {o.witness_name && <p style={{ fontSize: '13px', fontWeight: 700, color: '#022448', margin: '0 0 4px' }}>Witness: {o.witness_name}</p>}
-                {o.credibility_assessment && <><span style={{ fontSize: '11px', color: '#74777f' }}>Credibility: </span><Pill text={o.credibility_assessment} bg={sb(o.credibility_assessment)} color={sc(o.credibility_assessment)} /></>}
-                {o.credibility_reasoning && <p style={{ fontSize: '11px', color: '#43474e', margin: '6px 0 0', lineHeight: 1.5 }}>{o.credibility_reasoning}</p>}
-              </Card>}
-              {o.inconsistencies?.length > 0 && <><Sec label={`${(o.inconsistencies as any[]).length} Inconsistencies`} color="#b45309" />{(o.inconsistencies as any[]).map((inc: any, i: number) => <Card key={i} bg="#fff7ed" border="rgba(180,83,9,0.15)"><p style={{ fontSize: '12px', color: '#191c1e', margin: '0 0 3px' }}><strong>Statement:</strong> {inc.statement}</p><p style={{ fontSize: '11px', color: '#93000a', margin: '0 0 2px' }}><strong>Contradiction:</strong> {inc.contradiction}</p>{inc.page && <p style={{ fontSize: '10px', color: '#74777f', margin: 0 }}>Page: {inc.page}</p>}</Card>)}</>}
-              {o.cross_examination_questions?.length > 0 && <><Sec label="Cross-Examination Questions" />{(o.cross_examination_questions as string[]).map((q: string, i: number) => <Card key={i}><p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}><span style={{ fontWeight: 700, color: '#022448' }}>Q{i+1}.</span> {q}</p></Card>)}</>}
-            </div>
-          );
-          if (t === 'strategy') return (
-            <div>
-              {o.sentiment && <Card bg="#f0f4ff" border="rgba(2,36,72,0.1)">
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'center', minWidth: '70px' }}>
-                    <p style={{ fontFamily: 'Newsreader, serif', fontSize: '2.2rem', fontWeight: 800, color: sc(o.sentiment.score >= 65 ? 'Strong' : o.sentiment.score >= 45 ? 'Moderate' : 'Weak'), margin: 0, lineHeight: 1 }}>{o.sentiment.score}%</p>
-                    <p style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', margin: '2px 0 0', letterSpacing: '0.06em' }}>WIN PROB</p>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '12px', color: '#191c1e', margin: '0 0 6px', lineHeight: 1.6 }}>{o.sentiment.reasoning}</p>
-                    <div>
-                      {o.sentiment.evidence_strength && <Pill text={`Evidence: ${o.sentiment.evidence_strength}`} bg={sb(o.sentiment.evidence_strength)} color={sc(o.sentiment.evidence_strength)} />}
-                      {o.sentiment.precedent_strength && <Pill text={`Precedents: ${o.sentiment.precedent_strength}`} bg={sb(o.sentiment.precedent_strength)} color={sc(o.sentiment.precedent_strength)} />}
+      {activeTab === 'agents' && (
+        <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+            {AGENTS.map(({ type, Icon, label, desc }) => {
+              const isRunning = runningAgent === type;
+              const lastRun = agents.find((j: any) => j.agent_type === type);
+              return (
+                <div key={type} style={{ ...cardStyle, padding: '20px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={18} color="#022448" />
                     </div>
+                    {lastRun?.status === 'completed' && (
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>
+                    )}
                   </div>
+                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 4px' }}>{label}</h3>
+                  <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px', lineHeight: 1.5 }}>{desc}</p>
+                  <button onClick={() => handleRunAgent(type)} disabled={!!runningAgent} style={{
+                    ...btnPrimary, width: '100%', justifyContent: 'center',
+                    opacity: runningAgent && !isRunning ? 0.4 : 1,
+                    background: isRunning ? '#edeef0' : '#022448',
+                    color: isRunning ? '#43474e' : '#fff',
+                  }}>
+                    {isRunning ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Running...</> : <><Play size={13} /> Run Agent</>}
+                  </button>
                 </div>
-              </Card>}
-              {o.strengths?.length > 0 && <><Sec label={`${(o.strengths as string[]).length} Strong Pointers`} color="#15803d" />{(o.strengths as string[]).map((s: string, i: number) => <Card key={i} bg="#f0fdf4" border="rgba(21,128,61,0.12)"><p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>✓ {s}</p></Card>)}</>}
-              {o.vulnerabilities?.length > 0 && <><Sec label={`${(o.vulnerabilities as any[]).length} Key Risks`} color="#b45309" />{(o.vulnerabilities as any[]).map((v: any, i: number) => <Card key={i} bg="#fff7ed" border="rgba(180,83,9,0.15)"><p style={{ fontSize: '12px', fontWeight: 600, color: '#191c1e', margin: '0 0 4px' }}>• {v.issue}</p>{v.mitigation && <p style={{ fontSize: '11px', color: '#15803d', margin: 0 }}>↳ {v.mitigation}</p>}</Card>)}</>}
-              {o.opening_statement && <><Sec label="Opening Statement" /><Card bg="#022448" border="transparent"><p style={{ fontSize: '12px', color: '#e0e8f4', margin: 0, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{o.opening_statement}</p></Card></>}
-              {o.closing_skeleton && <><Sec label="Closing Skeleton" /><Card><p style={{ fontSize: '12px', color: '#191c1e', margin: 0, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{o.closing_skeleton}</p></Card></>}
-              {o.bench_questions?.length > 0 && <><Sec label="Anticipated Bench Questions" />{(o.bench_questions as any[]).map((q: any, i: number) => <Card key={i}><p style={{ fontSize: '12px', fontWeight: 600, color: '#022448', margin: '0 0 3px' }}>Q: {q.question}</p><p style={{ fontSize: '11px', color: '#43474e', margin: 0 }}>A: {q.suggested_answer}</p></Card>)}</>}
-            </div>
-          );
-          return <pre style={{ fontSize: '11px', color: '#74777f', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>{JSON.stringify(o, null, 2)}</pre>;
-        };
-
-        return (
-          <div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
-              {AGENTS.map(({ type, Icon, label, desc }) => {
-                const isRunning = runningAgent === type;
-                const lastRun = (agents as any[]).find((j: any) => j.agent_type === type && j.status === 'completed');
-                const isDone = !!lastRun;
-                const isFailed = !isDone && (agents as any[]).some((j: any) => j.agent_type === type && j.status === 'failed');
-                return (
-                  <div key={type} style={{ ...cardStyle, padding: '20px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: isDone ? '#dcfce7' : isFailed ? '#ffdad6' : '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon size={18} color={isDone ? '#15803d' : isFailed ? '#93000a' : '#022448'} />
-                      </div>
-                      {isDone && <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>}
-                      {isFailed && <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#ffdad6', color: '#93000a', borderRadius: '2px' }}>FAILED</span>}
-                    </div>
-                    <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 2px' }}>{label}</h3>
-                    <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 6px', lineHeight: 1.5 }}>{desc}</p>
-                    {isDone && lastRun.completed_at && <p style={{ fontSize: '10px', color: '#15803d', fontWeight: 600, margin: '0 0 2px' }}>📄 Saved to Drafts · {new Date(lastRun.completed_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}</p>}
-                    {lastRun?.cost_inr && <p style={{ fontSize: '10px', color: '#74777f', margin: '0 0 10px' }}>Cost: ₹{Number(lastRun.cost_inr).toFixed(2)}</p>}
-                    {!isDone && !isFailed && <div style={{ marginBottom: '10px' }} />}
-                    {isRunning ? (
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button disabled style={{ ...btnPrimary, flex: 1, justifyContent: 'center', background: '#edeef0', color: '#43474e', cursor: 'not-allowed' }}>
-                          <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Running...
-                        </button>
-                        <button onClick={handleCancelAgent} disabled={cancellingAgent} title="Cancel" style={{ padding: '9px 12px', background: '#ffdad6', color: '#93000a', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 700 }}>✕</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => handleRunAgent(type)} disabled={!!runningAgent} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: runningAgent ? 0.4 : 1, background: isFailed ? '#93000a' : '#022448' }}>
-                        <Play size={13} /> {isDone ? 'Re-run' : isFailed ? '↺ Retry' : 'Run Agent'}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {(agents as any[]).length > 0 && (
-              <div style={{ ...cardStyle, overflow: 'hidden' }}>
-                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', padding: '14px 20px 10px', margin: 0 }}>RUN HISTORY — click a completed row to view full output</p>
-                {(agents as any[]).slice(0, 15).map((job: any) => (
-                  <div key={job.id}>
-                    <button
-                      onClick={() => job.status === 'completed' && setExpandedJobId(expandedJobId === job.id ? null : job.id)}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 20px', background: expandedJobId === job.id ? '#f0f4ff' : 'transparent', border: 'none', borderBottom: '1px solid rgba(196,198,207,0.08)', cursor: job.status === 'completed' ? 'pointer' : 'default', textAlign: 'left', fontFamily: 'Manrope, sans-serif' }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
-                        <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
-                          {new Date(job.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
-                          {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
-                          {job.tokens_input ? ` · ${(job.tokens_input + (job.tokens_output || 0)).toLocaleString()} tokens` : ''}
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
-                          background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
-                          color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
-                        }}>{job.status.toUpperCase()}</span>
-                        {job.status === 'completed' && <span style={{ fontSize: '12px', color: '#74777f', fontWeight: 700 }}>{expandedJobId === job.id ? '▲' : '▼'}</span>}
-                        {job.status === 'failed' && (
-                          <button onClick={(e) => { e.stopPropagation(); handleRunAgent(job.agent_type); }} disabled={!!runningAgent}
-                            style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                            ↺ Retry
-                          </button>
-                        )}
-                      </div>
-                    </button>
-                    {job.status === 'failed' && job.error_message && (
-                      <div style={{ padding: '8px 20px 10px', background: '#ffdad6', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                        <p style={{ fontSize: '11px', color: '#93000a', margin: 0 }}><strong>Error:</strong> {job.error_message}</p>
-                      </div>
-                    )}
-                    {expandedJobId === job.id && (
-                      <div style={{ padding: '16px 20px 20px', background: '#f8faff', borderBottom: '2px solid #d5e3ff' }}>
-                        {renderJobOutput(job)}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+              );
+            })}
           </div>
-        );
-      })()}
 
+          {agents.length > 0 && (
+            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+              <p style={sectionHeader}>{tr('run_history').toUpperCase()}</p>
+              {agents.slice(0, 8).map((job: any) => (
+                <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
+                    <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
+                      {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
+                    </p>
+                  </div>
+                  <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
+                    background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
+                    color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
+                  }}>
+                    {job.status.toUpperCase()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── DRAFTS ─────────────────────────────────────── */}
       {activeTab === 'drafts' && (
