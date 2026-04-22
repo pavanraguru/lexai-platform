@@ -1182,6 +1182,7 @@ export default function CaseDetailPage() {
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [showFailedJobs, setShowFailedJobs] = useState(false);
 
   // Presentation state
   const [creatingPresentation, setCreatingPresentation] = useState(false);
@@ -1822,8 +1823,16 @@ export default function CaseDetailPage() {
 
           {agents.filter((j: any) => j.status !== 'failed').length > 0 || agents.filter((j: any) => j.status === 'failed').length > 0 ? (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              <p style={sectionHeader}>RUN HISTORY</p>
-              {agents.slice(0, 10).map((job: any) => {
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', background: '#f8f9fb' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: '#74777f', margin: 0 }}>RUN HISTORY</p>
+                {agents.filter((j: any) => j.status === 'failed').length > 0 && (
+                  <button onClick={() => setShowFailedJobs(s => !s)}
+                    style={{ fontSize: '11px', fontWeight: 600, color: showFailedJobs ? '#93000a' : '#74777f', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', textDecoration: 'underline' }}>
+                    {showFailedJobs ? 'Hide' : `Show ${agents.filter((j: any) => j.status === 'failed').length} failed`}
+                  </button>
+                )}
+              </div>
+              {agents.filter((job: any) => showFailedJobs || job.status !== 'failed').slice(0, 10).map((job: any) => {
                 const isExpanded = expandedJobId === job.id;
                 const output = job.output as any;
                 return (
