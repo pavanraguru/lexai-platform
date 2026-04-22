@@ -235,7 +235,6 @@ export default function CalendarPage() {
                       <span style={{ fontSize: '9px', color: '#74777f', fontWeight: 600 }}>+{items.hearings.length + items.tasks.length - 2} more</span>
                     )}
                   </div>
-                  </Link>
                 );
               })}
             </div>
