@@ -118,13 +118,6 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
         : 2000,
       system: p.system,
       messages: [{ role: 'user', content: p.user }],
-      stop_sequences: ['
-
-Note:', '
-
-Disclaimer:', '
-
-Please note'],
     });
 
     const raw = response.content[0].type === 'text' ? response.content[0].text : '';
