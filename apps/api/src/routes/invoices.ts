@@ -275,6 +275,58 @@ export const invoiceRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ data: invoice });
   });
 
+  // PATCH /v1/invoices/:id — edit invoice fields (due_date, notes, gst_rate)
+  fastify.patch('/:id', {
+    preHandler: [fastify.authenticate],
+  }, async (req, reply) => {
+    const { tenant_id } = req.user;
+    const { id } = req.params as { id: string };
+    const { due_date, notes, gst_rate } = req.body as any;
+
+    const invoice = await fastify.prisma.invoice.findFirst({ where: { id, tenant_id } });
+    if (!invoice) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Invoice not found' } });
+    if (invoice.status === 'paid') return reply.status(400).send({ error: { code: 'INVOICE_PAID', message: 'Cannot edit a paid invoice' } });
+
+    const updated = await fastify.prisma.invoice.update({
+      where: { id },
+      data: {
+        ...(due_date !== undefined ? { due_date: due_date ? new Date(due_date) : null } : {}),
+        ...(notes !== undefined ? { notes: notes || null } : {}),
+        ...(gst_rate !== undefined ? { gst_rate: Number(gst_rate) } : {}),
+      },
+      include: { client: { select: { full_name: true, email: true } }, case: { select: { title: true } } },
+    });
+
+    return reply.send({ data: updated });
+  });
+
+  // PATCH /v1/invoices/:id/revoke-payment — revoke payment, set back to issued
+  fastify.patch('/:id/revoke-payment', {
+    preHandler: [fastify.authenticate],
+  }, async (req, reply) => {
+    const { tenant_id } = req.user;
+    const { id } = req.params as { id: string };
+
+    const invoice = await fastify.prisma.invoice.findFirst({ where: { id, tenant_id } });
+    if (!invoice) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Invoice not found' } });
+    if (invoice.status !== 'paid') return reply.status(400).send({ error: { code: 'NOT_PAID', message: 'Invoice is not paid' } });
+
+    // Delete all payments for this invoice
+    await fastify.prisma.invoicePayment.deleteMany({ where: { invoice_id: id } });
+
+    // Reset invoice to issued state
+    const updated = await fastify.prisma.invoice.update({
+      where: { id },
+      data: {
+        status: 'issued',
+        amount_paid_paise: 0,
+        balance_paise: invoice.total_paise,
+      },
+    });
+
+    return reply.send({ data: updated });
+  });
+
   // POST /v1/invoices/:id/payment — record payment
   fastify.post('/:id/payment', {
     preHandler: [fastify.authenticate],

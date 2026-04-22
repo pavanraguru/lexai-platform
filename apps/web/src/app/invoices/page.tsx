@@ -148,6 +148,9 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
   const [error, setError] = useState('');
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [editForm, setEditForm] = useState({ due_date: '', notes: '', gst_rate: 18 });
+  const [editError, setEditError] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [revoking, setRevoking] = useState(false);
   const [step, setStep] = useState<1|2|3>(1);
 
   const unbilledForCase = timeEntries.filter(e => !e.billed && (!caseId || e.case_id === caseId));
@@ -465,12 +468,12 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
               </div>
             </div>
 
-            {error && <p style={{ fontSize: '12px', color: '#ba1a1a', margin: '12px 0 0' }}>{error}</p>}
+            {editError && <p style={{ fontSize: '12px', color: '#ba1a1a', margin: '12px 0 0' }}>{editError}</p>}
 
             <div style={{ display: 'flex', gap: '8px', marginTop: '22px' }}>
-              <button onClick={handleSaveEdit} disabled={saving}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: saving ? 0.7 : 1 }}>
-                {saving ? 'Saving...' : 'Save Changes'}
+              <button onClick={handleSaveEdit} disabled={editSaving}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: editSaving ? 0.7 : 1 }}>
+                {editSaving ? 'Saving...' : 'Save Changes'}
               </button>
               <button onClick={() => setEditingInvoice(null)}
                 style={{ padding: '11px 18px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
@@ -558,6 +561,7 @@ export default function BillingPage() {
 
   const openEdit = (inv: any) => {
     setEditingInvoice(inv);
+    setEditError('');
     setEditForm({
       due_date: inv.due_date ? inv.due_date.split('T')[0] : '',
       notes: inv.notes || '',
@@ -567,7 +571,7 @@ export default function BillingPage() {
 
   const handleSaveEdit = async () => {
     if (!editingInvoice) return;
-    setSaving(true);
+    setEditSaving(true); setEditError('');
     try {
       const res = await fetch(`${BASE}/v1/invoices/${editingInvoice.id}`, {
         method: 'PATCH',
@@ -581,8 +585,22 @@ export default function BillingPage() {
       if (!res.ok) { const j = await res.json(); throw new Error(j.error?.message || 'Failed to update'); }
       setEditingInvoice(null);
       qc.invalidateQueries({ queryKey: ['invoices'] });
-    } catch (err: any) { setError(err.message); }
-    setSaving(false);
+    } catch (err: any) { setEditError(err.message); }
+    setEditSaving(false);
+  };
+
+  const handleRevokePayment = async (id: string) => {
+    if (!confirm('Revoke payment and set invoice back to Issued? This cannot be undone.')) return;
+    setRevoking(true);
+    try {
+      const res = await fetch(`${BASE}/v1/invoices/${id}/revoke-payment`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { const j = await res.json(); throw new Error(j.error?.message || 'Failed to revoke'); }
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (err: any) { alert(err.message); }
+    setRevoking(false);
   };
 
   return (
@@ -748,6 +766,12 @@ export default function BillingPage() {
                       <button onClick={() => handleMarkPaid(inv.id)}
                         style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 11px', background: '#dcfce7', color: '#15803d', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
                         <Check size={13}/> Mark Paid
+                      </button>
+                    )}
+                    {inv.status === 'paid' && (
+                      <button onClick={() => handleRevokePayment(inv.id)} disabled={revoking}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '7px 11px', background: '#ffdad6', color: '#93000a', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700, cursor: revoking ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: revoking ? 0.6 : 1 }}>
+                        <X size={13}/> Revoke
                       </button>
                     )}
                   </div>
