@@ -331,6 +331,7 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   </div>
+                  </Link>
                 );
               })}
               {selectedItems?.tasks.map((t: any) => (

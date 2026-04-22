@@ -5,7 +5,7 @@ import DocumentsTab from './DocumentsTab';
 import StrategyIntelPanel from './StrategyIntelPanel';
 import PrecedentPanel from './PrecedentPanel';
 import DraftingSidebar from './DraftingSidebar';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -1227,9 +1227,13 @@ export default function CaseDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const { tr } = useLang();
-  const searchParams = useSearchParams();
-  const initialTab = (searchParams.get('tab') as TabKey) || 'overview';
-  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+  // Read ?tab= from URL without useSearchParams (avoids Suspense requirement in Next 14)
+  const getInitialTab = (): TabKey => {
+    if (typeof window === 'undefined') return 'overview';
+    const p = new URLSearchParams(window.location.search);
+    return (p.get('tab') as TabKey) || 'overview';
+  };
+  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
