@@ -173,6 +173,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
   // Enqueue an agent job — async, result via Supabase Realtime
   fastify.post('/cases/:case_id/run/:agent_type', {
     preHandler: [fastify.authenticate],
+    config: { allowEmptyBody: true },
   }, async (request, reply) => {
     const { tenant_id, id: user_id, role } = request.user;
     const { case_id, agent_type } = request.params as { case_id: string; agent_type: string };
@@ -242,7 +243,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    const body = RunAgentSchema.parse(request.body || {});
+    const body = RunAgentSchema.parse((request.body && Object.keys(request.body as any).length ? request.body : {}) as any);
 
     // Get all documents — prefer ready (OCR done) but fall back to any uploaded doc
     const allDocuments = await fastify.prisma.document.findMany({

@@ -47,6 +47,12 @@ const server = Fastify({
 });
 
 async function bootstrap() {
+  // Handle empty JSON bodies — prevents FST_ERR_CTP_EMPTY_JSON_BODY
+  server.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body: string, done) => {
+    if (!body || body.trim() === '') { done(null, {}); return; }
+    try { done(null, JSON.parse(body)); } catch (err: any) { done(err, undefined); }
+  });
+
   await server.register(cors, {
     origin: true,  // allow all origins — Vercel + localhost + any client
     credentials: true,
