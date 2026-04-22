@@ -89,12 +89,12 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
         user: `Analyse evidence:\n\n${docContext}`,
       },
       timeline: {
-        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
+        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline. Limit to max 12 most important events, keep descriptions brief.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
         user: `Reconstruct timeline:\n\n${docContext}`,
       },
       research: {
-        system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
-        user: `Research Indian law for this case:\n\n${docContext.substring(0, 12000)}`,
+        system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nLimit to max 5 statutes and 3 precedents. Keep descriptions under 80 words each. CRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
+        user: `Research Indian law for this case:\n\n${docContext.substring(0, 6000)}`,
       },
       deposition: {
         system: `You are a senior Indian advocate's AI assistant specialising in deposition analysis.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"witness_name":"...","inconsistencies":[{"statement":"...","contradiction":"...","page":"..."}],"cross_examination_questions":["..."],"credibility_assessment":"High|Medium|Low","credibility_reasoning":"..."}`,
@@ -112,9 +112,19 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
     // Call Claude
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: agent_type === 'strategy' ? 4000 : 2000,
+      max_tokens: agent_type === 'strategy' ? 4000
+        : agent_type === 'research' ? 3500
+        : agent_type === 'timeline' ? 3000
+        : 2000,
       system: p.system,
       messages: [{ role: 'user', content: p.user }],
+      stop_sequences: ['
+
+Note:', '
+
+Disclaimer:', '
+
+Please note'],
     });
 
     const raw = response.content[0].type === 'text' ? response.content[0].text : '';
