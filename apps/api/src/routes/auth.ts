@@ -31,6 +31,23 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(401).send({ error: { code: 'USER_INACTIVE', message: 'Account deactivated.' } });
     }
 
+    // Auto-upgrade to super_admin if this is the ADMIN_EMAIL account
+    const adminEmail = process.env.ADMIN_EMAIL || '';
+    if (adminEmail && dbUser.email && dbUser.email.toLowerCase() === adminEmail.toLowerCase() && dbUser.role !== 'super_admin') {
+      await fastify.prisma.user.update({ where: { id: dbUser.id }, data: { role: 'super_admin' } });
+      dbUser.role = 'super_admin' as any;
+      fastify.log.info(`[Auth] Auto-upgraded ${dbUser.email} to super_admin`);
+      // Also ensure Pro subscription
+      const existingSub = await fastify.prisma.subscription.findFirst({ where: { tenant_id: dbUser.tenant_id } });
+      if (existingSub && existingSub.status !== 'active') {
+        await fastify.prisma.subscription.update({
+          where: { tenant_id: dbUser.tenant_id },
+          data: { status: 'active', plan: 'professional', current_period_end: new Date('2099-12-31') },
+        }).catch(() => {});
+        await fastify.prisma.tenant.update({ where: { id: dbUser.tenant_id }, data: { plan: 'professional' } }).catch(() => {});
+      }
+    }
+
     // Fetch subscription status
     const sub = await fastify.prisma.subscription.findFirst({
       where: { tenant_id: dbUser.tenant_id },
@@ -40,7 +57,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     const now = new Date();
     const trialEnd = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
     const trialDaysLeft = trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000)) : 0;
-    const isPro = sub?.status === 'active';
+    // super_admin is always Pro regardless of subscription
+    const isPro = dbUser.role === 'super_admin' || sub?.status === 'active';
 
     const lexaiToken = fastify.jwt.sign({
       id: dbUser.id,

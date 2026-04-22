@@ -43,22 +43,43 @@ export const billingRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    // Create user as managing_partner
+    // Check if this is the admin account
+    const adminEmail = process.env.ADMIN_EMAIL || '';
+    const isAdmin = adminEmail && email && email.toLowerCase() === adminEmail.toLowerCase();
+
+    // Create user — admin gets super_admin role
     await fastify.prisma.user.create({
       data: {
         id: supabase_user_id,
         tenant_id: tenant.id,
         email,
         full_name: full_name || email.split('@')[0],
-        role: 'managing_partner',
+        role: isAdmin ? 'super_admin' : 'managing_partner',
         phone: phone || null,
         is_active: true,
       },
     });
 
-    // Create 5-day trial subscription
+    // Admin gets permanent Pro subscription; others get 5-day trial
     const now = new Date();
+    const farFuture = new Date('2099-12-31');
     const trialEnd = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+    if (isAdmin) {
+      // Permanent Pro for admin
+      await fastify.prisma.subscription.create({
+        data: {
+          tenant_id: tenant.id,
+          plan: 'professional',
+          status: 'active',
+          current_period_start: now,
+          current_period_end: farFuture,
+        },
+      });
+      await fastify.prisma.tenant.update({ where: { id: tenant.id }, data: { plan: 'professional' } });
+      fastify.log.info(`[Billing] Admin signup: ${email} — tenant ${tenant.id} — permanent Pro activated`);
+      return reply.status(201).send({ data: { tenant_id: tenant.id, is_admin: true, trial_ends_at: null } });
+    }
 
     await fastify.prisma.subscription.create({
       data: {
