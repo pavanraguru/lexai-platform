@@ -1234,9 +1234,13 @@ export default function CaseDetailPage() {
   };
 
   const apiCall = async (url: string, method: string, body?: any) => {
+    const hasBody = body !== undefined && body !== null;
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (hasBody) headers['Content-Type'] = 'application/json';
     const res = await fetch(`${BASE}${url}`, {
-      method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: body ? JSON.stringify(body) : undefined,
+      method,
+      headers,
+      body: hasBody ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) throw new Error((await res.json()).message || 'Request failed');
     return res.json();
@@ -1295,8 +1299,7 @@ export default function CaseDetailPage() {
     try {
       const res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({}),
+        headers: { Authorization: 'Bearer ' + token },
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
