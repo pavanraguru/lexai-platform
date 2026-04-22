@@ -89,7 +89,7 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
         user: `Analyse evidence:\n\n${docContext}`,
       },
       timeline: {
-        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
+        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline.\n${baseContext}\nIMPORTANT: You MUST complete the entire JSON object. Do not stop mid-array. Close all arrays and the root object before stopping.\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
         user: `Reconstruct timeline:\n\n${docContext}`,
       },
       research: {
@@ -112,10 +112,7 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
     // Call Claude
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: agent_type === 'strategy' ? 4000
-        : agent_type === 'research' ? 3500
-        : agent_type === 'timeline' ? 3000
-        : 2000,
+      max_tokens: 6000,
       system: p.system,
       messages: [{ role: 'user', content: p.user }],
     });

@@ -1935,101 +1935,307 @@ export default function CaseDetailPage() {
                       </div>
                     )}
 
-                    {isExpanded && output && (
-                      <div style={{ padding: '16px 20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
-                        {/* Evidence output */}
-                        {output.exhibits && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>EXHIBITS ({output.exhibits.length})</p>
-                            {output.exhibits.slice(0, 5).map((e: any, i: number) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', display: 'flex', gap: '8px' }}>
-                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0 }}>{e.number}</span>
-                                <span>{e.description}</span>
+                    {isExpanded && output && (() => {
+                      const copyText = (text: string) => navigator.clipboard.writeText(text).catch(() => {});
+                      const SectionHeader = ({ title, count, color = '#022448' }: { title: string; count?: number; color?: string }) => (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                          <p style={{ fontSize: '10px', fontWeight: 800, color, letterSpacing: '0.06em', margin: 0 }}>{title}{count !== undefined ? ` (${count})` : ''}</p>
+                          <button onClick={() => {}} style={{ display: 'none' }} />
+                        </div>
+                      );
+                      return (
+                      <div style={{ padding: '20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
+                        {/* Copy all button */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                          <button onClick={() => copyText(JSON.stringify(output, null, 2))}
+                            style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                            Copy All Data
+                          </button>
+                        </div>
+
+                        {/* EVIDENCE */}
+                        {output.exhibits && output.exhibits.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>EXHIBITS ({output.exhibits.length})</p>
+                              <button onClick={() => copyText(output.exhibits.map((e: any) => `${e.number}: ${e.description}`).join('
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.exhibits.map((e: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '5px', display: 'flex', gap: '10px', padding: '6px 10px', background: '#fff', borderRadius: '6px' }}>
+                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0, minWidth: '40px' }}>{e.number}</span>
+                                <span style={{ flex: 1 }}>{e.description}</span>
+                                {e.relevance && <span style={{ fontSize: '11px', color: '#74777f', flexShrink: 0 }}>{e.relevance}</span>}
                               </div>
                             ))}
                           </div>
                         )}
+
                         {output.key_facts && Array.isArray(output.key_facts) && output.key_facts.length > 0 && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY FACTS ({output.key_facts.length})</p>
-                            {output.key_facts.slice(0, 4).map((f: any, i: number) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', paddingLeft: '10px', borderLeft: '2px solid #022448' }}>
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>KEY FACTS ({output.key_facts.length})</p>
+                              <button onClick={() => copyText(output.key_facts.map((f: any, i: number) => `${i+1}. ${typeof f === 'string' ? f : f.fact}`).join('
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.key_facts.map((f: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '5px', padding: '6px 10px', background: '#fff', borderRadius: '6px', borderLeft: '3px solid #022448', lineHeight: 1.5 }}>
                                 {typeof f === 'string' ? f : f.fact}
+                                {typeof f !== 'string' && f.importance && <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 700, color: f.importance === 'high' ? '#ba1a1a' : '#735c00' }}>{f.importance.toUpperCase()}</span>}
                               </div>
                             ))}
                           </div>
                         )}
-                        {/* Timeline output */}
-                        {output.events && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>TIMELINE EVENTS ({output.events.length})</p>
-                            {output.events.slice(0, 5).map((e: any, i: number) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', display: 'flex', gap: '8px' }}>
-                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0 }}>{e.date}</span>
-                                <span>{e.description}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {/* Research output */}
-                        {output.applicable_statutes && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>APPLICABLE STATUTES ({output.applicable_statutes.length})</p>
-                            {output.applicable_statutes.slice(0, 4).map((s: any, i: number) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px' }}>
-                                <span style={{ fontWeight: 700 }}>{s.act} {s.section}</span> — {s.description}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {output.favorable_precedents && output.favorable_precedents.length > 0 && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>FAVOURABLE PRECEDENTS ({output.favorable_precedents.length})</p>
-                            {output.favorable_precedents.slice(0, 3).map((p: any, i: number) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '6px', padding: '6px 10px', background: '#f0fdf4', borderRadius: '6px', borderLeft: '2px solid #15803d' }}>
-                                <span style={{ fontWeight: 700, color: '#15803d' }}>{p.citation}</span> — {p.held}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {/* Strategy output */}
-                        {output.opening_statement && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>OPENING STATEMENT</p>
-                            <p style={{ fontSize: '12px', color: '#43474e', lineHeight: 1.6, margin: 0 }}>{String(output.opening_statement).substring(0, 400)}...</p>
-                          </div>
-                        )}
-                        {output.sentiment && (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '6px',
-                            background: output.sentiment.label === 'Favorable' ? '#dcfce7' : output.sentiment.label === 'Unfavorable' ? '#ffdad6' : '#ffe088',
-                            color: output.sentiment.label === 'Favorable' ? '#15803d' : output.sentiment.label === 'Unfavorable' ? '#93000a' : '#745c00' }}>
-                            <span style={{ fontSize: '12px', fontWeight: 800 }}>{output.sentiment.label}</span>
-                            {output.sentiment.score && <span style={{ fontSize: '11px' }}>{output.sentiment.score}%</span>}
-                          </div>
-                        )}
-                        {/* Deposition output */}
-                        {output.inconsistencies && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>INCONSISTENCIES ({output.inconsistencies.length})</p>
-                            {output.inconsistencies.slice(0, 3).map((inc: any, i: number) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '6px', padding: '6px 10px', background: '#fff7ed', borderRadius: '6px', borderLeft: '2px solid #f97316' }}>
-                                {typeof inc === 'string' ? inc : inc.description || inc.statement}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+
                         {output.contradictions && output.contradictions.length > 0 && (
-                          <div style={{ marginBottom: '16px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>CONTRADICTIONS ({output.contradictions.length})</p>
-                            {output.contradictions.slice(0, 3).map((c: any, i: number) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#93000a', marginBottom: '4px', paddingLeft: '10px', borderLeft: '2px solid #ba1a1a' }}>
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: 0 }}>CONTRADICTIONS ({output.contradictions.length})</p>
+                              <button onClick={() => copyText(output.contradictions.map((c: any) => typeof c === 'string' ? c : c.description).join('
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.contradictions.map((c: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#93000a', marginBottom: '5px', padding: '6px 10px', background: '#fff5f5', borderRadius: '6px', borderLeft: '3px solid #ba1a1a', lineHeight: 1.5 }}>
                                 {typeof c === 'string' ? c : c.description}
                               </div>
                             ))}
                           </div>
                         )}
+
+                        {output.missing_evidence && output.missing_evidence.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#735c00', letterSpacing: '0.06em', margin: '0 0 8px' }}>MISSING EVIDENCE ({output.missing_evidence.length})</p>
+                            {output.missing_evidence.map((m: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#735c00', marginBottom: '4px', padding: '5px 10px', background: '#fffbeb', borderRadius: '6px' }}>
+                                {typeof m === 'string' ? m : m.description || JSON.stringify(m)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* TIMELINE */}
+                        {output.events && output.events.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>TIMELINE EVENTS ({output.events.length})</p>
+                              <button onClick={() => copyText(output.events.map((e: any) => `${e.date}${e.time ? ' ' + e.time : ''}: ${e.description}`).join('
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.events.map((e: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '5px', display: 'flex', gap: '12px', padding: '7px 10px', background: '#fff', borderRadius: '6px', alignItems: 'flex-start' }}>
+                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0, minWidth: '90px', fontSize: '11px' }}>{e.date}{e.time ? ' ' + e.time : ''}</span>
+                                <div style={{ flex: 1 }}>
+                                  <span>{e.description}</span>
+                                  {e.event_type && <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase' }}>{e.event_type.replace(/_/g, ' ')}</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.prosecution_gaps && output.prosecution_gaps.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>PROSECUTION GAPS ({output.prosecution_gaps.length})</p>
+                            {output.prosecution_gaps.map((g: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#93000a', marginBottom: '4px', padding: '5px 10px', background: '#fff5f5', borderRadius: '6px' }}>
+                                {typeof g === 'string' ? g : g.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.defence_opportunities && output.defence_opportunities.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>DEFENCE OPPORTUNITIES ({output.defence_opportunities.length})</p>
+                            {output.defence_opportunities.map((d: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#15803d', marginBottom: '4px', padding: '5px 10px', background: '#f0fdf4', borderRadius: '6px' }}>
+                                {typeof d === 'string' ? d : d.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* RESEARCH */}
+                        {output.applicable_statutes && output.applicable_statutes.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>APPLICABLE STATUTES ({output.applicable_statutes.length})</p>
+                              <button onClick={() => copyText(output.applicable_statutes.map((s: any) => `${s.act} ${s.section}: ${s.description}`).join('
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.applicable_statutes.map((s: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff', borderRadius: '6px', borderLeft: '3px solid #022448' }}>
+                                <p style={{ fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>{s.act} — {s.section}</p>
+                                <p style={{ margin: 0, lineHeight: 1.5 }}>{s.description}</p>
+                                {s.relevance && <p style={{ fontSize: '11px', color: '#74777f', margin: '3px 0 0', fontStyle: 'italic' }}>{s.relevance}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.favorable_precedents && output.favorable_precedents.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: 0 }}>FAVOURABLE PRECEDENTS ({output.favorable_precedents.length})</p>
+                              <button onClick={() => copyText(output.favorable_precedents.map((p: any) => `${p.citation} (${p.court}, ${p.year}): ${p.held}`).join('
+
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.favorable_precedents.map((p: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', borderLeft: '3px solid #15803d' }}>
+                                <p style={{ fontWeight: 700, color: '#15803d', margin: '0 0 3px' }}>{p.citation} {p.court && `— ${p.court}`} {p.year && `(${p.year})`}</p>
+                                <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
+                                {p.relevance && <p style={{ fontSize: '11px', color: '#15803d', margin: 0, fontStyle: 'italic' }}>{p.relevance}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.adverse_precedents && output.adverse_precedents.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: 0 }}>ADVERSE PRECEDENTS ({output.adverse_precedents.length})</p>
+                              <button onClick={() => copyText(output.adverse_precedents.map((p: any) => `${p.citation}: ${p.held}
+How to distinguish: ${p.how_to_distinguish}`).join('
+
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.adverse_precedents.map((p: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff5f5', borderRadius: '6px', borderLeft: '3px solid #ba1a1a' }}>
+                                <p style={{ fontWeight: 700, color: '#ba1a1a', margin: '0 0 3px' }}>{p.citation} {p.year && `(${p.year})`}</p>
+                                <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
+                                {p.how_to_distinguish && <p style={{ fontSize: '11px', color: '#022448', margin: 0, fontStyle: 'italic' }}>Distinguish: {p.how_to_distinguish}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* STRATEGY */}
+                        {output.sentiment && (
+                          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px',
+                              background: output.sentiment.label === 'Favorable' ? '#dcfce7' : output.sentiment.label === 'Unfavorable' ? '#ffdad6' : '#ffe088',
+                              color: output.sentiment.label === 'Favorable' ? '#15803d' : output.sentiment.label === 'Unfavorable' ? '#93000a' : '#745c00' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 800 }}>{output.sentiment.label}</span>
+                              {output.sentiment.score && <span style={{ fontSize: '12px', fontWeight: 700 }}>{output.sentiment.score}%</span>}
+                            </div>
+                            {output.sentiment.reasoning && <p style={{ fontSize: '12px', color: '#43474e', margin: 0, flex: 1 }}>{output.sentiment.reasoning}</p>}
+                          </div>
+                        )}
+
+                        {output.opening_statement && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>OPENING STATEMENT</p>
+                              <button onClick={() => copyText(output.opening_statement)}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            <p style={{ fontSize: '12px', color: '#43474e', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap', background: '#fff', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(196,198,207,0.3)' }}>
+                              {output.opening_statement}
+                            </p>
+                          </div>
+                        )}
+
+                        {output.bench_questions && output.bench_questions.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>BENCH QUESTIONS ({output.bench_questions.length})</p>
+                              <button onClick={() => copyText(output.bench_questions.map((q: any, i: number) => `Q${i+1}: ${q.question}
+A: ${q.suggested_answer}`).join('
+
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.bench_questions.map((q: any, i: number) => (
+                              <div key={i} style={{ marginBottom: '10px', padding: '10px 12px', background: '#fff', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.2)' }}>
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 5px' }}>Q{i+1}: {q.question}</p>
+                                <p style={{ fontSize: '12px', color: '#43474e', margin: 0, lineHeight: 1.6 }}>{q.suggested_answer}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.strengths && output.strengths.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>STRENGTHS</p>
+                            {output.strengths.map((s: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#15803d', marginBottom: '4px', padding: '5px 10px', background: '#f0fdf4', borderRadius: '6px' }}>
+                                {typeof s === 'string' ? s : s.description || JSON.stringify(s)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.vulnerabilities && output.vulnerabilities.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>VULNERABILITIES & MITIGATION</p>
+                            {output.vulnerabilities.map((v: any, i: number) => (
+                              <div key={i} style={{ marginBottom: '8px', padding: '8px 12px', background: '#fff5f5', borderRadius: '6px' }}>
+                                <p style={{ fontSize: '12px', fontWeight: 600, color: '#93000a', margin: '0 0 3px' }}>{v.issue}</p>
+                                {v.mitigation && <p style={{ fontSize: '12px', color: '#43474e', margin: 0 }}>Mitigation: {v.mitigation}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* DEPOSITION */}
+                        {output.inconsistencies && output.inconsistencies.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>INCONSISTENCIES ({output.inconsistencies.length})</p>
+                              <button onClick={() => copyText(output.inconsistencies.map((inc: any, i: number) => `${i+1}. ${typeof inc === 'string' ? inc : inc.statement || inc.description}`).join('
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.inconsistencies.map((inc: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff7ed', borderRadius: '6px', borderLeft: '3px solid #f97316' }}>
+                                {typeof inc === 'string' ? inc : (
+                                  <>
+                                    <p style={{ fontWeight: 600, margin: '0 0 3px' }}>{inc.statement}</p>
+                                    {inc.contradiction && <p style={{ color: '#c2410c', margin: '0 0 2px' }}>Contradiction: {inc.contradiction}</p>}
+                                    {inc.page && <p style={{ fontSize: '11px', color: '#74777f', margin: 0 }}>Page: {inc.page}</p>}
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.cross_examination_questions && output.cross_examination_questions.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#5b21b6', letterSpacing: '0.06em', margin: 0 }}>CROSS-EXAMINATION QUESTIONS ({output.cross_examination_questions.length})</p>
+                              <button onClick={() => copyText(output.cross_examination_questions.map((q: any, i: number) => `${i+1}. ${typeof q === 'string' ? q : q.question}`).join('
+'))}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {output.cross_examination_questions.map((q: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', padding: '5px 10px', background: '#faf5ff', borderRadius: '6px', borderLeft: '3px solid #7c3aed' }}>
+                                {i+1}. {typeof q === 'string' ? q : q.question}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {output.credibility_assessment && (
+                          <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#fff', borderRadius: '6px', display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#74777f' }}>CREDIBILITY:</span>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: output.credibility_assessment === 'High' ? '#15803d' : output.credibility_assessment === 'Low' ? '#93000a' : '#735c00' }}>
+                              {output.credibility_assessment}
+                            </span>
+                            {output.credibility_reasoning && <span style={{ fontSize: '11px', color: '#43474e' }}>— {output.credibility_reasoning}</span>}
+                          </div>
+                        )}
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 );
               })}
