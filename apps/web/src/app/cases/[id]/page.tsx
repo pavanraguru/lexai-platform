@@ -1181,6 +1181,7 @@ export default function CaseDetailPage() {
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   // Presentation state
   const [creatingPresentation, setCreatingPresentation] = useState(false);
@@ -1819,43 +1820,152 @@ export default function CaseDetailPage() {
             })}
           </div>
 
-          {agents.length > 0 && (
+          {agents.filter((j: any) => j.status !== 'failed').length > 0 || agents.filter((j: any) => j.status === 'failed').length > 0 ? (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              <p style={sectionHeader}>{tr('run_history').toUpperCase()}</p>
-              {agents.slice(0, 8).map((job: any) => (
-                <div key={job.id} style={{ padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
-                      <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
-                        {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
-                      </p>
+              <p style={sectionHeader}>RUN HISTORY</p>
+              {agents.slice(0, 10).map((job: any) => {
+                const isExpanded = expandedJobId === job.id;
+                const output = job.output as any;
+                return (
+                  <div key={job.id} style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                    <div
+                      onClick={() => job.status === 'completed' && setExpandedJobId(isExpanded ? null : job.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 20px', cursor: job.status === 'completed' ? 'pointer' : 'default', background: isExpanded ? '#f0f4ff' : 'transparent' }}>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>
+                          {job.agent_type} Analysis
+                        </p>
+                        <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
+                          {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
+                          {job.tokens_input ? ` · ${job.tokens_input + (job.tokens_output || 0)} tokens` : ''}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
+                          background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
+                          color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
+                        }}>
+                          {job.status.toUpperCase()}
+                        </span>
+                        {job.status === 'completed' && (
+                          <span style={{ fontSize: '11px', color: '#74777f' }}>{isExpanded ? '▲' : '▼'}</span>
+                        )}
+                        {job.status === 'failed' && (
+                          <button onClick={(e) => { e.stopPropagation(); handleRunAgent(job.agent_type); }} disabled={!!runningAgent}
+                            style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                            ↺ Retry
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
-                        background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
-                        color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
-                      }}>
-                        {job.status.toUpperCase()}
-                      </span>
-                      {job.status === 'failed' && (
-                        <button onClick={() => handleRunAgent(job.agent_type)} disabled={!!runningAgent}
-                          style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                          ↺ Retry
-                        </button>
-                      )}
-                    </div>
+
+                    {job.status === 'failed' && job.error_message && (
+                      <div style={{ margin: '0 20px 12px', padding: '8px 10px', background: '#ffdad6', borderRadius: '6px', fontSize: '11px', color: '#93000a', lineHeight: 1.5 }}>
+                        <strong>Error:</strong> {job.error_message}
+                      </div>
+                    )}
+
+                    {isExpanded && output && (
+                      <div style={{ padding: '16px 20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
+                        {/* Evidence output */}
+                        {output.exhibits && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>EXHIBITS ({output.exhibits.length})</p>
+                            {output.exhibits.slice(0, 5).map((e: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', display: 'flex', gap: '8px' }}>
+                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0 }}>{e.number}</span>
+                                <span>{e.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {output.key_facts && Array.isArray(output.key_facts) && output.key_facts.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY FACTS ({output.key_facts.length})</p>
+                            {output.key_facts.slice(0, 4).map((f: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', paddingLeft: '10px', borderLeft: '2px solid #022448' }}>
+                                {typeof f === 'string' ? f : f.fact}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Timeline output */}
+                        {output.events && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>TIMELINE EVENTS ({output.events.length})</p>
+                            {output.events.slice(0, 5).map((e: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', display: 'flex', gap: '8px' }}>
+                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0 }}>{e.date}</span>
+                                <span>{e.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Research output */}
+                        {output.applicable_statutes && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>APPLICABLE STATUTES ({output.applicable_statutes.length})</p>
+                            {output.applicable_statutes.slice(0, 4).map((s: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px' }}>
+                                <span style={{ fontWeight: 700 }}>{s.act} {s.section}</span> — {s.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {output.favorable_precedents && output.favorable_precedents.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>FAVOURABLE PRECEDENTS ({output.favorable_precedents.length})</p>
+                            {output.favorable_precedents.slice(0, 3).map((p: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '6px', padding: '6px 10px', background: '#f0fdf4', borderRadius: '6px', borderLeft: '2px solid #15803d' }}>
+                                <span style={{ fontWeight: 700, color: '#15803d' }}>{p.citation}</span> — {p.held}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Strategy output */}
+                        {output.opening_statement && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>OPENING STATEMENT</p>
+                            <p style={{ fontSize: '12px', color: '#43474e', lineHeight: 1.6, margin: 0 }}>{String(output.opening_statement).substring(0, 400)}...</p>
+                          </div>
+                        )}
+                        {output.sentiment && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '6px',
+                            background: output.sentiment.label === 'Favorable' ? '#dcfce7' : output.sentiment.label === 'Unfavorable' ? '#ffdad6' : '#ffe088',
+                            color: output.sentiment.label === 'Favorable' ? '#15803d' : output.sentiment.label === 'Unfavorable' ? '#93000a' : '#745c00' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 800 }}>{output.sentiment.label}</span>
+                            {output.sentiment.score && <span style={{ fontSize: '11px' }}>{output.sentiment.score}%</span>}
+                          </div>
+                        )}
+                        {/* Deposition output */}
+                        {output.inconsistencies && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>INCONSISTENCIES ({output.inconsistencies.length})</p>
+                            {output.inconsistencies.slice(0, 3).map((inc: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '6px', padding: '6px 10px', background: '#fff7ed', borderRadius: '6px', borderLeft: '2px solid #f97316' }}>
+                                {typeof inc === 'string' ? inc : inc.description || inc.statement}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {output.contradictions && output.contradictions.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>CONTRADICTIONS ({output.contradictions.length})</p>
+                            {output.contradictions.slice(0, 3).map((c: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#93000a', marginBottom: '4px', paddingLeft: '10px', borderLeft: '2px solid #ba1a1a' }}>
+                                {typeof c === 'string' ? c : c.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {job.status === 'failed' && job.error_message && (
-                    <div style={{ marginTop: '8px', padding: '8px 10px', background: '#ffdad6', borderRadius: '6px', fontSize: '11px', color: '#93000a', lineHeight: 1.5 }}>
-                      <strong>Error:</strong> {job.error_message}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
