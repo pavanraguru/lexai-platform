@@ -1077,17 +1077,17 @@ function TranslateButton({ doc, token }: { doc: any; token: string }) {
 // ── Limitation Period Calculator ──────────────────────────────
 function LimitationCalc({ caseType }: { caseType: string }) {
   const LIMITS: Record<string, { article: string; period: string; days: number; description: string }> = {
-    civil_district:      { article: 'Art. 113',   period: '3 years', days: 1095, description: 'General suits — from date of cause of action' },
-    writ_hc:             { article: 'Art. 113',   period: '3 years', days: 1095, description: 'Writ petitions — courts have discretion on delay' },
-    criminal_sessions:   { article: 'S.468 BNSS', period: '3 years', days: 1095, description: 'Offences punishable with more than 1 year imprisonment' },
-    criminal_magistrate: { article: 'S.468 BNSS', period: '1 year',  days: 365,  description: 'Offences punishable with up to 1 year imprisonment' },
-    corporate_nclt:      { article: 'NCLT Rules', period: '3 years', days: 1095, description: 'Company law matters under Companies Act 2013' },
-    family:              { article: 'Art. 54 LA', period: '1 year',  days: 365,  description: 'Matrimonial relief — from date of accrual of right' },
-    labour:              { article: 'ID Act',     period: '3 years', days: 1095, description: 'Industrial disputes — from date of discharge/dismissal' },
-    ip:                  { article: 'Art. 113',   period: '3 years', days: 1095, description: 'IP infringement suits' },
-    tax:                 { article: 'IT Act',     period: '4 years', days: 1460, description: 'Tax reassessment period' },
-    arbitration:         { article: 'Art. 137',   period: '3 years', days: 1095, description: 'Arbitration references — from date of cause' },
-    consumer:            { article: 'CP Act S.69',period: '2 years', days: 730,  description: 'Consumer complaints from date of deficiency in service' },
+    civil_district:      { article: 'Art. 113',    period: '3 years', days: 1095, description: 'General suits — from date of cause of action' },
+    writ_hc:             { article: 'Art. 113',    period: '3 years', days: 1095, description: 'Writ petitions — courts have discretion on delay' },
+    criminal_sessions:   { article: 'S.468 BNSS',  period: '3 years', days: 1095, description: 'Offences punishable with more than 1 year imprisonment' },
+    criminal_magistrate: { article: 'S.468 BNSS',  period: '1 year',  days: 365,  description: 'Offences punishable with up to 1 year imprisonment' },
+    corporate_nclt:      { article: 'NCLT Rules',  period: '3 years', days: 1095, description: 'Company law matters under Companies Act 2013' },
+    family:              { article: 'Art. 54 LA',  period: '1 year',  days: 365,  description: 'Matrimonial relief — from date of accrual of right' },
+    labour:              { article: 'ID Act',      period: '3 years', days: 1095, description: 'Industrial disputes — from date of discharge/dismissal' },
+    ip:                  { article: 'Art. 113',    period: '3 years', days: 1095, description: 'IP infringement suits' },
+    tax:                 { article: 'IT Act',      period: '4 years', days: 1460, description: 'Tax reassessment period' },
+    arbitration:         { article: 'Art. 137',    period: '3 years', days: 1095, description: 'Arbitration references — from date of cause' },
+    consumer:            { article: 'CP Act S.69', period: '2 years', days: 730,  description: 'Consumer complaints from date of deficiency in service' },
   };
 
   const limit = LIMITS[caseType] || LIMITS.civil_district;
@@ -1097,8 +1097,7 @@ function LimitationCalc({ caseType }: { caseType: string }) {
   const calculate = () => {
     if (!startDate) return;
     const start = new Date(startDate);
-    const deadline = new Date(start);
-    deadline.setDate(deadline.getDate() + limit.days);
+    const deadline = new Date(start.getTime() + limit.days * 86400000);
     const today = new Date();
     const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
     const elapsed = Math.ceil((today.getTime() - start.getTime()) / 86400000);
@@ -1107,26 +1106,31 @@ function LimitationCalc({ caseType }: { caseType: string }) {
   };
 
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const statusColor = !result ? '#022448'
-    : result.daysLeft <= 0 ? '#93000a'
-    : result.daysLeft < 30 ? '#ba1a1a'
-    : result.daysLeft < 90 ? '#c2410c'
-    : '#15803d';
-  const statusBg = !result ? '#d5e3ff'
-    : result.daysLeft <= 0 ? '#ffdad6'
-    : result.daysLeft < 30 ? '#ffdad6'
-    : result.daysLeft < 90 ? '#fff7ed'
-    : '#dcfce7';
+
+  const getColor = () => {
+    if (!result) return '#022448';
+    if (result.daysLeft <= 0) return '#93000a';
+    if (result.daysLeft < 30) return '#ba1a1a';
+    if (result.daysLeft < 90) return '#c2410c';
+    return '#15803d';
+  };
+
+  const getBg = () => {
+    if (!result) return '#d5e3ff';
+    if (result.daysLeft <= 0) return '#ffdad6';
+    if (result.daysLeft < 30) return '#ffdad6';
+    if (result.daysLeft < 90) return '#fff7ed';
+    return '#dcfce7';
+  };
 
   return (
     <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid rgba(196,198,207,0.2)', padding: '20px 24px', marginTop: '16px' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>⚖️</div>
           <div>
             <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: 0 }}>Limitation Period Calculator</h3>
-            <p style={{ fontSize: '12px', color: '#74777f', margin: 0, marginTop: '1px' }}>{limit.description}</p>
+            <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{limit.description}</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
@@ -1135,84 +1139,69 @@ function LimitationCalc({ caseType }: { caseType: string }) {
         </div>
       </div>
 
-      {/* Input row */}
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '16px' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px' }}>
             Date of Cause of Action
           </label>
-          <input type="date" value={startDate}
-            onChange={e => { setStartDate(e.target.value); setResult(null); }}
-            style={{ width: '100%', padding: '10px 13px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '14px', outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box', color: '#191c1e' }} />
+          <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setResult(null); }}
+            style={{ width: '100%', padding: '10px 13px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '14px', outline: 'none', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' }} />
         </div>
         <button onClick={calculate} disabled={!startDate}
-          style={{ padding: '10px 24px', background: startDate ? '#022448' : '#edeef0', color: startDate ? '#fff' : '#74777f', border: 'none', borderRadius: '9px', fontSize: '14px', fontWeight: 700, cursor: startDate ? 'pointer' : 'not-allowed', fontFamily: 'Manrope, sans-serif', flexShrink: 0, height: '42px' }}>
+          style={{ padding: '10px 24px', background: startDate ? '#022448' : '#edeef0', color: startDate ? '#fff' : '#74777f', border: 'none', borderRadius: '9px', fontSize: '14px', fontWeight: 700, cursor: startDate ? 'pointer' : 'not-allowed', fontFamily: 'Manrope, sans-serif', flexShrink: 0 }}>
           Calculate
         </button>
       </div>
 
-      {/* Result */}
       {result && (
-        <div style={{ marginTop: '16px' }}>
-          {/* Progress bar */}
+        <div>
           <div style={{ marginBottom: '14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#74777f', marginBottom: '6px' }}>
               <span>Cause of action</span>
-              <span style={{ fontWeight: 700, color: statusColor }}>{result.pct}% of limitation period elapsed</span>
+              <span style={{ fontWeight: 700, color: getColor() }}>{result.pct}% elapsed</span>
               <span>Deadline</span>
             </div>
             <div style={{ height: '8px', background: '#edeef0', borderRadius: '99px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${result.pct}%`, background: result.daysLeft <= 0 ? '#93000a' : result.daysLeft < 30 ? '#ba1a1a' : result.daysLeft < 90 ? '#f97316' : '#15803d', borderRadius: '99px', transition: 'width 0.5s ease' }} />
+              <div style={{ height: '100%', width: `${result.pct}%`, background: getColor(), borderRadius: '99px', transition: 'width 0.5s ease' }} />
             </div>
           </div>
 
-          {/* Result cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: result.daysLeft <= 0 || result.daysLeft < 30 ? '12px' : '0' }}>
             <div style={{ background: '#f8f9fb', borderRadius: '12px', padding: '16px 18px' }}>
               <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 6px' }}>Filing Deadline</p>
-              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.5rem', fontWeight: 800, color: '#022448', margin: '0 0 2px', lineHeight: 1.1 }}>
+              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.4rem', fontWeight: 800, color: '#022448', margin: '0 0 2px' }}>
                 {result.deadline.getDate()} {MONTHS[result.deadline.getMonth()]} {result.deadline.getFullYear()}
               </p>
               <p style={{ fontSize: '11px', color: '#74777f', margin: 0 }}>
                 {result.deadline.toLocaleDateString('en-IN', { weekday: 'long' })}
               </p>
             </div>
-            <div style={{ background: statusBg, borderRadius: '12px', padding: '16px 18px', border: `1px solid ${statusColor}25` }}>
-              <p style={{ fontSize: '10px', fontWeight: 800, color: statusColor, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 6px', opacity: 0.7 }}>
+            <div style={{ background: getBg(), borderRadius: '12px', padding: '16px 18px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 800, color: getColor(), letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 6px' }}>
                 {result.daysLeft > 0 ? 'Days Remaining' : 'Status'}
               </p>
-              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.5rem', fontWeight: 800, color: statusColor, margin: '0 0 2px', lineHeight: 1.1 }}>
+              <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.4rem', fontWeight: 800, color: getColor(), margin: '0 0 2px' }}>
                 {result.daysLeft > 0 ? `${result.daysLeft} days` : 'EXPIRED'}
               </p>
-              <p style={{ fontSize: '11px', color: statusColor, margin: 0, opacity: 0.8, fontWeight: 600 }}>
-                {result.daysLeft > 0
-                  ? result.daysLeft < 30 ? '⚠ File immediately'
+              <p style={{ fontSize: '11px', color: getColor(), margin: 0, fontWeight: 600 }}>
+                {result.daysLeft <= 0 ? `${Math.abs(result.daysLeft)} days overdue`
+                  : result.daysLeft < 30 ? '⚠ File immediately'
                   : result.daysLeft < 90 ? 'Approaching deadline'
-                  : 'Sufficient time'
-                  : `${Math.abs(result.daysLeft)} days overdue`}
+                  : 'Sufficient time'}
               </p>
             </div>
           </div>
 
-          {/* Warning banners */}
           {result.daysLeft <= 0 && (
-            <div style={{ marginTop: '12px', padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', border: '1px solid #ffb4ab' }}>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#93000a', margin: 0 }}>
-                ⚠ Limitation period has expired
-              </p>
-              <p style={{ fontSize: '12px', color: '#93000a', margin: '4px 0 0', opacity: 0.8 }}>
-                A Condonation of Delay application under Section 5 of the Limitation Act, 1963 may be required. Consult immediately.
-              </p>
+            <div style={{ padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', border: '1px solid #ffb4ab' }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#93000a', margin: 0 }}>⚠ Limitation period has expired</p>
+              <p style={{ fontSize: '12px', color: '#93000a', margin: '4px 0 0' }}>A Condonation of Delay application under Section 5 of the Limitation Act, 1963 may be required.</p>
             </div>
           )}
           {result.daysLeft > 0 && result.daysLeft < 30 && (
-            <div style={{ marginTop: '12px', padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', border: '1px solid #ffb4ab' }}>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#93000a', margin: 0 }}>
-                ⚠ Urgent — Less than 30 days remaining
-              </p>
-              <p style={{ fontSize: '12px', color: '#93000a', margin: '4px 0 0', opacity: 0.8 }}>
-                File the matter immediately. Any delay beyond the deadline will require a Condonation application.
-              </p>
+            <div style={{ padding: '12px 16px', background: '#ffdad6', borderRadius: '10px', border: '1px solid #ffb4ab' }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#93000a', margin: 0 }}>⚠ Urgent — Less than 30 days remaining</p>
+              <p style={{ fontSize: '12px', color: '#93000a', margin: '4px 0 0' }}>File the matter immediately to avoid requiring a Condonation of Delay application.</p>
             </div>
           )}
         </div>
@@ -1221,7 +1210,6 @@ function LimitationCalc({ caseType }: { caseType: string }) {
   </div>
   );
 }
-
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token } = useAuthStore();
