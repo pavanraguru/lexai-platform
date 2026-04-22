@@ -146,11 +146,6 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [editingInvoice, setEditingInvoice] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ due_date: '', notes: '', gst_rate: 18 });
-  const [editError, setEditError] = useState('');
-  const [editSaving, setEditSaving] = useState(false);
-  const [revoking, setRevoking] = useState(false);
   const [step, setStep] = useState<1|2|3>(1);
 
   const unbilledForCase = timeEntries.filter(e => !e.billed && (!caseId || e.case_id === caseId));
@@ -440,6 +435,11 @@ export default function BillingPage() {
   const [tf, setTf] = useState({ case_id: '', date: new Date().toISOString().split('T')[0], hours: '', description: '', hourly_rate_paise: '500000', billable: true });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ due_date: '', notes: '', gst_rate: 18 });
+  const [editError, setEditError] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [revoking, setRevoking] = useState(false);
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
