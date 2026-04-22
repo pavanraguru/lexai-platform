@@ -436,7 +436,11 @@ export default function BillingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ due_date: '', notes: '', gst_rate: 18 });
+  const [editForm, setEditForm] = useState<{
+    due_date: string; notes: string; gst_rate: number;
+    discount_pct: number;
+    line_items: Array<{ id: string; description: string; quantity: number; rate_paise: number; amount_paise: number; type: string }>;
+  }>({ due_date: '', notes: '', gst_rate: 18, discount_pct: 0, line_items: [] });
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [revoking, setRevoking] = useState(false);
@@ -504,10 +508,21 @@ export default function BillingPage() {
   const openEdit = (inv: any) => {
     setEditingInvoice(inv);
     setEditError('');
+    const discountPct = inv.bank_account_details?.discount_pct || 0;
+    const items = (inv.line_items || []).map((item: any, idx: number) => ({
+      id: item.id || String(idx),
+      description: item.description || '',
+      quantity: Number(item.quantity) || 1,
+      rate_paise: Number(item.rate_paise) || 0,
+      amount_paise: Number(item.amount_paise) || 0,
+      type: item.type || 'fixed',
+    }));
     setEditForm({
       due_date: inv.due_date ? inv.due_date.split('T')[0] : '',
       notes: inv.notes || '',
       gst_rate: inv.gst_rate || 18,
+      discount_pct: discountPct,
+      line_items: items.length > 0 ? items : [{ id: '1', description: '', quantity: 1, rate_paise: 0, amount_paise: 0, type: 'fixed' }],
     });
   };
 
@@ -522,6 +537,12 @@ export default function BillingPage() {
           due_date: editForm.due_date || null,
           notes: editForm.notes || null,
           gst_rate: editForm.gst_rate,
+          discount_pct: editForm.discount_pct,
+          line_items: editForm.line_items.filter(i => i.description.trim()).map(i => ({
+            ...i,
+            rate_paise: Math.round(i.rate_paise),
+            amount_paise: Math.round(i.quantity * i.rate_paise),
+          })),
         }),
       });
       if (!res.ok) { const j = await res.json(); throw new Error(j.error?.message || 'Failed to update'); }
@@ -762,48 +783,127 @@ export default function BillingPage() {
         )
       )}
       {/* ── Edit Invoice Modal ── */}
-      {editingInvoice && (
+      {editingInvoice && (() => {
+        // Live totals computed from editForm
+        const editSubtotal = editForm.line_items.reduce((s, i) => s + i.quantity * (i.rate_paise / 100), 0);
+        const editDiscount = editSubtotal * editForm.discount_pct / 100;
+        const editAfterDiscount = editSubtotal - editDiscount;
+        const editGst = editAfterDiscount * editForm.gst_rate / 100;
+        const editTotal = editAfterDiscount + editGst;
+
+        const updateItem = (id: string, field: string, val: any) =>
+          setEditForm(f => ({ ...f, line_items: f.line_items.map(i => i.id === id ? { ...i, [field]: val, amount_paise: field === 'quantity' || field === 'rate_paise' ? Math.round((field === 'quantity' ? val : i.quantity) * (field === 'rate_paise' ? val : i.rate_paise)) : i.amount_paise } : i) }));
+
+        const addItem = () => setEditForm(f => ({ ...f, line_items: [...f.line_items, { id: Date.now().toString(), description: '', quantity: 1, rate_paise: 0, amount_paise: 0, type: 'fixed' }] }));
+        const removeItem = (id: string) => setEditForm(f => ({ ...f, line_items: f.line_items.filter(i => i.id !== id) }));
+
+        return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
           onClick={(e) => { if (e.target === e.currentTarget) setEditingInvoice(null); }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(2,36,72,0.15)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '680px', boxShadow: '0 8px 32px rgba(2,36,72,0.15)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid rgba(196,198,207,0.2)', flexShrink: 0 }}>
               <div>
                 <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: '0 0 2px' }}>Edit Invoice</h2>
-                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{editingInvoice.invoice_number}</p>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{editingInvoice.invoice_number} · {editingInvoice.client?.full_name}</p>
               </div>
               <button onClick={() => setEditingInvoice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', padding: '4px' }}>
                 <X size={18}/>
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={lbl}>Due Date</label>
-                <input type="date" value={editForm.due_date}
-                  onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
-                  style={inp} />
+
+            {/* Scrollable body */}
+            <div style={{ overflowY: 'auto', padding: '20px 24px', flex: 1 }}>
+
+              {/* Details row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                <div>
+                  <label style={lbl}>Due Date</label>
+                  <input type="date" value={editForm.due_date} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))} style={inp} />
+                </div>
+                <div>
+                  <label style={lbl}>GST Rate (%)</label>
+                  <select value={editForm.gst_rate} onChange={e => setEditForm(f => ({ ...f, gst_rate: Number(e.target.value) }))} style={{ ...inp, appearance: 'none' }}>
+                    <option value={0}>0% — Exempt</option>
+                    <option value={5}>5%</option>
+                    <option value={12}>12%</option>
+                    <option value={18}>18% — Standard</option>
+                    <option value={28}>28%</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Discount (%)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input type="number" min={0} max={100} step={1} value={editForm.discount_pct}
+                      onChange={e => setEditForm(f => ({ ...f, discount_pct: Math.min(100, Math.max(0, Number(e.target.value))) }))}
+                      style={{ ...inp, width: '80px', textAlign: 'right' }} />
+                    <span style={{ fontSize: '12px', color: '#74777f' }}>
+                      {editForm.discount_pct > 0 ? `−₹${editDiscount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}` : 'No discount'}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label style={lbl}>Notes / Payment Terms</label>
+                  <input type="text" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="e.g. Pay to A/c XXXX" style={inp} />
+                </div>
               </div>
-              <div>
-                <label style={lbl}>GST Rate (%)</label>
-                <select value={editForm.gst_rate}
-                  onChange={e => setEditForm(f => ({ ...f, gst_rate: Number(e.target.value) }))}
-                  style={{ ...inp, appearance: 'none' }}>
-                  <option value={0}>0% — Exempt</option>
-                  <option value={5}>5%</option>
-                  <option value={12}>12%</option>
-                  <option value={18}>18% — Standard</option>
-                  <option value={28}>28%</option>
-                </select>
+
+              {/* Line items */}
+              <p style={{ fontSize: '11px', fontWeight: 800, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 8px' }}>Line Items</p>
+              <div style={{ background: '#f8f9fb', borderRadius: '10px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 70px 110px 90px 28px', gap: '6px', padding: '8px 12px', background: '#022448' }}>
+                  {['Description', 'Qty', 'Rate (₹)', 'Amount', ''].map(h => (
+                    <span key={h} style={{ fontSize: '10px', fontWeight: 800, color: '#fff', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{h}</span>
+                  ))}
+                </div>
+                {editForm.line_items.map((item, idx) => (
+                  <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '2fr 70px 110px 90px 28px', gap: '6px', padding: '7px 12px', borderBottom: idx < editForm.line_items.length - 1 ? '1px solid rgba(196,198,207,0.15)' : 'none', alignItems: 'center' }}>
+                    <input value={item.description} onChange={e => updateItem(item.id, 'description', e.target.value)}
+                      placeholder="Description" style={{ ...inp, padding: '6px 8px', fontSize: '12px' }} />
+                    <input type="number" min={0.5} step={0.5} value={item.quantity} onChange={e => updateItem(item.id, 'quantity', Number(e.target.value))}
+                      style={{ ...inp, padding: '6px 6px', fontSize: '12px', textAlign: 'right' }} />
+                    <input type="number" min={0} value={item.rate_paise / 100} onChange={e => updateItem(item.id, 'rate_paise', Math.round(Number(e.target.value) * 100))}
+                      style={{ ...inp, padding: '6px 6px', fontSize: '12px', textAlign: 'right' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#022448', textAlign: 'right' }}>
+                      ₹{(item.quantity * item.rate_paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </span>
+                    <button onClick={() => editForm.line_items.length > 1 && removeItem(item.id)}
+                      style={{ background: 'none', border: 'none', cursor: editForm.line_items.length > 1 ? 'pointer' : 'not-allowed', color: editForm.line_items.length > 1 ? '#74777f' : '#c4c6cf', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                      <Trash2 size={13}/>
+                    </button>
+                  </div>
+                ))}
               </div>
-              <div>
-                <label style={lbl}>Notes / Payment Terms</label>
-                <textarea value={editForm.notes} rows={3}
-                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="e.g. Payment due within 30 days. Please transfer to A/c XXXX."
-                  style={{ ...inp, resize: 'none' }} />
+              <button onClick={addItem} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', background: '#fff', border: '1px dashed rgba(196,198,207,0.6)', borderRadius: '7px', fontSize: '12px', fontWeight: 600, color: '#74777f', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', marginBottom: '16px' }}>
+                <Plus size={12}/> Add Line
+              </button>
+
+              {/* Totals summary */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ minWidth: '220px', background: '#f8f9fb', borderRadius: '10px', padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#74777f', marginBottom: '5px' }}>
+                    <span>Subtotal</span><span>₹{editSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  {editForm.discount_pct > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#15803d', marginBottom: '5px' }}>
+                      <span>Discount ({editForm.discount_pct}%)</span><span>−₹{editDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#74777f', marginBottom: '5px' }}>
+                    <span>GST ({editForm.gst_rate}%)</span><span>₹{editGst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 800, color: '#022448', borderTop: '1px solid rgba(196,198,207,0.3)', paddingTop: '8px', marginTop: '4px' }}>
+                    <span>Total</span><span>₹{editTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
               </div>
+
+              {editError && <p style={{ fontSize: '12px', color: '#ba1a1a', margin: '12px 0 0' }}>{editError}</p>}
             </div>
-            {editError && <p style={{ fontSize: '12px', color: '#ba1a1a', margin: '12px 0 0' }}>{editError}</p>}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '22px' }}>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', gap: '8px', padding: '16px 24px', borderTop: '1px solid rgba(196,198,207,0.2)', flexShrink: 0 }}>
               <button onClick={handleSaveEdit} disabled={editSaving}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: editSaving ? 0.7 : 1 }}>
                 {editSaving ? 'Saving...' : 'Save Changes'}
@@ -815,7 +915,8 @@ export default function BillingPage() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

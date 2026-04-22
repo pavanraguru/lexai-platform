@@ -275,26 +275,78 @@ export const invoiceRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ data: invoice });
   });
 
-  // PATCH /v1/invoices/:id — edit invoice fields (due_date, notes, gst_rate)
+  // PATCH /v1/invoices/:id — edit invoice fields, line items, and discount
   fastify.patch('/:id', {
     preHandler: [fastify.authenticate],
   }, async (req, reply) => {
     const { tenant_id } = req.user;
     const { id } = req.params as { id: string };
-    const { due_date, notes, gst_rate } = req.body as any;
+    const { due_date, notes, gst_rate, line_items, discount_pct } = req.body as any;
 
     const invoice = await fastify.prisma.invoice.findFirst({ where: { id, tenant_id } });
     if (!invoice) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Invoice not found' } });
     if (invoice.status === 'paid') return reply.status(400).send({ error: { code: 'INVOICE_PAID', message: 'Cannot edit a paid invoice' } });
 
+    // Recalculate totals if line items changed
+    let updateData: any = {};
+    if (due_date !== undefined) updateData.due_date = due_date ? new Date(due_date) : null;
+    if (notes !== undefined) updateData.notes = notes || null;
+
+    const newGstRate = gst_rate !== undefined ? Number(gst_rate) : Number(invoice.gst_rate);
+    const newDiscountPct = discount_pct !== undefined ? Number(discount_pct) : Number((invoice as any).discount_pct || 0);
+    updateData.gst_rate = newGstRate;
+
+    if (line_items !== undefined && Array.isArray(line_items)) {
+      // Recalculate each item's amount_paise from qty * rate
+      const recalculated = line_items.map((item: any) => ({
+        ...item,
+        amount_paise: Math.round(Number(item.quantity) * Number(item.rate_paise)),
+      }));
+
+      const subtotalPaise = recalculated.reduce((s: number, i: any) => s + Number(i.amount_paise), 0);
+      const discountAmountPaise = Math.round(subtotalPaise * newDiscountPct / 100);
+      const afterDiscountPaise = subtotalPaise - discountAmountPaise;
+      const gstAmountPaise = Math.round(afterDiscountPaise * newGstRate / 100);
+      const totalPaise = afterDiscountPaise + gstAmountPaise;
+      const alreadyPaid = Number(invoice.amount_paid_paise);
+
+      updateData.line_items = recalculated;
+      updateData.subtotal_paise = subtotalPaise;
+      updateData.gst_amount_paise = gstAmountPaise;
+      updateData.total_paise = totalPaise;
+      updateData.balance_paise = Math.max(0, totalPaise - alreadyPaid);
+      // Store discount in notes prefix if no schema field — or store in bank_account_details JSON
+      updateData.bank_account_details = {
+        ...(typeof invoice.bank_account_details === 'object' && invoice.bank_account_details !== null
+          ? invoice.bank_account_details as object : {}),
+        discount_pct: newDiscountPct,
+      };
+    } else if (discount_pct !== undefined) {
+      // Discount changed but line items not — recalculate from existing
+      const existingItems = (invoice.line_items as any[]) || [];
+      const subtotalPaise = existingItems.reduce((s: number, i: any) => s + Number(i.amount_paise), 0);
+      const discountAmountPaise = Math.round(subtotalPaise * newDiscountPct / 100);
+      const afterDiscountPaise = subtotalPaise - discountAmountPaise;
+      const gstAmountPaise = Math.round(afterDiscountPaise * newGstRate / 100);
+      const totalPaise = afterDiscountPaise + gstAmountPaise;
+      const alreadyPaid = Number(invoice.amount_paid_paise);
+      updateData.gst_amount_paise = gstAmountPaise;
+      updateData.total_paise = totalPaise;
+      updateData.balance_paise = Math.max(0, totalPaise - alreadyPaid);
+      updateData.bank_account_details = {
+        ...(typeof invoice.bank_account_details === 'object' && invoice.bank_account_details !== null
+          ? invoice.bank_account_details as object : {}),
+        discount_pct: newDiscountPct,
+      };
+    }
+
     const updated = await fastify.prisma.invoice.update({
       where: { id },
-      data: {
-        ...(due_date !== undefined ? { due_date: due_date ? new Date(due_date) : null } : {}),
-        ...(notes !== undefined ? { notes: notes || null } : {}),
-        ...(gst_rate !== undefined ? { gst_rate: Number(gst_rate) } : {}),
+      data: updateData,
+      include: {
+        client: { select: { full_name: true, email: true } },
+        case: { select: { title: true } },
       },
-      include: { client: { select: { full_name: true, email: true } }, case: { select: { title: true } } },
     });
 
     return reply.send({ data: updated });
