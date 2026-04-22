@@ -224,6 +224,12 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
     delete updateData.created_by;
     delete updateData.created_at;
 
+    // Merge metadata instead of replacing it — preserves existing fields like sections_charged, folders etc.
+    if (updateData.metadata && typeof updateData.metadata === 'object') {
+      const existingMeta = (existing.metadata as any) || {};
+      updateData.metadata = { ...existingMeta, ...updateData.metadata };
+    }
+
     const updated = await fastify.prisma.case.update({
       where: { id },
       data: { ...updateData, updated_at: new Date() },

@@ -243,36 +243,46 @@ export default function DocumentsTab({
 
   // ── State ──────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState<'grid' | 'tree'>('grid');
-  // ── Persist folders to localStorage keyed by caseId ──────
-  const STORAGE_KEY = `lexai_folders_${caseId}`;
-  const DOC_STORAGE_KEY = `lexai_doc_folders_${caseId}`;
-
+  // ── Persist folders to DB via case metadata (survives sign-out) ──
   const [folders, setFolders] = useState<VFolder[]>([{ id: 'root', name: 'Documents', parent: null }]);
   const [currentFolder, setCurrentFolder] = useState<string>('root');
   const [docFolders, setDocFolders] = useState<Record<string, string>>({});
   const [hydrated, setHydrated] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load from localStorage after hydration (avoids SSR mismatch)
+  // Load folders from case metadata on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setFolders(JSON.parse(saved));
-    } catch {}
-    try {
-      const saved = localStorage.getItem(DOC_STORAGE_KEY);
-      if (saved) setDocFolders(JSON.parse(saved));
-    } catch {}
-    setHydrated(true);
-  }, [STORAGE_KEY, DOC_STORAGE_KEY]);
+    fetch(`${BASE}/v1/cases/${caseId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(j => {
+        const meta = j?.data?.metadata || {};
+        if (meta.folders && Array.isArray(meta.folders) && meta.folders.length > 0) {
+          setFolders(meta.folders);
+        }
+        if (meta.doc_folders && typeof meta.doc_folders === 'object') {
+          setDocFolders(meta.doc_folders);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setHydrated(true));
+  }, [caseId, token]);
 
-  // Persist whenever folders or docFolders change
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(folders)); } catch {}
-  }, [folders, STORAGE_KEY]);
+  // Save folders to DB (debounced 1.5s to avoid too many API calls)
+  const saveFoldersToDB = useCallback((flds: VFolder[], dFolders: Record<string, string>) => {
+    if (!hydrated) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      fetch(`${BASE}/v1/cases/${caseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ metadata: { folders: flds, doc_folders: dFolders } }),
+      }).catch(() => {});
+    }, 1500);
+  }, [caseId, token, hydrated]);
 
   useEffect(() => {
-    try { localStorage.setItem(DOC_STORAGE_KEY, JSON.stringify(docFolders)); } catch {}
-  }, [docFolders, DOC_STORAGE_KEY]);
+    if (hydrated) saveFoldersToDB(folders, docFolders);
+  }, [folders, docFolders, hydrated, saveFoldersToDB]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
