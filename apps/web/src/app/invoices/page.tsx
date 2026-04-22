@@ -425,64 +425,6 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
           </div>
         )}
       </div>
-      {/* ── Edit Invoice Modal ── */}
-      {editingInvoice && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setEditingInvoice(null); }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(2,36,72,0.15)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
-              <div>
-                <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: '0 0 2px' }}>Edit Invoice</h2>
-                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{editingInvoice.invoice_number}</p>
-              </div>
-              <button onClick={() => setEditingInvoice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', padding: '4px' }}>
-                <X size={18}/>
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={lbl}>Due Date</label>
-                <input type="date" value={editForm.due_date}
-                  onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
-                  style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>GST Rate (%)</label>
-                <select value={editForm.gst_rate}
-                  onChange={e => setEditForm(f => ({ ...f, gst_rate: Number(e.target.value) }))}
-                  style={{ ...inp, appearance: 'none' }}>
-                  <option value={0}>0% — Exempt</option>
-                  <option value={5}>5%</option>
-                  <option value={12}>12%</option>
-                  <option value={18}>18% — Standard</option>
-                  <option value={28}>28%</option>
-                </select>
-              </div>
-              <div>
-                <label style={lbl}>Notes / Payment Terms</label>
-                <textarea value={editForm.notes} rows={3}
-                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="e.g. Payment due within 30 days. Please transfer to A/c XXXX."
-                  style={{ ...inp, resize: 'none' }} />
-              </div>
-            </div>
-
-            {editError && <p style={{ fontSize: '12px', color: '#ba1a1a', margin: '12px 0 0' }}>{editError}</p>}
-
-            <div style={{ display: 'flex', gap: '8px', marginTop: '22px' }}>
-              <button onClick={handleSaveEdit} disabled={editSaving}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: editSaving ? 0.7 : 1 }}>
-                {editSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button onClick={() => setEditingInvoice(null)}
-                style={{ padding: '11px 18px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -818,6 +760,61 @@ export default function BillingPage() {
             ))}
           </div>
         )
+      )}
+      {/* ── Edit Invoice Modal ── */}
+      {editingInvoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingInvoice(null); }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(2,36,72,0.15)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <div>
+                <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: '0 0 2px' }}>Edit Invoice</h2>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>{editingInvoice.invoice_number}</p>
+              </div>
+              <button onClick={() => setEditingInvoice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', padding: '4px' }}>
+                <X size={18}/>
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={lbl}>Due Date</label>
+                <input type="date" value={editForm.due_date}
+                  onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
+                  style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>GST Rate (%)</label>
+                <select value={editForm.gst_rate}
+                  onChange={e => setEditForm(f => ({ ...f, gst_rate: Number(e.target.value) }))}
+                  style={{ ...inp, appearance: 'none' }}>
+                  <option value={0}>0% — Exempt</option>
+                  <option value={5}>5%</option>
+                  <option value={12}>12%</option>
+                  <option value={18}>18% — Standard</option>
+                  <option value={28}>28%</option>
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Notes / Payment Terms</label>
+                <textarea value={editForm.notes} rows={3}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="e.g. Payment due within 30 days. Please transfer to A/c XXXX."
+                  style={{ ...inp, resize: 'none' }} />
+              </div>
+            </div>
+            {editError && <p style={{ fontSize: '12px', color: '#ba1a1a', margin: '12px 0 0' }}>{editError}</p>}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '22px' }}>
+              <button onClick={handleSaveEdit} disabled={editSaving}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#022448', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: editSaving ? 0.7 : 1 }}>
+                {editSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button onClick={() => setEditingInvoice(null)}
+                style={{ padding: '11px 18px', background: 'transparent', color: '#74777f', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
