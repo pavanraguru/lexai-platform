@@ -1359,7 +1359,7 @@ export default function CaseDetailPage() {
   return (
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
 
-      {/* ── Case Header ─────────────────────────────────── */}
+      {/* -- Case Header ----------------------------------- */}
       <div style={{ ...cardStyle, padding: '20px', marginBottom: '16px', maxWidth: '860px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1431,7 +1431,7 @@ export default function CaseDetailPage() {
         </div>
       </div>
 
-      {/* ── Tabs ─────────────────────────────────────────── */}
+      {/* -- Tabs ------------------------------------------- */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '2px', flexWrap: 'wrap' }}>
         {TABS.map(({ key, Icon, labelKey }) => (
           <button key={key} onClick={() => setActiveTab(key)} style={{
@@ -1459,7 +1459,7 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── OVERVIEW ───────────────────────────────────── */}
+      {/* --- OVERVIEW ------------------------------------- */}
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
           <div style={{ ...cardStyle, padding: '20px', gridColumn: 'span 2' }}>
@@ -1515,7 +1515,7 @@ export default function CaseDetailPage() {
         <LimitationCalc caseType={c.case_type || 'civil_district'} />
       )}
 
-      {/* ─── DOCUMENTS ──────────────────────────────────── */}
+      {/* --- DOCUMENTS ------------------------------------ */}
       {activeTab === 'documents' && (
         <DocumentsTab
           caseId={id}
@@ -1527,7 +1527,7 @@ export default function CaseDetailPage() {
         />
       )}
 
-      {/* ─── HEARINGS ───────────────────────────────────── */}
+      {/* --- HEARINGS ------------------------------------- */}
       {activeTab === 'hearings' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -1647,7 +1647,7 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── TASKS ──────────────────────────────────────── */}
+      {/* --- TASKS ---------------------------------------- */}
       {activeTab === 'tasks' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -1754,7 +1754,7 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── AGENTS ─────────────────────────────────────── */}
+      {/* --- AGENTS --------------------------------------- */}
       {activeTab === 'agents' && (
         <div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
@@ -1811,12 +1811,12 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── DRAFTS ─────────────────────────────────────── */}
+      {/* --- DRAFTS --------------------------------------- */}
       {activeTab === 'drafts' && (
         <DraftingWorkspace caseId={id} token={token!} caseData={c} />
       )}
 
-      {/* ─── STRATEGY INTELLIGENCE ───────────────────── */}
+      {/* --- STRATEGY INTELLIGENCE --------------------- */}
       {activeTab === 'intel' && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
@@ -1832,7 +1832,7 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── PRECEDENT SEARCH ────────────────────────────── */}
+      {/* --- PRECEDENT SEARCH ------------------------------ */}
       {activeTab === 'precedents' && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
@@ -1848,12 +1848,12 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── FILINGS ────────────────────────────────────── */}
+      {/* --- FILINGS -------------------------------------- */}
       {activeTab === 'filings' && (
         <CaseFilingsTab c={c} />
       )}
 
-      {/* ─── PRESENTATIONS ──────────────────────────────── */}
+      {/* --- PRESENTATIONS -------------------------------- */}
       {activeTab === 'presentations' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -1907,7 +1907,7 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── CASE TIMELINE ──────────────────────────────── */}
+      {/* --- CASE TIMELINE -------------------------------- */}
       {activeTab === 'timeline' && (
         <CaseTimeline c={c} cardStyle={cardStyle} btnPrimary={btnPrimary} btnGhost={btnGhost} setActiveTab={setActiveTab} />
       )}
