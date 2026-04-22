@@ -476,7 +476,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Trial banner */}
-      {user && !user.is_pro && user.subscription_status !== 'active' && (
+      {user && user.role !== 'super_admin' && ['trialing','expired','past_due'].includes(user.subscription_status || '') && !user.is_pro && (
         <div style={{ position: 'fixed', bottom: 0, left: SIDEBAR_W, right: 0, zIndex: 100, background: user.trial_days_left && user.trial_days_left > 0 ? '#022448' : '#93000a', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <p style={{ fontSize: '13px', color: '#fff', margin: 0, fontWeight: 600 }}>
             {user.trial_days_left && user.trial_days_left > 0
