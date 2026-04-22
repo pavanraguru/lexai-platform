@@ -241,8 +241,12 @@ export default function LoginPage() {
             </form>
           )}
 
-          <p style={{ fontSize: '12px', color: '#74777f', textAlign: 'center', marginTop: '28px', lineHeight: 1.7 }}>
-            By signing in you agree to our <a href="#" style={{ color: '#022448', fontWeight: 700 }}>Terms of Service</a> and <a href="#" style={{ color: '#022448', fontWeight: 700 }}>Privacy Policy</a>.<br />
+          <p style={{ fontSize: '13px', color: '#74777f', textAlign: 'center', marginTop: '20px' }}>
+            New to Sovereign Counsel?{' '}
+            <a href="/signup" style={{ color: '#022448', fontWeight: 700, textDecoration: 'none' }}>Start free trial →</a>
+          </p>
+          <p style={{ fontSize: '11px', color: '#74777f', textAlign: 'center', marginTop: '10px', lineHeight: 1.7 }}>
+            By signing in you agree to our Terms of Service and Privacy Policy.<br />
             Protected under DPDP Act 2023 · Bar Council of India Rules.
           </p>
         </div>

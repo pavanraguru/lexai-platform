@@ -19,6 +19,10 @@ interface AuthUser {
   tenant_plan: string;
   avatar_url?: string;
   bar_enrollment_no?: string;
+  is_pro?: boolean;
+  trial_days_left?: number;
+  trial_ends_at?: string | null;
+  subscription_status?: string;
 }
 
 interface AuthState {
@@ -34,6 +38,10 @@ interface AuthState {
   canManageTeam: () => boolean;
   canViewBilling: () => boolean;
   canAccessPortal: () => boolean;
+  isPro: () => boolean;
+  isTrialing: () => boolean;
+  trialDaysLeft: () => number;
+  trialExpired: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -65,6 +73,13 @@ export const useAuthStore = create<AuthState>()(
       canViewBilling: () => {
         const role = get().user?.role;
         return ['super_admin', 'managing_partner'].includes(role || '');
+      },
+      isPro: () => !!get().user?.is_pro,
+      isTrialing: () => get().user?.subscription_status === 'trialing',
+      trialDaysLeft: () => get().user?.trial_days_left ?? 0,
+      trialExpired: () => {
+        const s = get().user?.subscription_status;
+        return s === 'expired' || s === 'past_due';
       },
       canAccessPortal: () => {
         return get().user?.role === 'client';

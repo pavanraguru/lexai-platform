@@ -14,8 +14,12 @@ import {
 import LanguageSwitcher from './LanguageSwitcher';
 import GlobalUpload from '../GlobalUpload';
 import { useLang } from '@/hooks/useLanguage';
+import dynamic from 'next/dynamic';
+const UpgradeModal = dynamic(() => import('@/components/billing/UpgradeModal'), { ssr: false });
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// UpgradeModal exported so child components can trigger it
+export function useUpgradeModal() { return typeof window !== 'undefined' ? (window as any).__lexai_show_upgrade : undefined; }
 const SIDEBAR_W = 240;
 
 const NAV = [
@@ -206,6 +210,9 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  // Expose globally so Pro-gated components can trigger it
+  if (typeof window !== 'undefined') (window as any).__lexai_show_upgrade = () => setShowUpgrade(true);
   const pathname = usePathname();
   const router = useRouter();
   const { tr } = useLang();
@@ -467,6 +474,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span style={{ fontSize: '9px', fontWeight: 500 }}>New</span>
         </Link>
       </div>
+    </>
+      {/* Trial banner */}
+      {user && !user.is_pro && user.subscription_status !== 'active' && (
+        <div style={{ position: 'fixed', bottom: 0, left: SIDEBAR_W, right: 0, zIndex: 100, background: user.trial_days_left && user.trial_days_left > 0 ? '#022448' : '#93000a', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <p style={{ fontSize: '13px', color: '#fff', margin: 0, fontWeight: 600 }}>
+            {user.trial_days_left && user.trial_days_left > 0
+              ? `⏱ ${user.trial_days_left} day${user.trial_days_left === 1 ? '' : 's'} left in your free trial`
+              : '⚠️ Your free trial has expired'}
+            <span style={{ marginLeft: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.6)', fontWeight: 400 }}>
+              {user.trial_days_left && user.trial_days_left > 0 ? '— AI Agents & Drafts require Pro' : '— Upgrade to continue using the app'}
+            </span>
+          </p>
+          <button onClick={() => setShowUpgrade(true)} style={{ padding: '7px 18px', background: '#ffe088', color: '#022448', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', flexShrink: 0 }}>
+            ⚡ Upgrade to Pro
+          </button>
+        </div>
+      )}
+
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
     </>
   );
 }

@@ -31,6 +31,17 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(401).send({ error: { code: 'USER_INACTIVE', message: 'Account deactivated.' } });
     }
 
+    // Fetch subscription status
+    const sub = await fastify.prisma.subscription.findFirst({
+      where: { tenant_id: dbUser.tenant_id },
+      select: { status: true, trial_ends_at: true, plan: true },
+    }).catch(() => null);
+
+    const now = new Date();
+    const trialEnd = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
+    const trialDaysLeft = trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000)) : 0;
+    const isPro = sub?.status === 'active';
+
     const lexaiToken = fastify.jwt.sign({
       id: dbUser.id,
       tenant_id: dbUser.tenant_id,
@@ -44,7 +55,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     const payload = {
-      access_token: lexaiToken,   // ← both names for compatibility
+      access_token: lexaiToken,
       token: lexaiToken,
       user: {
         id: dbUser.id,
@@ -57,6 +68,10 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         tenant_name: dbUser.tenant?.name,
         tenant_plan: dbUser.tenant?.plan,
         tenant_slug: dbUser.tenant?.slug,
+        is_pro: isPro,
+        trial_days_left: trialDaysLeft,
+        trial_ends_at: sub?.trial_ends_at || null,
+        subscription_status: sub?.status || 'no_subscription',
       }
     };
 
