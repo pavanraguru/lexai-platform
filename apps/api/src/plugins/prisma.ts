@@ -13,7 +13,7 @@ export const prismaPlugin: FastifyPluginAsync = fp(async (fastify) => {
   const rawUrl = process.env.DATABASE_URL || '';
   const dbUrl = rawUrl.includes('connection_limit')
     ? rawUrl
-    : rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'connection_limit=5&pool_timeout=20';
+    : rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'connection_limit=5&pool_timeout=20&pgbouncer=true';
 
   const prisma = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
