@@ -808,7 +808,7 @@ export const PLAN_LIMITS: Record<TenantPlan, {
   starter: {
     max_users: 2,
     max_active_cases: 10,
-    agent_runs_per_month: 50,
+    agent_runs_per_month: 999,
     storage_gb: 5,
     ecourts_cnrs: 10,
     whatsapp_messages_per_month: 0,

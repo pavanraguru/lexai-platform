@@ -89,11 +89,11 @@ async function runAgentInline(fastify: any, job_id: string, agent_type: string, 
         user: `Analyse evidence:\n\n${docContext}`,
       },
       timeline: {
-        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline. Limit to max 12 most important events, keep descriptions brief.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
+        system: `You are a senior Indian advocate's AI assistant. Reconstruct the case timeline.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"events":[{"date":"YYYY-MM-DD","time":"HH:MM","description":"...","event_type":"offence|arrest|fir_registration|court_date|other","importance_score":8}],"prosecution_gaps":["..."],"defence_opportunities":["..."]}`,
         user: `Reconstruct timeline:\n\n${docContext}`,
       },
       research: {
-        system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nLimit to max 5 statutes and 3 precedents. Keep descriptions under 80 words each. CRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
+        system: `You are a senior Indian advocate's AI assistant specialising in legal research.\n${baseContext}\nCRITICAL: Return ONLY a raw JSON object. No markdown fences, no code blocks, no explanation text. Your response must start with { and end with }. Example format:\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"..."}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"..."}],"disclaimer":"AI research — verify on SCC Online before relying in court"}`,
         user: `Research Indian law for this case:\n\n${docContext.substring(0, 6000)}`,
       },
       deposition: {
@@ -210,9 +210,9 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
     }
 
-    // Check plan limits
+    // Check plan limits — super_admin bypasses all limits
     const subscription = await fastify.prisma.subscription.findFirst({ where: { tenant_id } });
-    if (subscription) {
+    if (subscription && role !== 'super_admin') {
       const plan = subscription.plan as keyof typeof PLAN_LIMITS;
       const limit = PLAN_LIMITS[plan].agent_runs_per_month;
       if (limit !== null && subscription.agent_runs_this_period >= limit) {

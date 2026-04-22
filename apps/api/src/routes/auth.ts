@@ -42,7 +42,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       if (existingSub && existingSub.status !== 'active') {
         await fastify.prisma.subscription.update({
           where: { tenant_id: dbUser.tenant_id },
-          data: { status: 'active', plan: 'professional', current_period_end: new Date('2099-12-31') },
+          data: { status: 'active', plan: 'professional', current_period_end: new Date('2099-12-31'), agent_runs_this_period: 0 },
         }).catch(() => {});
         await fastify.prisma.tenant.update({ where: { id: dbUser.tenant_id }, data: { plan: 'professional' } }).catch(() => {});
       }
