@@ -1151,8 +1151,6 @@ function LimitationCalc({ caseType }: { caseType: string }) {
         </button>
       </div>
 
-      </div>
-
       {/* Result */}
       {result && (
         <div style={{ marginTop: '16px' }}>
@@ -1220,6 +1218,7 @@ function LimitationCalc({ caseType }: { caseType: string }) {
         </div>
       )}
     </div>
+  </div>
   );
 }
 
