@@ -1130,7 +1130,7 @@ function LimitationCalc({ caseType }: { caseType: string }) {
             <div>
               <p style={{ fontSize: '11px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>Filing Deadline</p>
               <p style={{ fontFamily: 'Newsreader, serif', fontSize: '1.3rem', fontWeight: 700, color: '#022448', margin: 0 }}>
-                {result.deadline.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {result.deadline.getDate()} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][result.deadline.getMonth()]} {result.deadline.getFullYear()}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -1162,12 +1162,7 @@ export default function CaseDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const { tr } = useLang();
-  const getInitialTab = (): TabKey => {
-    if (typeof window === 'undefined') return 'overview';
-    const p = new URLSearchParams(window.location.search);
-    return (p.get('tab') as TabKey) || 'overview';
-  };
-  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -1259,9 +1254,7 @@ export default function CaseDetailPage() {
     e.preventDefault(); if (!showOutcome) return;
     setSaving(true); setError('');
     try {
-      const payload: any = { outcome: of_.outcome, order_summary: of_.order_summary || undefined };
-      if (of_.next_hearing_date && of_.next_hearing_date.trim()) payload.next_hearing_date = of_.next_hearing_date;
-      await apiCall('/v1/hearings/' + showOutcome + '/outcome', 'PATCH', payload);
+      await apiCall(`/v1/hearings/${showOutcome}/outcome`, 'PATCH', of_);
       setShowOutcome(null); setOf_({ outcome: '', order_summary: '', next_hearing_date: '' }); refresh();
     } catch (err: any) { setError(err.message); }
     setSaving(false);
@@ -1285,23 +1278,42 @@ export default function CaseDetailPage() {
 
   const handleRunAgent = async (agentType: string) => {
     if (!c) return;
-    const readyDocs = (c.documents || []).filter((d: any) => d.processing_status === 'ready');
-    if (readyDocs.length === 0) {
-      setError('No processed documents found. Upload a document and wait for OCR to complete first.');
-      return;
-    }
     setRunningAgent(agentType); setError('');
     try {
-      const res = await fetch(`${BASE}/v1/agents/cases/${id}/run/${agentType}`, {
+      const res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({}),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
+
+      const jobId = json.data?.job_id;
       refresh();
-    } catch (err: any) { setError(err.message); }
-    setRunningAgent(null);
+
+      // Poll until done (inline agents complete in 30-90s)
+      if (jobId) {
+        const poll = setInterval(async () => {
+          try {
+            const jr = await fetch(BASE + '/v1/agents/jobs/' + jobId, {
+              headers: { Authorization: 'Bearer ' + token },
+            });
+            const jd = await jr.json();
+            const status = jd.data?.status;
+            if (status === 'completed' || status === 'failed') {
+              clearInterval(poll);
+              setRunningAgent(null);
+              refresh();
+            }
+          } catch { clearInterval(poll); setRunningAgent(null); }
+        }, 3000);
+        // Safety timeout after 3 minutes
+        setTimeout(() => { clearInterval(poll); setRunningAgent(null); refresh(); }, 180000);
+      }
+    } catch (err: any) {
+      setError(err.message);
+      setRunningAgent(null);
+    }
   };
 
   const handleCreatePresentation = async (e: React.FormEvent) => {
@@ -1509,10 +1521,10 @@ export default function CaseDetailPage() {
             ))}
           </div>
 
-        </div>
+          {/* Limitation Period Calculator */}
+          <LimitationCalc caseType={c.case_type || 'civil_district'} />
 
-        {/* Limitation Period Calculator */}
-        <LimitationCalc caseType={c.case_type || 'civil_district'} />
+        </div>
       )}
 
       {/* --- DOCUMENTS ------------------------------------ */}
@@ -1757,6 +1769,27 @@ export default function CaseDetailPage() {
       {/* --- AGENTS --------------------------------------- */}
       {activeTab === 'agents' && (
         <div>
+          {/* Stuck jobs banner */}
+          {(agents as any[]).some((j: any) => j.status === 'queued' || j.status === 'running') && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', margin: '0 0 2px' }}>
+                  {(agents as any[]).filter((j: any) => j.status === 'queued' || j.status === 'running').length} job(s) stuck in queue
+                </p>
+                <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Redis may be unavailable. Cancel stuck jobs then re-run — agents now work without Redis.</p>
+              </div>
+              <button onClick={async () => {
+                try {
+                  await fetch(BASE + '/v1/agents/cases/' + id + '/cancel-queued', {
+                    method: 'POST', headers: { Authorization: 'Bearer ' + token }
+                  });
+                  refresh();
+                } catch {}
+              }} style={{ padding: '8px 16px', background: '#9a3412', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                ✕ Cancel Stuck Jobs
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
             {AGENTS.map(({ type, Icon, label, desc }) => {
               const isRunning = runningAgent === type;
@@ -1790,20 +1823,35 @@ export default function CaseDetailPage() {
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
               <p style={sectionHeader}>{tr('run_history').toUpperCase()}</p>
               {agents.slice(0, 8).map((job: any) => (
-                <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
-                    <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
-                      {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
-                    </p>
+                <div key={job.id} style={{ padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
+                      <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
+                        {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
+                        background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
+                        color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
+                      }}>
+                        {job.status.toUpperCase()}
+                      </span>
+                      {job.status === 'failed' && (
+                        <button onClick={() => handleRunAgent(job.agent_type)} disabled={!!runningAgent}
+                          style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                          ↺ Retry
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
-                    background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
-                    color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
-                  }}>
-                    {job.status.toUpperCase()}
-                  </span>
+                  {job.status === 'failed' && job.error_message && (
+                    <div style={{ marginTop: '8px', padding: '8px 10px', background: '#ffdad6', borderRadius: '6px', fontSize: '11px', color: '#93000a', lineHeight: 1.5 }}>
+                      <strong>Error:</strong> {job.error_message}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
