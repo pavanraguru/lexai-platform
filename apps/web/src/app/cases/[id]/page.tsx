@@ -938,6 +938,7 @@ function CaseFilingsTab({ c }: { c: any }) {
               key={i}
               href={
                 "/filings?filing=" + encodeURIComponent(filing.name) +
+                "&case_id=" + encodeURIComponent(c.id || '') +
                 "&case_type=" + encodeURIComponent(c.case_type || '') +
                 "&court=" + encodeURIComponent(c.court || '') +
                 "&cnr=" + encodeURIComponent(c.cnr_number || '') +

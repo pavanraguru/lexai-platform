@@ -418,7 +418,8 @@ function FileForPageInner() {
       if (courtKey) setSelectedJurisdiction(courtKey);
     }
     if (caseTitle || court) {
-      setCaseContext({ title: caseTitle, court, cnr_number: cnr, case_type: caseType, perspective });
+      const caseId = searchParams.get('case_id');
+      setCaseContext({ id: caseId, title: caseTitle, court, cnr_number: cnr, case_type: caseType, perspective });
     }
     if (filingName) {
       const found = FILINGS.find(f => f.name === filingName);
