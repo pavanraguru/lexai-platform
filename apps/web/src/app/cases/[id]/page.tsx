@@ -1645,18 +1645,74 @@ export default function CaseDetailPage() {
 
           {/* Past */}
           {pastHearings.length > 0 && (
-            <div style={{ ...cardStyle, overflow: 'hidden', opacity: 0.75 }}>
+            <div style={{ ...cardStyle, overflow: 'hidden' }}>
               <p style={sectionHeader}>{tr('past').toUpperCase()}</p>
               {[...pastHearings].reverse().map((h: any) => (
-                <div key={h.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
-                  <CheckCircle2 size={16} color="#15803d" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#43474e', margin: 0 }}>
-                      {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      <span style={{ marginLeft: '8px', fontSize: '11px', color: '#74777f', fontWeight: 400, textTransform: 'capitalize' }}>{h.purpose?.replace(/_/g, ' ')}</span>
-                    </p>
-                    {h.outcome && <p style={{ fontSize: '12px', color: '#74777f', margin: '2px 0 0' }}>{h.outcome}</p>}
+                <div key={h.id} style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.06)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: h.outcome ? '#dcfce7' : '#edeef0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
+                        <CheckCircle2 size={14} color={h.outcome ? '#15803d' : '#74777f'} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: h.outcome ? '8px' : '0' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#191c1e' }}>
+                            {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', background: '#edeef0', color: '#43474e', borderRadius: '3px', textTransform: 'capitalize' }}>
+                            {h.purpose?.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        {h.outcome ? (
+                          <div style={{ background: '#f0fdf4', border: '1px solid rgba(21,128,61,0.15)', borderRadius: '8px', padding: '8px 12px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.05em', textTransform: 'uppercase', margin: '0 0 3px' }}>Outcome</p>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0 }}>{h.outcome}</p>
+                            {h.order_summary && <p style={{ fontSize: '12px', color: '#43474e', margin: '4px 0 0', lineHeight: 1.5 }}>{h.order_summary}</p>}
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: '12px', color: '#74777f', margin: 0, fontStyle: 'italic' }}>No outcome recorded</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setShowOutcome(h.id); setOf_({ outcome: h.outcome || '', order_summary: h.order_summary || '', next_hearing_date: '' }); }}
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 10px', background: '#f4f5f7', color: '#43474e', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', flexShrink: 0, whiteSpace: 'nowrap' as const }}>
+                      {h.outcome ? 'Edit' : '+ Record'}
+                    </button>
                   </div>
+                  {showOutcome === h.id && (
+                    <form onSubmit={handleOutcome} style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(196,198,207,0.15)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: '5px' }}>What happened? *</label>
+                          <input type="text" required value={of_.outcome} onChange={e => setOf_({ ...of_, outcome: e.target.value })}
+                            placeholder="e.g. Arguments heard, next date given"
+                            style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' as const }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: '5px' }}>Order Summary</label>
+                          <input type="text" value={of_.order_summary} onChange={e => setOf_({ ...of_, order_summary: e.target.value })}
+                            placeholder="Brief order summary"
+                            style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' as const }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: '5px' }}>Next Hearing Date</label>
+                          <input type="date" value={of_.next_hearing_date} onChange={e => setOf_({ ...of_, next_hearing_date: e.target.value })}
+                            style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', boxSizing: 'border-box' as const }} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button type="submit" disabled={saving}
+                          style={{ padding: '8px 18px', background: '#022448', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', opacity: saving ? 0.6 : 1 }}>
+                          {saving ? 'Saving...' : 'Save Outcome'}
+                        </button>
+                        <button type="button" onClick={() => setShowOutcome(null)}
+                          style={{ padding: '8px 16px', background: 'transparent', color: '#43474e', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               ))}
             </div>
