@@ -1181,6 +1181,9 @@ export default function CaseDetailPage() {
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [showFailedJobs, setShowFailedJobs] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
 
   // Presentation state
   const [creatingPresentation, setCreatingPresentation] = useState(false);
@@ -1231,9 +1234,12 @@ export default function CaseDetailPage() {
   };
 
   const apiCall = async (url: string, method: string, body?: any) => {
+    const hasBody = body !== undefined && body !== null;
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (hasBody) headers['Content-Type'] = 'application/json';
     const res = await fetch(`${BASE}${url}`, {
-      method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: body ? JSON.stringify(body) : undefined,
+      method, headers,
+      body: hasBody ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) throw new Error((await res.json()).message || 'Request failed');
     return res.json();
@@ -1248,6 +1254,13 @@ export default function CaseDetailPage() {
       refresh();
     } catch (err: any) { setError(err.message); }
     setSaving(false);
+  };
+
+  const handleDeleteAgent = async (jobId: string) => {
+    if (!confirm('Delete this agent run?')) return;
+    setDeletingJobId(jobId);
+    try { await apiCall('/v1/agents/jobs/' + jobId, 'DELETE'); refresh(); } catch {}
+    setDeletingJobId(null);
   };
 
   const handleOutcome = async (e: React.FormEvent) => {
@@ -1282,8 +1295,7 @@ export default function CaseDetailPage() {
     try {
       const res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({}),
+        headers: { Authorization: 'Bearer ' + token },
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
@@ -1821,39 +1833,332 @@ export default function CaseDetailPage() {
 
           {agents.length > 0 && (
             <div style={{ ...cardStyle, overflow: 'hidden' }}>
-              <p style={sectionHeader}>{tr('run_history').toUpperCase()}</p>
-              {agents.slice(0, 8).map((job: any) => (
-                <div key={job.id} style={{ padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>{job.agent_type} Analysis</p>
-                      <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
-                        {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        {job.cost_inr ? ` · ₹${Number(job.cost_inr).toFixed(2)}` : ''}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
-                        background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
-                        color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
-                      }}>
-                        {job.status.toUpperCase()}
-                      </span>
-                      {job.status === 'failed' && (
-                        <button onClick={() => handleRunAgent(job.agent_type)} disabled={!!runningAgent}
-                          style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-                          ↺ Retry
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', background: '#f8f9fb' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: '#74777f', margin: 0 }}>RUN HISTORY</p>
+                {agents.filter((j: any) => j.status === 'failed').length > 0 && (
+                  <button onClick={() => setShowFailedJobs(s => !s)}
+                    style={{ fontSize: '11px', fontWeight: 600, color: showFailedJobs ? '#93000a' : '#74777f', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Manrope, sans-serif', textDecoration: 'underline' }}>
+                    {showFailedJobs ? 'Hide failed' : 'Show ' + agents.filter((j: any) => j.status === 'failed').length + ' failed'}
+                  </button>
+                )}
+              </div>
+              {agents.filter((job: any) => showFailedJobs || job.status !== 'failed').slice(0, 15).map((job: any) => {
+                const isExpanded = expandedJobId === job.id;
+                const o = job.output as any;
+                return (
+                  <div key={job.id} style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+                    <div
+                      onClick={() => job.status === 'completed' && setExpandedJobId(isExpanded ? null : job.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 20px', cursor: job.status === 'completed' ? 'pointer' : 'default', background: isExpanded ? '#f0f4ff' : 'transparent' }}>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>
+                          {job.agent_type} Analysis
+                        </p>
+                        <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
+                          {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          {job.cost_inr ? ' · ₹' + Number(job.cost_inr).toFixed(2) : ''}
+                          {job.tokens_input ? ' · ' + (job.tokens_input + (job.tokens_output || 0)) + ' tokens' : ''}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '9px', fontWeight: 800, padding: '3px 8px', borderRadius: '2px',
+                          background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#ffdad6' : '#ffe088',
+                          color: job.status === 'completed' ? '#15803d' : job.status === 'failed' ? '#93000a' : '#745c00',
+                        }}>
+                          {job.status.toUpperCase()}
+                        </span>
+                        {job.status === 'completed' && (
+                          <span style={{ fontSize: '11px', color: '#74777f' }}>{isExpanded ? '▲' : '▼'}</span>
+                        )}
+                        {job.status === 'failed' && (
+                          <button onClick={(e) => { e.stopPropagation(); handleRunAgent(job.agent_type); }} disabled={!!runningAgent}
+                            style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', background: '#022448', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                            Retry
+                          </button>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteAgent(job.id); }} disabled={deletingJobId === job.id}
+                          style={{ fontSize: '10px', padding: '3px 8px', background: 'none', color: '#74777f', border: '1px solid rgba(196,198,207,0.4)', borderRadius: '5px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                          {deletingJobId === job.id ? '...' : 'X'}
                         </button>
-                      )}
+                      </div>
                     </div>
+                    {job.status === 'failed' && job.error_message && (
+                      <div style={{ margin: '0 20px 12px', padding: '8px 10px', background: '#ffdad6', borderRadius: '6px', fontSize: '11px', color: '#93000a', lineHeight: 1.5 }}>
+                        <strong>Error:</strong> {job.error_message}
+                      </div>
+                    )}
+                    {isExpanded && o && (
+                      <div style={{ padding: '20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                          <button
+                            onClick={() => { try { navigator.clipboard.writeText(JSON.stringify(o, null, 2)); } catch (err) {} }}
+                            style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                            Copy All Data
+                          </button>
+                        </div>
+
+                        {o.exhibits && o.exhibits.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>EXHIBITS ({o.exhibits.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.exhibits.map((e: any) => e.number + ': ' + e.description).join('\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.exhibits.map((e: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '5px', display: 'flex', gap: '10px', padding: '6px 10px', background: '#fff', borderRadius: '6px' }}>
+                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0, minWidth: '40px' }}>{e.number}</span>
+                                <span style={{ flex: 1 }}>{e.description}</span>
+                                {e.strength && <span style={{ fontSize: '10px', fontWeight: 700, color: e.strength === 'Strong' ? '#15803d' : e.strength === 'Weak' ? '#93000a' : '#735c00' }}>{e.strength}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.key_facts && Array.isArray(o.key_facts) && o.key_facts.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>KEY FACTS ({o.key_facts.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.key_facts.map((f: any, i: number) => (i + 1) + '. ' + (typeof f === 'string' ? f : f.fact)).join('\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.key_facts.map((f: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '5px', padding: '6px 10px', background: '#fff', borderRadius: '6px', borderLeft: '3px solid #022448' }}>
+                                {typeof f === 'string' ? f : f.fact}
+                                {typeof f !== 'string' && f.importance && <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 700, color: f.importance === 'high' ? '#ba1a1a' : '#735c00' }}>{f.importance.toUpperCase()}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.contradictions && o.contradictions.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>CONTRADICTIONS ({o.contradictions.length})</p>
+                            {o.contradictions.map((c: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#93000a', marginBottom: '5px', padding: '6px 10px', background: '#fff5f5', borderRadius: '6px', borderLeft: '3px solid #ba1a1a' }}>
+                                {typeof c === 'string' ? c : c.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.missing_evidence && o.missing_evidence.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#735c00', letterSpacing: '0.06em', margin: '0 0 8px' }}>MISSING EVIDENCE</p>
+                            {o.missing_evidence.map((m: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#735c00', marginBottom: '4px', padding: '5px 10px', background: '#fffbeb', borderRadius: '6px' }}>
+                                {typeof m === 'string' ? m : m.description || JSON.stringify(m)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.events && o.events.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>TIMELINE EVENTS ({o.events.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.events.map((e: any) => e.date + (e.time ? ' ' + e.time : '') + ': ' + e.description).join('\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.events.map((e: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '5px', display: 'flex', gap: '12px', padding: '7px 10px', background: '#fff', borderRadius: '6px' }}>
+                                <span style={{ fontWeight: 700, color: '#022448', flexShrink: 0, minWidth: '90px', fontSize: '11px' }}>{e.date}{e.time ? ' ' + e.time : ''}</span>
+                                <span style={{ flex: 1 }}>{e.description}</span>
+                                {e.event_type && <span style={{ fontSize: '10px', color: '#74777f', flexShrink: 0 }}>{e.event_type.replace(/_/g, ' ')}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.prosecution_gaps && o.prosecution_gaps.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>PROSECUTION GAPS ({o.prosecution_gaps.length})</p>
+                            {o.prosecution_gaps.map((g: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#93000a', marginBottom: '4px', padding: '5px 10px', background: '#fff5f5', borderRadius: '6px' }}>
+                                {typeof g === 'string' ? g : g.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.defence_opportunities && o.defence_opportunities.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>DEFENCE OPPORTUNITIES</p>
+                            {o.defence_opportunities.map((d: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#15803d', marginBottom: '4px', padding: '5px 10px', background: '#f0fdf4', borderRadius: '6px' }}>
+                                {typeof d === 'string' ? d : d.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.applicable_statutes && o.applicable_statutes.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>APPLICABLE STATUTES ({o.applicable_statutes.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.applicable_statutes.map((s: any) => s.act + ' ' + s.section + ': ' + s.description).join('\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.applicable_statutes.map((s: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff', borderRadius: '6px', borderLeft: '3px solid #022448' }}>
+                                <p style={{ fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>{s.act} {s.section}</p>
+                                <p style={{ margin: 0, lineHeight: 1.5 }}>{s.description}</p>
+                                {s.relevance && <p style={{ fontSize: '11px', color: '#74777f', margin: '3px 0 0', fontStyle: 'italic' }}>{s.relevance}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.favorable_precedents && o.favorable_precedents.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: 0 }}>FAVOURABLE PRECEDENTS ({o.favorable_precedents.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.favorable_precedents.map((p: any) => p.citation + ': ' + p.held).join('\n\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.favorable_precedents.map((p: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', borderLeft: '3px solid #15803d' }}>
+                                <p style={{ fontWeight: 700, color: '#15803d', margin: '0 0 3px' }}>{p.citation}{p.court ? ' - ' + p.court : ''}{p.year ? ' (' + p.year + ')' : ''}</p>
+                                <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
+                                {p.relevance && <p style={{ fontSize: '11px', color: '#15803d', margin: 0, fontStyle: 'italic' }}>{p.relevance}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.adverse_precedents && o.adverse_precedents.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: 0 }}>ADVERSE PRECEDENTS ({o.adverse_precedents.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.adverse_precedents.map((p: any) => p.citation + ': ' + p.held).join('\n\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.adverse_precedents.map((p: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff5f5', borderRadius: '6px', borderLeft: '3px solid #ba1a1a' }}>
+                                <p style={{ fontWeight: 700, color: '#ba1a1a', margin: '0 0 3px' }}>{p.citation}{p.year ? ' (' + p.year + ')' : ''}</p>
+                                <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
+                                {p.how_to_distinguish && <p style={{ fontSize: '11px', color: '#022448', margin: 0, fontStyle: 'italic' }}>Distinguish: {p.how_to_distinguish}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.sentiment && (
+                          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px',
+                              background: o.sentiment.label === 'Favorable' ? '#dcfce7' : o.sentiment.label === 'Unfavorable' ? '#ffdad6' : '#ffe088',
+                              color: o.sentiment.label === 'Favorable' ? '#15803d' : o.sentiment.label === 'Unfavorable' ? '#93000a' : '#745c00',
+                            }}>
+                              <span style={{ fontSize: '13px', fontWeight: 800 }}>{o.sentiment.label}</span>
+                              {o.sentiment.score && <span style={{ fontSize: '12px', fontWeight: 700 }}>{o.sentiment.score}%</span>}
+                            </div>
+                            {o.sentiment.reasoning && <p style={{ fontSize: '12px', color: '#43474e', margin: 0, flex: 1 }}>{o.sentiment.reasoning}</p>}
+                          </div>
+                        )}
+
+                        {o.opening_statement && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>OPENING STATEMENT</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.opening_statement); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            <p style={{ fontSize: '12px', color: '#43474e', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap', background: '#fff', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(196,198,207,0.3)' }}>
+                              {o.opening_statement}
+                            </p>
+                          </div>
+                        )}
+
+                        {o.bench_questions && o.bench_questions.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>BENCH QUESTIONS ({o.bench_questions.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.bench_questions.map((q: any, i: number) => 'Q' + (i + 1) + ': ' + q.question + '\nA: ' + q.suggested_answer).join('\n\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.bench_questions.map((q: any, i: number) => (
+                              <div key={i} style={{ marginBottom: '10px', padding: '10px 12px', background: '#fff', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.2)' }}>
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 5px' }}>Q{i + 1}: {q.question}</p>
+                                <p style={{ fontSize: '12px', color: '#43474e', margin: 0, lineHeight: 1.6 }}>{q.suggested_answer}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.strengths && o.strengths.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>STRENGTHS</p>
+                            {o.strengths.map((s: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#15803d', marginBottom: '4px', padding: '5px 10px', background: '#f0fdf4', borderRadius: '6px' }}>
+                                {typeof s === 'string' ? s : s.description || JSON.stringify(s)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.vulnerabilities && o.vulnerabilities.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>VULNERABILITIES</p>
+                            {o.vulnerabilities.map((v: any, i: number) => (
+                              <div key={i} style={{ marginBottom: '8px', padding: '8px 12px', background: '#fff5f5', borderRadius: '6px' }}>
+                                <p style={{ fontSize: '12px', fontWeight: 600, color: '#93000a', margin: '0 0 3px' }}>{v.issue}</p>
+                                {v.mitigation && <p style={{ fontSize: '12px', color: '#43474e', margin: 0 }}>Mitigation: {v.mitigation}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.inconsistencies && o.inconsistencies.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>INCONSISTENCIES ({o.inconsistencies.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.inconsistencies.map((inc: any, i: number) => (i + 1) + '. ' + (typeof inc === 'string' ? inc : inc.statement || inc.description)).join('\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.inconsistencies.map((inc: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff7ed', borderRadius: '6px', borderLeft: '3px solid #f97316' }}>
+                                {typeof inc === 'string' ? inc : (
+                                  <div>
+                                    <p style={{ fontWeight: 600, margin: '0 0 3px' }}>{inc.statement}</p>
+                                    {inc.contradiction && <p style={{ color: '#c2410c', margin: '0 0 2px' }}>Contradiction: {inc.contradiction}</p>}
+                                    {inc.page && <p style={{ fontSize: '11px', color: '#74777f', margin: 0 }}>Page: {inc.page}</p>}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.cross_examination_questions && o.cross_examination_questions.length > 0 && (
+                          <div style={{ marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#5b21b6', letterSpacing: '0.06em', margin: 0 }}>CROSS-EXAM QUESTIONS ({o.cross_examination_questions.length})</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.cross_examination_questions.map((q: any, i: number) => (i + 1) + '. ' + (typeof q === 'string' ? q : q.question)).join('\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {o.cross_examination_questions.map((q: any, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '4px', padding: '5px 10px', background: '#faf5ff', borderRadius: '6px', borderLeft: '3px solid #7c3aed' }}>
+                                {i + 1}. {typeof q === 'string' ? q : q.question}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {o.credibility_assessment && (
+                          <div style={{ padding: '8px 12px', background: '#fff', borderRadius: '6px', display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#74777f' }}>CREDIBILITY:</span>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: o.credibility_assessment === 'High' ? '#15803d' : o.credibility_assessment === 'Low' ? '#93000a' : '#735c00' }}>
+                              {o.credibility_assessment}
+                            </span>
+                            {o.credibility_reasoning && <span style={{ fontSize: '11px', color: '#43474e' }}>- {o.credibility_reasoning}</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {job.status === 'failed' && job.error_message && (
-                    <div style={{ marginTop: '8px', padding: '8px 10px', background: '#ffdad6', borderRadius: '6px', fontSize: '11px', color: '#93000a', lineHeight: 1.5 }}>
-                      <strong>Error:</strong> {job.error_message}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
