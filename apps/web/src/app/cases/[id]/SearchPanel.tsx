@@ -62,19 +62,16 @@ export default function SearchPanel({ caseId, token }: Props) {
     });
   };
 
-  const highlightText = (text: string, terms: string[]) => {
-    if (!terms.length) return text;
-    let result = text;
-    const sorted = [...terms].sort((a, b) => b.length - a.length);
-    sorted.forEach(term => {
-      const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      result = result.replace(regex, '|||MARK|||$1|||/MARK|||');
-    });
-    return result.split('|||').map((part, i) => {
-      if (part.startsWith('MARK|||')) return <mark key={i} style={{ background: '#ffe588', padding: '0 1px', borderRadius: '2px' }}>{part.slice(7)}</mark>;
-      if (part === '/MARK|||') return null;
-      return part;
-    });
+  const highlightText = (text: string, terms: string[]): React.ReactNode[] => {
+    if (!terms.length) return [text];
+    const escaped = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const regex = new RegExp('(' + escaped + ')', 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part)
+        ? <mark key={i} style={{ background: '#ffe588', padding: '0 1px', borderRadius: '2px', fontStyle: 'normal' }}>{part}</mark>
+        : part
+    );
   };
 
   const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box' };
@@ -133,12 +130,7 @@ export default function SearchPanel({ caseId, token }: Props) {
               corrections
             </label>
           </div>
-          <div>
-            <p style={{ fontSize: '11px', fontWeight: 800, color: '#74777f', letterSpacing: '0.05em', textTransform: 'uppercase' as const, margin: '0 0 10px' }}>Where to search</p>
-            <div style={{ display: 'flex', gap: '16px' }}>
-              {radio('all', 'all', () => {}, 'All documents')}
-            </div>
-          </div>
+
         </div>
       </div>
 
