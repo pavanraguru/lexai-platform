@@ -71,7 +71,7 @@ export default function SearchPanel({ caseId, token }: Props) {
     const parts = text.split(regex);
     return parts.map((part, i) =>
       regex.test(part)
-        ? <mark key={i} style={{ background: '#ffe588', padding: '0 1px', borderRadius: '2px', fontStyle: 'normal' }}>{part}</mark>
+        ? <mark key={i} style={{ background: '#bbf7d0', color: '#14532d', padding: '0 2px', borderRadius: '2px', fontStyle: 'normal', fontWeight: 600 }}>{part}</mark>
         : part
     );
   };

@@ -90,11 +90,15 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
 
           if (fuzziness) {
             // Fuzzy: check if term appears within fuzziness_corrections character edits
-            // Use simple sliding window Levenshtein
             const words = pageTextLower.split(/\s+/);
-            for (const word of words) {
-              if (levenshtein(word.replace(/[^a-z0-9]/g, ''), term.replace(/[^a-z0-9]/g, '')) <= Math.floor(fuzziness_corrections / 5)) {
-                foundTerms.push(term);
+            const originalWords = pageText.split(/\s+/);
+            for (let wi = 0; wi < words.length; wi++) {
+              const clean = words[wi].replace(/[^a-z0-9]/g, '');
+              const termClean = term.replace(/[^a-z0-9]/g, '');
+              if (clean.length > 0 && levenshtein(clean, termClean) <= Math.floor(fuzziness_corrections / 5)) {
+                // Push the actual word found in the document (not the search term)
+                const actualWord = originalWords[wi].replace(/[^a-zA-Z0-9]/g, '');
+                foundTerms.push(actualWord || term);
                 break;
               }
             }
