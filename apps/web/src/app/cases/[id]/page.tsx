@@ -16,7 +16,7 @@ import {
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
   Eye, Download, Monitor, Languages, Sparkles, Clock,
-  BookMarked, Save, TrendingUp, Scale,
+  BookMarked, Save, TrendingUp, Scale, Search,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
