@@ -41,7 +41,7 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
     const whereClause: any = {
       case_id,
       tenant_id,
-      processing_status: 'completed',
+      processing_status: 'ready',
     };
     if (doc_ids && Array.isArray(doc_ids) && doc_ids.length > 0) {
       whereClause.id = { in: doc_ids };
