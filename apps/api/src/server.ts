@@ -27,6 +27,7 @@ import { dashboardRoutes }    from './routes/dashboard.js';
 import { presentationRoutes }  from './routes/presentations.js';
 import { filingRoutes }        from './routes/filings.js';
 import { billingRoutes }       from './routes/billing.js';
+import { searchRoutes } from './routes/search';
 import { translationRoutes }   from './routes/translation.js';
 
 // Plugin imports
@@ -109,6 +110,7 @@ async function bootstrap() {
     await app.register(presentationRoutes, { prefix: '/presentations' });
     await app.register(filingRoutes,        { prefix: '/filings' });
     await app.register(billingRoutes,       { prefix: '/billing' });
+    await app.register(searchRoutes,        { prefix: '/search' });
     await app.register(translationRoutes,  { prefix: '/documents' });
   }, { prefix: '/v1' });
 

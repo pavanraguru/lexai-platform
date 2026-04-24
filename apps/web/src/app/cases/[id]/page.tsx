@@ -8,6 +8,7 @@ import DraftingSidebar from './DraftingSidebar';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
+import SearchPanel from './SearchPanel';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import {
@@ -32,6 +33,7 @@ const TABS = [
   { key: 'intel',         Icon: TrendingUp,  labelKey: 'strategy_intel' },
   { key: 'precedents',    Icon: Scale,       labelKey: 'precedents' },
   { key: 'filings',       Icon: BookMarked,  labelKey: 'filings' },
+              { key: 'search', icon: Search, label: 'Search' },
 ];
 
 const HEARING_PURPOSES = [
@@ -61,7 +63,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   closed: { bg: '#e7e8ea', color: '#74777f' },
 };
 
-type TabKey = typeof TABS[number]['key'];
+type TabKey = typeof TABS[number]['key'] | 'search';
 
 const inp = (extra: React.CSSProperties = {}): React.CSSProperties => ({
   width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.4)',
@@ -2261,6 +2263,10 @@ export default function CaseDetailPage() {
       {/* --- FILINGS -------------------------------------- */}
       {activeTab === 'filings' && (
         <CaseFilingsTab c={c} />
+      )}
+
+      {activeTab === 'search' && (
+        <SearchPanel caseId={id as string} token={token || ''} />
       )}
 
       {/* --- PRESENTATIONS -------------------------------- */}
