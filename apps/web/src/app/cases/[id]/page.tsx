@@ -33,7 +33,7 @@ const TABS = [
   { key: 'intel',         Icon: TrendingUp,  labelKey: 'strategy_intel' },
   { key: 'precedents',    Icon: Scale,       labelKey: 'precedents' },
   { key: 'filings',       Icon: BookMarked,  labelKey: 'filings' },
-              { key: 'search', icon: Search, label: 'Search' },
+  { key: 'search',       Icon: Search,     labelKey: 'search' },
 ];
 
 const HEARING_PURPOSES = [
@@ -63,7 +63,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   closed: { bg: '#e7e8ea', color: '#74777f' },
 };
 
-type TabKey = typeof TABS[number]['key'] | 'search';
+type TabKey = typeof TABS[number]['key'];
 
 const inp = (extra: React.CSSProperties = {}): React.CSSProperties => ({
   width: '100%', padding: '9px 12px', border: '1px solid rgba(196,198,207,0.4)',
