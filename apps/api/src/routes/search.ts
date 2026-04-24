@@ -53,6 +53,9 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
         id: true,
         filename: true,
         doc_category: true,
+        mime_type: true,
+        processing_status: true,
+        file_size_bytes: true,
         extracted_text: true,
         page_count: true,
         created_at: true,
@@ -133,9 +136,13 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
+      const q = query.toLowerCase();
       const metadataMatch = search_in !== 'content' ? (
-        doc.filename.toLowerCase().includes(query.toLowerCase()) ||
-        (doc.doc_category || '').toLowerCase().includes(query.toLowerCase())
+        doc.filename.toLowerCase().includes(q) ||
+        (doc.doc_category || '').toLowerCase().replace(/_/g, ' ').includes(q) ||
+        (doc.mime_type || '').toLowerCase().includes(q) ||
+        (doc.processing_status || '').toLowerCase().includes(q) ||
+        new Date(doc.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }).toLowerCase().includes(q)
       ) : false;
 
       if (snippets.length > 0 || metadataMatch) {
@@ -143,6 +150,9 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
           id: doc.id,
           filename: doc.filename,
           doc_category: doc.doc_category,
+          mime_type: doc.mime_type,
+          processing_status: doc.processing_status,
+          file_size_bytes: doc.file_size_bytes ? Number(doc.file_size_bytes) : 0,
           page_count: doc.page_count,
           created_at: doc.created_at,
           match_count: snippets.length,

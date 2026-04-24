@@ -6,7 +6,9 @@ const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 interface Snippet { page: number; text: string; matches: string[]; }
 interface SearchResult {
   id: string; filename: string; doc_category: string | null;
-  page_count: number | null; match_count: number; metadata_match: boolean;
+  mime_type: string | null; processing_status: string | null;
+  file_size_bytes: number; page_count: number | null;
+  created_at: string; match_count: number; metadata_match: boolean;
   snippets: Snippet[];
 }
 
@@ -199,8 +201,38 @@ export default function SearchPanel({ caseId, token }: Props) {
                 )}
 
                 {isOpen && result.snippets.length === 0 && result.metadata_match && (
-                  <div style={{ padding: '12px 16px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
-                    <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Matched on filename/category</p>
+                  <div style={{ padding: '14px 16px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    {result.doc_category && (
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Category</p>
+                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', background: '#d5e3ff', color: '#001c3b', borderRadius: '4px', textTransform: 'capitalize' }}>
+                          {result.doc_category.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    )}
+                    {result.mime_type && (
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>File Type</p>
+                        <p style={{ fontSize: '11px', color: '#43474e', margin: 0 }}>{result.mime_type}</p>
+                      </div>
+                    )}
+                    {result.page_count != null && (
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Pages</p>
+                        <p style={{ fontSize: '11px', color: '#43474e', margin: 0 }}>{result.page_count}</p>
+                      </div>
+                    )}
+                    {result.created_at && (
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Uploaded</p>
+                        <p style={{ fontSize: '11px', color: '#43474e', margin: 0 }}>
+                          {new Date(result.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    )}
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <p style={{ fontSize: '11px', color: '#74777f', margin: 0, fontStyle: 'italic' }}>Matched on document metadata</p>
+                    </div>
                   </div>
                 )}
               </div>

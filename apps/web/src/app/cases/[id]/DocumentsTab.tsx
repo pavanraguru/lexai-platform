@@ -15,6 +15,7 @@ interface VFolder { id: string; name: string; parent: string | null; }
 interface DocItem {
   id: string; filename: string; mime_type: string; file_size_bytes: number;
   doc_category: string | null; processing_status: string; created_at: string;
+  page_count?: number | null;
   folder_id: string | null; // stored in metadata.folder_id
 }
 
@@ -561,7 +562,7 @@ export default function DocumentsTab({
   return (
     <div style={{ display: 'flex', gap: '16px', height: '100%' }}>
 
-      {/* ── Left: Tree sidebar (tree mode only) ── */}
+      {/* -- Left: Tree sidebar (tree mode only) -- */}
       {viewMode === 'tree' && (
         <div style={{
           width: '220px', flexShrink: 0, background: '#fff',
@@ -573,7 +574,7 @@ export default function DocumentsTab({
         </div>
       )}
 
-      {/* ── Right: Main area ── */}
+      {/* -- Right: Main area -- */}
       <div style={{ flex: 1, minWidth: 0 }}>
 
         {/* Toolbar */}
@@ -779,7 +780,7 @@ export default function DocumentsTab({
               </div>
             )}
 
-            {/* Tree view — list style for current folder */}
+            {/* Tree view - list style for current folder */}
             {viewMode === 'tree' && (
               <div style={{ ...cardStyle, overflow: 'hidden' }}>
                 {/* Folder rows */}
@@ -841,7 +842,7 @@ export default function DocumentsTab({
         )}
       </div>
 
-      {/* ── Inline Rename Input ── */}
+      {/* -- Inline Rename Input -- */}
       {renamingId && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setRenamingId(null)} />
@@ -868,7 +869,7 @@ export default function DocumentsTab({
         </>
       )}
 
-      {/* ── Context Menu ── */}
+      {/* -- Context Menu -- */}
       {contextMenu && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setContextMenu(null)} />
@@ -910,10 +911,10 @@ export default function DocumentsTab({
         </>
       )}
 
-      {/* ── Preview modal ── */}
+      {/* -- Preview modal -- */}
       {previewDoc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '900px', height: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '1100px', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.2)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 {fileIcon(previewDoc.mime_type)}
@@ -931,7 +932,8 @@ export default function DocumentsTab({
                 </button>
               </div>
             </div>
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f5f7' }}>
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'row' }}>
+              <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f5f7' }}>
               {previewUrl ? (() => {
                 const mime = (previewDoc.mime_type || '').toLowerCase();
                 const fname = (previewDoc.filename || '').toLowerCase();
@@ -980,6 +982,65 @@ export default function DocumentsTab({
                   <p style={{ fontSize: '13px', color: '#74777f' }}>Loading preview...</p>
                 </div>
               )}
+              </div>
+              {/* -- Metadata pane -- */}
+              <div style={{ width: '260px', flexShrink: 0, borderLeft: '1px solid rgba(196,198,207,0.2)', overflowY: 'auto', background: '#fff', padding: '20px 18px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 14px' }}>Document Info</p>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Filename</p>
+                  <p style={{ fontSize: '12px', color: '#191c1e', margin: 0, wordBreak: 'break-word' as const }}>{previewDoc.filename}</p>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Category</p>
+                  <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '4px', background: '#d5e3ff', color: '#001c3b', textTransform: 'capitalize' as const }}>
+                    {previewDoc.doc_category?.replace(/_/g, ' ') || 'Uncategorised'}
+                  </span>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>File Size</p>
+                  <p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>{formatBytes(previewDoc.file_size_bytes)}</p>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>File Type</p>
+                  <p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>{previewDoc.mime_type || 'Unknown'}</p>
+                </div>
+
+                {previewDoc.page_count != null && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Pages</p>
+                    <p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>{previewDoc.page_count}</p>
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Uploaded</p>
+                  <p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>
+                    {new Date(previewDoc.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
+                    {new Date(previewDoc.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} IST
+                  </p>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>OCR Status</p>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '4px',
+                    background: previewDoc.processing_status === 'ready' ? '#dcfce7' : previewDoc.processing_status === 'failed' ? '#ffdad6' : '#ffe088',
+                    color: previewDoc.processing_status === 'ready' ? '#15803d' : previewDoc.processing_status === 'failed' ? '#93000a' : '#745c00',
+                  }}>
+                    {previewDoc.processing_status === 'ready' ? 'Text extracted' : previewDoc.processing_status === 'failed' ? 'OCR failed' : 'Processing...'}
+                  </span>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#74777f', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Document ID</p>
+                  <p style={{ fontSize: '10px', color: '#74777f', margin: 0, fontFamily: 'monospace', wordBreak: 'break-all' as const }}>{previewDoc.id}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
