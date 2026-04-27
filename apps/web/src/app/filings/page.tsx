@@ -135,7 +135,7 @@ function AIDraftModal({ filing, caseContext, onClose }: {
                 Generate AI Draft
               </h3>
               <p style={{ fontSize: '13px', color: '#74777f', margin: '0 0 24px', lineHeight: 1.6, maxWidth: '400px', marginLeft: 'auto', marginRight: 'auto' }}>
-                Claude will draft a complete {filing.name} in Indian court style.
+                Our AI will draft a complete {filing.name} in Indian court style.
                 {caseContext?.title ? ' Pre-filled with your case details.' : ' With placeholders for case-specific details.'}
               </p>
               <div style={{ background: '#fff7ed', borderRadius: '10px', padding: '12px 16px', marginBottom: '24px', border: '1px solid rgba(202,138,4,0.2)', textAlign: 'left', maxWidth: '400px', margin: '0 auto 24px' }}>
@@ -153,7 +153,7 @@ function AIDraftModal({ filing, caseContext, onClose }: {
           {loading && (
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
               <Loader2 size={32} color="#5b21b6" style={{ animation: 'spin 1s linear infinite', marginBottom: '16px' }} />
-              <p style={{ fontSize: '14px', color: '#74777f', fontWeight: 600 }}>Claude is drafting your {filing.name}...</p>
+              <p style={{ fontSize: '14px', color: '#74777f', fontWeight: 600 }}>Our AI agents are drafting your {filing.name}...</p>
             </div>
           )}
 
