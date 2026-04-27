@@ -114,8 +114,23 @@ export const draftRoutes: FastifyPluginAsync = async (fastify) => {
     // Calculate word count from content
     let wordCount = existing.word_count;
     if (body.content) {
-      const text = JSON.stringify(body.content).replace(/<[^>]*>/g, ' ').replace(/[^a-zA-Z\s]/g, ' ');
-      wordCount = text.split(/\s+/).filter(Boolean).length;
+      // Extract plain text from content — handles { text: '...' } or ProseMirror { content: [...] }
+      let plainText = '';
+      if (typeof body.content === 'string') {
+        plainText = body.content;
+      } else if (typeof body.content.text === 'string') {
+        plainText = body.content.text;
+      } else {
+        // ProseMirror doc: recursively extract text from nodes
+        const extractText = (node: any): string => {
+          if (!node) return '';
+          if (typeof node.text === 'string') return node.text;
+          if (Array.isArray(node.content)) return node.content.map(extractText).join(' ');
+          return '';
+        };
+        plainText = extractText(body.content);
+      }
+      wordCount = plainText.trim().split(/\s+/).filter(Boolean).length;
     }
 
     // Build update data — always save content if provided

@@ -623,7 +623,7 @@ Use AI Generate above to get a complete draft pre-filled with your case details,
                   <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.title}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: tc.bg, color: tc.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{typeLabel(draft.doc_type)}</span>
-                    <span style={{ fontSize: '11px', color: '#74777f' }}>{draft.word_count || 0} words</span>
+                    <span style={{ fontSize: '11px', color: '#74777f' }}>{draft.word_count ? draft.word_count + ' words' : 'Open to count'}</span>
                     <span style={{ fontSize: '11px', color: '#74777f' }}>v{draft.version}</span>
                     <span style={{ fontSize: '11px', color: '#74777f' }}>
                       {new Date(draft.last_modified_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
