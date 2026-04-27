@@ -126,10 +126,14 @@ export default function SearchPanel({ caseId, token }: Props) {
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#43474e' }}>
               <input type="checkbox" checked={fuzziness} onChange={e => setFuzziness(e.target.checked)} style={{ accentColor: '#022448' }} />
-              Fuzziness up to
-              <input type="number" value={fuzzCorr} min={1} max={20} onChange={e => setFuzzCorr(Number(e.target.value))}
-                style={{ width: '52px', padding: '3px 7px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '6px', fontSize: '13px', textAlign: 'center' }} />
-              corrections
+              Fuzziness
+              <select value={fuzzCorr} onChange={e => setFuzzCorr(Number(e.target.value))}
+                style={{ padding: '3px 7px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '6px', fontSize: '12px', fontFamily: 'Manrope, sans-serif' }}>
+                <option value={5}>Low — typos only</option>
+                <option value={10}>Medium — spelling variants</option>
+                <option value={15}>High — phonetic matches</option>
+                <option value={20}>Max — broad matching</option>
+              </select>
             </label>
           </div>
 

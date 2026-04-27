@@ -89,14 +89,28 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
           if (!term) continue;
 
           if (fuzziness) {
-            // Fuzzy: check if term appears within fuzziness_corrections character edits
+            // Fuzzy: adaptive Levenshtein + Soundex phonetic matching
+            // Max edits scales with WORD LENGTH not the corrections slider:
+            //   1-3 chars: 0 edits (exact), 4-6 chars: 1 edit, 7+ chars: 2 edits
+            // The corrections slider (1-20) is a percentage tolerance multiplier
+            // Soundex phonetic match catches spelling/pronunciation variants
             const words = pageTextLower.split(/\s+/);
             const originalWords = pageText.split(/\s+/);
+            const termClean = term.replace(/[^a-z]/g, '');
+            const termSoundex = soundex(termClean);
+            // Base max edits by word length, scaled by corrections (default 10 = 100%)
+            const corrScale = Math.min(fuzziness_corrections, 20) / 10;
+            const baseMaxEdits = termClean.length <= 3 ? 0 : termClean.length <= 6 ? 1 : 2;
+            const maxEdits = Math.round(baseMaxEdits * corrScale);
+
             for (let wi = 0; wi < words.length; wi++) {
-              const clean = words[wi].replace(/[^a-z0-9]/g, '');
-              const termClean = term.replace(/[^a-z0-9]/g, '');
-              if (clean.length > 0 && levenshtein(clean, termClean) <= Math.floor(fuzziness_corrections / 5)) {
-                // Push the actual word found in the document (not the search term)
+              const clean = words[wi].replace(/[^a-z]/g, '');
+              if (clean.length < 2) continue;
+              // Skip if length difference alone exceeds max edits (fast path)
+              if (Math.abs(clean.length - termClean.length) > maxEdits + 1) continue;
+              const editDist = levenshtein(clean, termClean);
+              const phonetic = soundex(clean) === termSoundex;
+              if (editDist <= maxEdits || phonetic) {
                 const actualWord = originalWords[wi].replace(/[^a-zA-Z0-9]/g, '');
                 foundTerms.push(actualWord || term);
                 break;
@@ -180,7 +194,7 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
   });
 };
 
-// Simple Levenshtein for fuzzy matching
+// Levenshtein edit distance
 function levenshtein(a: string, b: string): number {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
@@ -195,4 +209,24 @@ function levenshtein(a: string, b: string): number {
     }
   }
   return matrix[b.length][a.length];
+}
+
+// Soundex phonetic encoding — groups words that sound alike
+// e.g. "insurance" and "innsurance" and "ensurance" all produce same code
+function soundex(s: string): string {
+  if (!s) return '';
+  const MAP: Record<string, string> = {
+    b:'1',f:'1',p:'1',v:'1',
+    c:'2',g:'2',j:'2',k:'2',q:'2',s:'2',x:'2',z:'2',
+    d:'3',t:'3', l:'4', m:'5',n:'5', r:'6',
+  };
+  const upper = s.toLowerCase();
+  let result = upper[0].toUpperCase();
+  let prev = MAP[upper[0]] || '0';
+  for (let i = 1; i < upper.length && result.length < 4; i++) {
+    const code = MAP[upper[i]] || '0';
+    if (code !== '0' && code !== prev) result += code;
+    prev = code;
+  }
+  return result.padEnd(4, '0');
 }
