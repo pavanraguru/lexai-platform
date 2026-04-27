@@ -51,6 +51,8 @@ export default function CasesPage() {
       return (await res.json()).data || [];
     },
     enabled: !!token,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const cases: any[] = (data || []).filter((c: any) =>

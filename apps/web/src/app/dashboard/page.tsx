@@ -49,7 +49,9 @@ export default function DashboardPage() {
       return (await res.json()).data;
     },
     enabled: !!token,
-    refetchInterval: 60000,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 120000,
   });
 
   const greeting = () => {
@@ -71,7 +73,7 @@ export default function DashboardPage() {
   return (
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
 
-      {/* ── Greeting ─────────────────────────────────────── */}
+      {/* -- Greeting --------------------------------------- */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '2.2rem', fontWeight: 700, color: '#022448', lineHeight: 1.15, margin: 0 }}>
           {greeting()}, {firstName}
@@ -91,7 +93,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stats Grid ───────────────────────────────────── */}
+      {/* -- Stats Grid ------------------------------------- */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '32px', flexWrap: 'wrap' }}>
         {STATS.map(({ key, label, Icon, bg, numColor, labelColor }) => (
           <div key={key} style={{
@@ -112,7 +114,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ── {tr('upcoming_hearings')} ────────────────────────────── */}
+      {/* -- {tr('upcoming_hearings')} ------------------------------ */}
       <section style={{ marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', maxWidth: '780px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#191c1e', margin: 0 }}>
@@ -181,7 +183,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ── AI Agents Banner ─────────────────────────────── */}
+      {/* -- AI Agents Banner ------------------------------- */}
       <section style={{ marginBottom: '40px' }}>
         <div style={{ background: '#022448', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 16px rgba(2,36,72,0.2)', display: 'inline-flex', alignItems: 'center', gap: '20px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#fff', margin: 0 }}>
@@ -199,7 +201,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ── Recent Cases ─────────────────────────────────── */}
+      {/* -- Recent Cases ----------------------------------- */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', maxWidth: '780px' }}>
           <h2 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.1rem', color: '#191c1e', margin: 0 }}>

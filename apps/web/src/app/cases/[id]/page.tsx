@@ -1184,7 +1184,25 @@ export default function CaseDetailPage() {
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+
+  const toggleJobExpand = async (jobId: string, currentStatus: string) => {
+    if (currentStatus !== 'completed') return;
+    if (expandedJobId === jobId) { setExpandedJobId(null); return; }
+    setExpandedJobId(jobId);
+    if (jobOutputs[jobId]) return; // already cached
+    setLoadingOutput(jobId);
+    try {
+      const res = await fetch(BASE + '/v1/agents/jobs/' + jobId + '/output', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const j = await res.json();
+      if (j.data?.output) setJobOutputs(prev => ({ ...prev, [jobId]: j.data.output }));
+    } catch {}
+    setLoadingOutput(null);
+  };
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [jobOutputs, setJobOutputs] = useState<Record<string, any>>({});
+  const [loadingOutput, setLoadingOutput] = useState<string | null>(null);
   const [showFailedJobs, setShowFailedJobs] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
 
@@ -1201,6 +1219,8 @@ export default function CaseDetailPage() {
       return (await res.json()).data;
     },
     enabled: !!token && !!id,
+    staleTime: 30 * 1000,       // 30s — no re-fetch on quick tab switches
+    gcTime: 5 * 60 * 1000,      // keep in memory 5 min
   });
 
   const { data: presData } = useQuery({
@@ -1903,11 +1923,11 @@ export default function CaseDetailPage() {
               </div>
               {agents.filter((job: any) => showFailedJobs || job.status !== 'failed').slice(0, 15).map((job: any) => {
                 const isExpanded = expandedJobId === job.id;
-                const o = job.output as any;
+                const o = jobOutputs[job.id] || (job as any).output;
                 return (
                   <div key={job.id} style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
                     <div
-                      onClick={() => job.status === 'completed' && setExpandedJobId(isExpanded ? null : job.id)}
+                      onClick={() => toggleJobExpand(job.id, job.status)}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 20px', cursor: job.status === 'completed' ? 'pointer' : 'default', background: isExpanded ? '#f0f4ff' : 'transparent' }}>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>
@@ -1947,7 +1967,12 @@ export default function CaseDetailPage() {
                         <strong>Error:</strong> {job.error_message}
                       </div>
                     )}
-                    {isExpanded && o && (
+                    {isExpanded && loadingOutput === job.id && (
+                      <div style={{ padding: '20px', textAlign: 'center', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
+                        <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Loading output...</p>
+                      </div>
+                    )}
+                    {isExpanded && o && !loadingOutput && (
                       <div style={{ padding: '20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
                           <button

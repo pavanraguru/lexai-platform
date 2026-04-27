@@ -376,6 +376,21 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /v1/agents/jobs/:id — get single agent job status + output
+  // GET /v1/agents/jobs/:id/output — fetch just the output JSON (on demand when user expands)
+  fastify.get('/jobs/:id/output', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    const { id } = request.params as { id: string };
+    const job = await fastify.prisma.agentJob.findFirst({
+      where: { id, tenant_id },
+      select: { id: true, output: true, status: true },
+    });
+    if (!job) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Job not found' } });
+    reply.header('Cache-Control', 'private, max-age=300'); // output never changes once done
+    return reply.send({ data: job });
+  });
+
   fastify.get('/jobs/:id', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {

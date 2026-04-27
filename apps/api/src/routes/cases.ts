@@ -173,12 +173,14 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
         },
         agent_jobs: {
           orderBy: { created_at: 'desc' },
+          take: 20,
           select: {
             id: true, agent_type: true, status: true,
             model_used: true, cost_inr: true,
             created_at: true, completed_at: true,
-            output: true, error_message: true,
+            error_message: true,
             tokens_input: true, tokens_output: true,
+            // output excluded from case load — fetched on-demand when user expands a run
           },
         },
         _count: {
@@ -202,6 +204,7 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
+    reply.header('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
     return reply.send({ data: caseRecord });
   });
 
