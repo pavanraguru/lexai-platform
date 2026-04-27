@@ -71,7 +71,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: 'clamp(14px, 3vw, 32px) clamp(14px, 3vw, 28px)', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* -- Greeting --------------------------------------- */}
       <div style={{ marginBottom: '24px' }}>

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const pg: React.CSSProperties = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '900px' };
+const pg: React.CSSProperties = { padding: 'clamp(14px, 3vw, 32px) clamp(14px, 3vw, 28px)', fontFamily: 'Manrope, sans-serif', maxWidth: '900px' };
 const inp: React.CSSProperties = { padding: '10px 13px', border: '1px solid rgba(196,198,207,0.5)', borderRadius: '9px', fontSize: '14px', color: '#191c1e', background: '#fff', outline: 'none', fontFamily: 'Manrope, sans-serif', width: '100%', boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: '11px', fontWeight: 700, color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px' };
 const card: React.CSSProperties = { background: '#fff', borderRadius: '14px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden' };
@@ -229,7 +229,7 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
       </div>
 
       <div style={{ padding: '24px' }}>
-        {/* ── Step 1: Client & Case ── */}
+        {/* -- Step 1: Client & Case -- */}
         {step === 1 && (
           <div>
             <p style={{ fontSize: '12px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 18px' }}>Step 1 — Client & Case Details</p>
@@ -281,7 +281,7 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
           </div>
         )}
 
-        {/* ── Step 2: Line Items ── */}
+        {/* -- Step 2: Line Items -- */}
         {step === 2 && (
           <div>
             <p style={{ fontSize: '12px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 18px' }}>Step 2 — Line Items</p>
@@ -376,7 +376,7 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
           </div>
         )}
 
-        {/* ── Step 3: Review & Create ── */}
+        {/* -- Step 3: Review & Create -- */}
         {step === 3 && (
           <div>
             <p style={{ fontSize: '12px', fontWeight: 700, color: '#74777f', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 18px' }}>Step 3 — Review & Create</p>
@@ -782,7 +782,7 @@ export default function BillingPage() {
           </div>
         )
       )}
-      {/* ── Edit Invoice Modal ── */}
+      {/* -- Edit Invoice Modal -- */}
       {editingInvoice && (() => {
         // Live totals computed from editForm
         const editSubtotal = editForm.line_items.reduce((s, i) => s + i.quantity * (i.rate_paise / 100), 0);

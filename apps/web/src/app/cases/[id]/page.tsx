@@ -1370,7 +1370,7 @@ export default function CaseDetailPage() {
   };
 
   if (isLoading) return (
-    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
+    <div style={{ padding: 'clamp(14px, 3vw, 32px) clamp(14px, 3vw, 28px)', fontFamily: 'Manrope, sans-serif', maxWidth: '960px', width: '100%', boxSizing: 'border-box' as const }}>
       <div style={{ height: '120px', borderRadius: '20px', background: '#edeef0', marginBottom: '16px' }} />
       <div style={{ height: '48px', borderRadius: '12px', background: '#edeef0', marginBottom: '16px' }} />
       <div style={{ height: '300px', borderRadius: '20px', background: '#edeef0' }} />
@@ -1407,7 +1407,7 @@ export default function CaseDetailPage() {
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
 
       {/* -- Case Header ----------------------------------- */}
-      <div style={{ ...cardStyle, padding: '20px', marginBottom: '16px', maxWidth: '860px' }}>
+      <div style={{ ...cardStyle, padding: 'clamp(14px, 2.5vw, 20px)', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>

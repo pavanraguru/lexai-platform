@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -210,6 +211,7 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   // Expose globally so Pro-gated components can trigger it
   if (typeof window !== 'undefined') (window as any).__lexai_show_upgrade = () => setShowUpgrade(true);
@@ -322,7 +324,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         #lex-main { flex: 1; padding: 0; }
         @media (max-width: 768px) {
           #lex-sidebar { display: none; }
-          #lex-body { margin-left: 0; padding-bottom: 64px; }
+          #lex-body { margin-left: 0 !important; padding-bottom: 72px; }
+          #lex-topbar { padding: 0 12px; }
+          #lex-bottom-nav { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+          #lex-bottom-nav { display: none !important; }
+          #lex-hamburger { display: none !important; }
+        }
+        #lex-bottom-nav {
+          position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+          background: #fff; border-top: 1px solid rgba(0,0,0,0.08);
+          height: 64px; display: none;
+          align-items: center; justify-content: space-around; padding: 0 4px;
+        }
+        #lex-mobile-menu {
+          position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,0.4);
+        }
+        #lex-mobile-drawer {
+          position: absolute; left: 0; top: 0; bottom: 0; width: 280px;
+          background: #fff; overflow-y: auto; padding-bottom: 40px;
         }
       `}</style>
 
@@ -386,6 +407,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Right column */}
       <div id="lex-body">
         <div id="lex-topbar">
+          <button id="lex-hamburger" onClick={() => setMobileMenuOpen(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', marginRight: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', color: '#022448' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
           <button onClick={() => setMobileOpen(true)} style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0 }} className="mobile-menu-btn">
             <Menu size={22} color={P} />
           </button>
@@ -493,6 +518,47 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+      {/* Mobile nav drawer */}
+      {mobileMenuOpen && (
+        <div id="lex-mobile-menu" onClick={() => setMobileMenuOpen(false)}>
+          <div id="lex-mobile-drawer" onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+              <span style={{ fontFamily: 'Newsreader, serif', fontSize: '15px', fontWeight: 700, color: '#022448' }}>Sovereign Counsel</span>
+              <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#74777f' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div style={{ padding: '8px' }}>
+              {NAV.map(item => (
+                <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px', borderRadius: '10px', textDecoration: 'none', color: '#022448', fontSize: '14px', fontWeight: 600, fontFamily: 'Manrope, sans-serif', marginBottom: '2px' }}>
+                  <item.Icon size={18} />
+                  {item.labelKey.replace(/_/g, ' ').replace(/\w/g, (c: string) => c.toUpperCase())}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom navigation */}
+      <div id="lex-bottom-nav">
+        {[
+          { href: '/dashboard', icon: '⊞', label: 'Home' },
+          { href: '/cases', icon: '⚖', label: 'Cases' },
+          { href: '/calendar', icon: '📅', label: 'Calendar' },
+          { href: '/invoices', icon: '₹', label: 'Invoices' },
+        ].map(item => (
+          <a key={item.href} href={item.href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '8px 12px', textDecoration: 'none', color: '#74777f', fontSize: '10px', fontWeight: 600, fontFamily: 'Manrope, sans-serif', borderRadius: '8px', minWidth: '60px' }}>
+            <span style={{ fontSize: '18px', lineHeight: 1 }}>{item.icon}</span>
+            {item.label}
+          </a>
+        ))}
+        <button onClick={() => setMobileMenuOpen(true)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#74777f', fontSize: '10px', fontWeight: 600, fontFamily: 'Manrope, sans-serif', minWidth: '60px' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          More
+        </button>
+      </div>
     </>
   );
 }

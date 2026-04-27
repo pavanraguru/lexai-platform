@@ -95,3 +95,58 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }
+
+/* ── Responsive utilities ──────────────────────────────────── */
+* { box-sizing: border-box; }
+
+/* Make all pages horizontally scrollable on mobile */
+body { overflow-x: hidden; }
+
+/* Responsive page wrapper */
+.lex-page { padding: 24px 20px; max-width: 960px; }
+@media (max-width: 768px) {
+  .lex-page { padding: 16px 14px; }
+}
+
+/* Responsive grid — 2 cols on desktop, 1 col on mobile */
+.lex-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) {
+  .lex-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* Stat cards row — scroll on mobile */
+.lex-stats-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+.lex-stats-row::-webkit-scrollbar { display: none; }
+.lex-stats-row > * { flex-shrink: 0; }
+@media (max-width: 768px) {
+  .lex-stats-row > * { min-width: 140px; }
+}
+
+/* Tab bar — horizontal scroll on mobile */
+.lex-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 768px) {
+  .lex-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .lex-tabs::-webkit-scrollbar { display: none; }
+  .lex-tabs > * { flex-shrink: 0; }
+}
+
+/* Cards — full width on mobile */
+@media (max-width: 768px) {
+  [data-lex-card] { border-radius: 10px !important; }
+}
+
+/* Hide non-essential columns on mobile */
+@media (max-width: 768px) {
+  .lex-hide-mobile { display: none !important; }
+  .lex-mobile-full { width: 100% !important; max-width: 100% !important; }
+}
+
+/* Touch targets — minimum 44px */
+@media (max-width: 768px) {
+  button, a[href], input, select { min-height: 36px; }
+}
+
+/* Table → card list on mobile */
+@media (max-width: 768px) {
+  .lex-table-row { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
+}

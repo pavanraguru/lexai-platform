@@ -113,7 +113,7 @@ export default function CalendarPage() {
     .slice(0, 5);
 
   return (
-    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif' }}>
+    <div style={{ padding: 'clamp(14px, 3vw, 32px) clamp(14px, 3vw, 28px)', fontFamily: 'Manrope, sans-serif' }}>
 
       {/* Hero */}
       <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
