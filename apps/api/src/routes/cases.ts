@@ -220,12 +220,22 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
     }
 
-    const updateData = request.body as any;
-    // Strip fields that cannot be updated directly
-    delete updateData.id;
-    delete updateData.tenant_id;
-    delete updateData.created_by;
-    delete updateData.created_at;
+    const rawBody = request.body as any;
+    // Whitelist allowed update fields — prevents mass assignment / prototype pollution
+    const ALLOWED_UPDATE_FIELDS = [
+      'title', 'description', 'case_type', 'court_level', 'court', 'judge_name',
+      'cnr_number', 'fir_number', 'fir_date', 'fir_police_station',
+      'sections_charged', 'perspective', 'status', 'metadata',
+      'assigned_advocates', 'opposing_counsel', 'client_name', 'client_phone',
+    ];
+    const updateData: any = {};
+    for (const field of ALLOWED_UPDATE_FIELDS) {
+      if (rawBody[field] !== undefined) updateData[field] = rawBody[field];
+    }
+    // Prevent empty update
+    if (Object.keys(updateData).length === 0) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'No valid fields to update' } });
+    }
 
     // Merge metadata instead of replacing it — preserves existing fields like sections_charged, folders etc.
     if (updateData.metadata && typeof updateData.metadata === 'object') {

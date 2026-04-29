@@ -65,7 +65,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       tenant_id: dbUser.tenant_id,
       role: dbUser.role,
       email: dbUser.email,
-    }, { expiresIn: '30d' });
+    }, { expiresIn: '24h' });
 
     await fastify.prisma.user.update({
       where: { id: dbUser.id },
@@ -104,6 +104,18 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!email || !password) {
       return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'email and password are required' } });
     }
+    // Input length limits — prevent abuse
+    if (typeof email !== 'string' || email.length > 254) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Invalid email' } });
+    }
+    if (typeof password !== 'string' || password.length > 256) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Invalid password' } });
+    }
+    // Basic email format check — prevent log injection
+    const emailClean = email.trim().toLowerCase().replace(/[\r\n]/g, '');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailClean)) {
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Invalid email format' } });
+    }
 
     // Authenticate via Supabase
     const sbClient = createClient(
@@ -114,7 +126,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
 
     if (error || !data.user) {
-      return reply.status(401).send({ error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' } });
+      return reply.status(401).send({ error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' } }); // same message for all failures — prevents user enumeration
     }
 
     return issueToken(data.user.id, reply);
