@@ -20,7 +20,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      `connect-src 'self' ${API_URL} https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com`,
+      `connect-src 'self' ${API_URL} https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://*.amazonaws.com https://s3.ap-south-1.amazonaws.com`,
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  // unsafe-eval needed for Next.js dev
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
