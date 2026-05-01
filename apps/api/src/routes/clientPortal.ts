@@ -246,7 +246,6 @@ export async function clientPortalRoutes(app: FastifyInstance) {
 
     return reply.send({ invoices });
   });
-}
 
   // ── POST /v1/portal/change-password ─────────────────────────
   app.post('/change-password', { preHandler: [portalAuth] }, async (req: any, reply) => {
