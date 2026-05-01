@@ -22,7 +22,11 @@ const SIDEBAR_W = 220;
 const P = '#022448';
 const GOLD = '#ffe088';
 
+const NO_SHELL = ['/portal/login', '/portal/accept-invite'];
+
 export default function PortalShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (NO_SHELL.some(p => pathname.startsWith(p))) return <>{children}</>;
   const pathname = usePathname();
   const router = useRouter();
   const [name, setName] = useState('');
