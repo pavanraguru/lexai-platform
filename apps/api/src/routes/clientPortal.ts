@@ -1,6 +1,6 @@
 // apps/api/src/routes/clientPortal.ts
 import { FastifyInstance } from 'fastify';
-import bcrypt from 'bcryptjs';
+
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
@@ -107,7 +107,8 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       return reply.status(410).send({ error: 'Invite link has expired. Please ask your advocate to re-invite you.' });
     }
 
-    const hash = await bcrypt.hash(password, 12);
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.default.hash(password, 12);
     await prisma.clientPortalUser.update({
       where: { id: user.id },
       data: { password_hash: hash, invite_token: null, invite_expires_at: null, is_active: true },
@@ -126,8 +127,9 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       where: { email: email.toLowerCase().trim(), is_active: true },
     });
 
+    const bcrypt = await import('bcryptjs');
     const dummyHash = '$2b$12$invalidhashfortimingsafety00000';
-    const valid = await bcrypt.compare(password, user?.password_hash || dummyHash);
+    const valid = await bcrypt.default.compare(password, user?.password_hash || dummyHash);
 
     if (!user || !valid || !user.password_hash) {
       return reply.status(401).send({ error: 'Invalid email or password' });
