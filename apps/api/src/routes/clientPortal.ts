@@ -1,63 +1,37 @@
 // apps/api/src/routes/clientPortal.ts
+// Uses only: crypto (Node built-in), @fastify/jwt (already in API), bcryptjs (lazy)
 import { FastifyInstance } from 'fastify';
-
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 const PORTAL_SECRET = (process.env.JWT_SECRET || 'fallback') + '_portal';
 
-function portalJwt(payload: object) {
-  return jwt.sign(payload, PORTAL_SECRET, { expiresIn: '7d' });
-}
-
-async function verifyPortalToken(token: string) {
-  return jwt.verify(token, PORTAL_SECRET) as {
-    portal_user_id: string;
-    client_id: string;
-    tenant_id: string;
-  };
-}
-
-async function sendInviteEmail(to: string, name: string, inviteUrl: string, firmName: string) {
-  if (!process.env.SMTP_HOST) {
-    console.log('[Portal] SMTP not configured — invite URL:', inviteUrl);
-    return;
-  }
-  try {
-    const nodemailer = await import('nodemailer');
-    const transport = nodemailer.default.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
-    await transport.sendMail({
-      from: `"${firmName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-      to,
-      subject: `${firmName} — Your case portal access`,
-      html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto">
-        <h2 style="color:#022448">Your case portal is ready</h2>
-        <p>Dear ${name},</p>
-        <p>${firmName} has set up a secure portal so you can track your case progress.</p>
-        <a href="${inviteUrl}" style="display:inline-block;background:#022448;color:#ffe088;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
-          Set up my account
-        </a>
-        <p style="color:#666;font-size:13px">This link expires in 48 hours.</p>
-      </div>`,
-    });
-  } catch (e) {
-    console.error('[Portal] Email send failed:', e);
-  }
-}
-
 export async function clientPortalRoutes(app: FastifyInstance) {
   const prisma = (app as any).prisma;
+
+  // ── JWT helpers using Node crypto (no jsonwebtoken needed) ─
+  function signPortalJwt(payload: Record<string, unknown>): string {
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const body = Buffer.from(JSON.stringify({ ...payload, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 7 * 24 * 3600 })).toString('base64url');
+    const sig = crypto.createHmac('sha256', PORTAL_SECRET).update(`${header}.${body}`).digest('base64url');
+    return `${header}.${body}.${sig}`;
+  }
+
+  function verifyPortalJwt(token: string): Record<string, unknown> {
+    const parts = token.split('.');
+    if (parts.length !== 3) throw new Error('Invalid token');
+    const expected = crypto.createHmac('sha256', PORTAL_SECRET).update(`${parts[0]}.${parts[1]}`).digest('base64url');
+    if (expected !== parts[2]) throw new Error('Invalid signature');
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    if (payload.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expired');
+    return payload;
+  }
 
   // ── Portal auth middleware ────────────────────────────────
   async function portalAuth(req: any, reply: any) {
     const auth = req.headers.authorization;
     if (!auth?.startsWith('Bearer ')) return reply.status(401).send({ error: 'Unauthorized' });
     try {
-      req.portalUser = await verifyPortalToken(auth.slice(7));
+      req.portalUser = verifyPortalJwt(auth.slice(7));
     } catch {
       return reply.status(401).send({ error: 'Invalid or expired session' });
     }
@@ -90,7 +64,36 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     const tenant = await prisma.tenant.findUnique({ where: { id: tenant_id }, select: { name: true } });
     const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://lexai-platform-web.vercel.app';
     const inviteUrl = `${webUrl}/portal/accept-invite?token=${token}`;
-    await sendInviteEmail(email, name, inviteUrl, tenant?.name || 'Your legal firm');
+
+    // Send email if SMTP configured
+    if (process.env.SMTP_HOST) {
+      try {
+        const nodemailer = await import('nodemailer');
+        const transport = nodemailer.default.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT || 587),
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+        });
+        await transport.sendMail({
+          from: `"${tenant?.name || 'Sovereign Counsel'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+          to: email,
+          subject: `${tenant?.name || 'Your legal firm'} — Your case portal access`,
+          html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+            <h2 style="color:#022448">Your case portal is ready</h2>
+            <p>Dear ${name},</p>
+            <p>Your advocate has set up a secure portal so you can track your case progress.</p>
+            <a href="${inviteUrl}" style="display:inline-block;background:#022448;color:#ffe088;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+              Set up my account
+            </a>
+            <p style="color:#666;font-size:13px">This link expires in 48 hours.</p>
+          </div>`,
+        });
+      } catch (e) {
+        console.error('[Portal] Email failed:', e);
+      }
+    } else {
+      console.log('[Portal] Invite URL (SMTP not configured):', inviteUrl);
+    }
 
     return reply.send({ success: true, invite_url: inviteUrl });
   });
@@ -114,7 +117,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       data: { password_hash: hash, invite_token: null, invite_expires_at: null, is_active: true },
     });
 
-    const jwtToken = portalJwt({ portal_user_id: user.id, client_id: user.client_id, tenant_id: user.tenant_id });
+    const jwtToken = signPortalJwt({ portal_user_id: user.id, client_id: user.client_id, tenant_id: user.tenant_id });
     return reply.send({ token: jwtToken, name: user.name });
   });
 
@@ -136,8 +139,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     }
 
     await prisma.clientPortalUser.update({ where: { id: user.id }, data: { last_login_at: new Date() } });
-
-    const token = portalJwt({ portal_user_id: user.id, client_id: user.client_id, tenant_id: user.tenant_id });
+    const token = signPortalJwt({ portal_user_id: user.id, client_id: user.client_id, tenant_id: user.tenant_id });
     return reply.send({ token, name: user.name, client_id: user.client_id });
   });
 
@@ -152,7 +154,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
 
   // ── GET /v1/portal/cases ─────────────────────────────────
   app.get('/cases', { preHandler: [portalAuth] }, async (req: any, reply) => {
-    const { client_id, tenant_id } = req.portalUser;
+    const { client_id, tenant_id } = req.portalUser as any;
 
     const caseClients = await prisma.caseClient.findMany({
       where: { client_id },
@@ -179,7 +181,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
   // ── GET /v1/portal/cases/:id ─────────────────────────────
   app.get('/cases/:id', { preHandler: [portalAuth] }, async (req: any, reply) => {
     const { id } = req.params as { id: string };
-    const { client_id, tenant_id } = req.portalUser;
+    const { client_id, tenant_id } = req.portalUser as any;
 
     const link = await prisma.caseClient.findFirst({ where: { case_id: id, client_id } });
     if (!link) return reply.status(403).send({ error: 'Access denied' });
@@ -192,7 +194,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
         next_hearing_date: true, created_at: true,
         hearings: {
           orderBy: { date: 'desc' },
-          select: { id: true, date: true, purpose: true, outcome: true, next_hearing_date: true, order_summary: true },
+          select: { id: true, date: true, purpose: true, outcome: true, next_hearing_date: true },
         },
         tasks: {
           where: { status: { not: 'done' } },
@@ -208,7 +210,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
 
   // ── GET /v1/portal/invoices ──────────────────────────────
   app.get('/invoices', { preHandler: [portalAuth] }, async (req: any, reply) => {
-    const { client_id, tenant_id } = req.portalUser;
+    const { client_id, tenant_id } = req.portalUser as any;
 
     const invoices = await prisma.invoice.findMany({
       where: { client_id, tenant_id },
