@@ -103,3 +103,10 @@ export async function buildServer() {
 
   return server;
 }
+
+// ── Start server ──────────────────────────────────────────────
+const PORT = Number(process.env.PORT || 3001);
+buildServer()
+  .then(server => server.listen({ port: PORT, host: '0.0.0.0' }))
+  .then(() => console.log(`API running on port ${PORT}`))
+  .catch(err => { console.error(err); process.exit(1); });

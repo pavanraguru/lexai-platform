@@ -287,7 +287,7 @@ export const presentationRoutes: FastifyPluginAsync = async (fastify) => {
         case: {
           select: {
             id: true, title: true, court: true, cnr_number: true, case_type: true,
-            judge_name: true, perspective: true, case_type: true,
+            judge_name: true, perspective: true,
             documents: { select: { id: true, filename: true, doc_category: true, page_count: true, processing_status: true } },
             agent_jobs: { where: { status: 'completed' }, orderBy: { created_at: 'desc' }, take: 5 },
           },
