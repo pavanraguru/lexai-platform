@@ -101,6 +101,8 @@ export async function buildServer() {
   // ── Client portal routes (own JWT, no advocate auth) ──────
   await server.register(clientPortalRoutes, { prefix: '/v1/portal' });
 
+  server.get("/health", async () => ({ status: "ok" }));
+
   return server;
 }
 
