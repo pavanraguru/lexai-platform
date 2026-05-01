@@ -225,7 +225,6 @@ export async function clientPortalRoutes(app: FastifyInstance) {
 
     return reply.send({ invoices });
   });
-}
 
   // ── POST /v1/portal/change-password ─────────────────────────
   app.post('/change-password', { preHandler: [portalAuth] }, async (req: any, reply) => {
@@ -244,3 +243,4 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     await prisma.clientPortalUser.update({ where: { id: user.id }, data: { password_hash: hash } });
     return reply.send({ success: true });
   });
+}
