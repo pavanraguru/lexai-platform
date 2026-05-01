@@ -1,10 +1,9 @@
 'use client';
 import { useLang } from '@/hooks/useLanguage';
-
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/hooks/useAuth';
-import { Users, Plus, Phone, Mail, X, Search } from 'lucide-react';
+import { Users, Plus, Phone, Mail, X, Search, ExternalLink } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -22,6 +21,117 @@ const lbl: React.CSSProperties = {
   color: '#43474e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '5px',
 };
 
+// ── Invite to Portal Modal ────────────────────────────────────
+function InvitePortalModal({ client, token, onClose }: { client: any; token: string; onClose: () => void }) {
+  const [email, setEmail] = useState(client.email || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  async function handleInvite() {
+    if (!email) return setError('Email is required');
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${BASE}/v1/portal/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ client_id: client.id, email, name: client.full_name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send invite');
+      setInviteUrl(data.invite_url);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function copyLink() {
+    try { navigator.clipboard.writeText(inviteUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch(e) {}
+  }
+
+  const s: Record<string, React.CSSProperties> = {
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
+    modal: { background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '440px', boxShadow: '0 24px 64px rgba(2,36,72,0.2)' },
+    header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid rgba(196,198,207,0.15)' },
+    title: { fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: 0 },
+    body: { padding: '20px 24px' },
+    clientRow: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '10px', marginBottom: '16px' },
+    avatar: { width: '38px', height: '38px', borderRadius: '50%', background: '#ffe088', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 800, color: '#022448', flexShrink: 0 },
+    clientName: { fontSize: '14px', fontWeight: 700, color: '#022448' },
+    clientSub: { fontSize: '12px', color: '#74777f', marginTop: '2px' },
+    successBox: { background: '#dcfce7', borderRadius: '12px', padding: '16px', textAlign: 'center' as const, marginBottom: '14px' },
+    successTitle: { color: '#15803d', fontWeight: 700, fontSize: '15px', marginBottom: '4px' },
+    urlBox: { background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#475569', wordBreak: 'break-all' as const, marginBottom: '10px', fontFamily: 'monospace' },
+    copyBtn: { width: '100%', padding: '10px', background: copied ? '#dcfce7' : '#f1f5f9', border: 'none', borderRadius: '9px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: copied ? '#15803d' : '#022448', fontFamily: 'Manrope, sans-serif' },
+    primaryBtn: { width: '100%', padding: '12px', background: '#022448', color: '#ffe088', border: 'none', borderRadius: '9px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' },
+    errorBox: { padding: '10px 13px', background: '#ffdad6', borderRadius: '8px', fontSize: '13px', color: '#93000a', marginBottom: '12px' },
+  }
+
+  return (
+    <div style={s.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={s.modal}>
+        <div style={s.header}>
+          <h2 style={s.title}>Invite to Client Portal</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#74777f' }}><X size={18} /></button>
+        </div>
+        <div style={s.body}>
+          <div style={s.clientRow}>
+            <div style={s.avatar}>{client.full_name?.charAt(0)}</div>
+            <div>
+              <div style={s.clientName}>{client.full_name}</div>
+              <div style={s.clientSub}>{client.phone}</div>
+            </div>
+          </div>
+
+          {inviteUrl ? (
+            <>
+              <div style={s.successBox}>
+                <div style={{ fontSize: '28px', marginBottom: '6px' }}>📨</div>
+                <div style={s.successTitle}>Invite ready!</div>
+                <div style={{ fontSize: '12px', color: '#16a34a' }}>Share this link with {client.full_name}</div>
+              </div>
+              <div style={s.urlBox}>{inviteUrl}</div>
+              <button style={s.copyBtn} onClick={copyLink}>
+                {copied ? '✓ Copied!' : 'Copy invite link'}
+              </button>
+              <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center' as const, marginTop: '8px' }}>
+                Link expires in 48 hours. Client sets their own password.
+              </div>
+            </>
+          ) : (
+            <>
+              <label style={lbl}>Client email</label>
+              <input
+                style={{ ...inp, marginBottom: '14px' }}
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="client@example.com"
+              />
+              {error && <div style={s.errorBox}>{error}</div>}
+              <button
+                style={{ ...s.primaryBtn, opacity: loading ? 0.7 : 1 }}
+                disabled={loading}
+                onClick={handleInvite}
+              >
+                {loading ? 'Sending...' : 'Send portal invite'}
+              </button>
+              <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center' as const, marginTop: '8px' }}>
+                Client will receive a secure link to set up their portal access.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────
 export default function ClientsPage() {
   const { token } = useAuthStore();
   const { tr } = useLang();
@@ -31,6 +141,7 @@ export default function ClientsPage() {
   const [form, setForm] = useState({ full_name: '', phone: '', email: '', address: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [inviteClient, setInviteClient] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['clients', search],
@@ -109,6 +220,15 @@ export default function ClientsPage() {
         </div>
       )}
 
+      {/* Invite Portal Modal */}
+      {inviteClient && (
+        <InvitePortalModal
+          client={inviteClient}
+          token={token || ''}
+          onClose={() => setInviteClient(null)}
+        />
+      )}
+
       {/* Client List */}
       {isLoading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -130,9 +250,9 @@ export default function ClientsPage() {
           )}
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', display: 'inline-block', width: '100%', maxWidth: '640px' }}>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden', display: 'inline-block', width: '100%', maxWidth: '720px' }}>
           {clients.map((client: any, i: number) => (
-            <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '20px', borderBottom: i < clients.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
+            <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderBottom: i < clients.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none' }}>
               <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#ffe088', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: '#022448', flexShrink: 0 }}>
                 {client.full_name?.charAt(0)}
               </div>
@@ -143,19 +263,33 @@ export default function ClientsPage() {
                   {client.email && <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#74777f' }}><Mail size={11} />{client.email}</span>}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '20px', flexShrink: 0, textAlign: 'right' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                 {Number(client.outstanding_balance_paise) > 0 && (
-                  <div>
+                  <div style={{ textAlign: 'right' }}>
                     <p style={{ fontSize: '10px', color: '#74777f', margin: '0 0 2px', fontWeight: 600 }}>OUTSTANDING</p>
                     <p style={{ fontSize: '14px', fontWeight: 800, color: '#ba1a1a', margin: 0 }}>
                       ₹{(Number(client.outstanding_balance_paise) / 100).toLocaleString('en-IN')}
                     </p>
                   </div>
                 )}
-                <div>
+                <div style={{ textAlign: 'right' }}>
                   <p style={{ fontSize: '10px', color: '#74777f', margin: '0 0 2px', fontWeight: 600 }}>INVOICES</p>
                   <p style={{ fontSize: '14px', fontWeight: 800, color: '#022448', margin: 0 }}>{client._count?.invoices || 0}</p>
                 </div>
+                {/* Invite to Portal button */}
+                <button
+                  onClick={() => setInviteClient(client)}
+                  title="Invite to Client Portal"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '6px 12px', background: '#f0f4ff',
+                    border: '1px solid rgba(2,36,72,0.15)', borderRadius: '8px',
+                    cursor: 'pointer', fontSize: '12px', fontWeight: 600,
+                    color: '#022448', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap',
+                  }}
+                >
+                  <ExternalLink size={12} /> Portal
+                </button>
               </div>
             </div>
           ))}
