@@ -1,6 +1,7 @@
 // apps/web/src/app/portal/layout.tsx
-// Server component — no 'use client' here
-import PortalShell from './PortalShell';
+import dynamic from 'next/dynamic';
+
+const PortalShell = dynamic(() => import('./PortalShell'), { ssr: false });
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   return <PortalShell>{children}</PortalShell>;
