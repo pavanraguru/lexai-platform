@@ -1,334 +1,166 @@
-'use client'
+'use client';
 // apps/web/src/app/portal/dashboard/page.tsx
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { FolderOpen, Gavel, Receipt, ChevronRight } from 'lucide-react';
 
-interface PortalCase {
-  id: string
-  title: string
-  case_number: string
-  status: string
-  court_name: string
-  case_type: string
-  next_hearing_date: string | null
-  hearings: Array<{
-    id: string
-    date: string
-    purpose: string
-    outcome: string | null
-    next_hearing_date: string | null
-  }>
-}
-
-interface PortalInvoice {
-  id: string
-  invoice_number: string
-  status: string
-  total_amount: number
-  paid_amount: number
-  due_date: string | null
-  client_view_token: string | null
-  case: { title: string; case_number: string } | null
-}
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function fmtDate(d: string | null) {
-  if (!d) return '-'
-  return new Date(d).toLocaleDateString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  })
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
-
 function fmtINR(n: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency', currency: 'INR', maximumFractionDigits: 0,
-  }).format(n)
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 }
 
-function statusColors(status: string): { bg: string; color: string } {
-  const map: Record<string, { bg: string; color: string }> = {
-    active:   { bg: '#dcfce7', color: '#15803d' },
-    open:     { bg: '#dcfce7', color: '#15803d' },
-    closed:   { bg: '#f1f5f9', color: '#64748b' },
-    pending:  { bg: '#ffe088', color: '#735c00' },
-    archived: { bg: '#f1f5f9', color: '#64748b' },
-    paid:     { bg: '#dcfce7', color: '#15803d' },
-    unpaid:   { bg: '#ffdad6', color: '#ba1a1a' },
-    draft:    { bg: '#f1f5f9', color: '#64748b' },
-  }
-  return map[status?.toLowerCase()] || { bg: '#f1f5f9', color: '#374151' }
-}
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  active:   { bg: '#dcfce7', color: '#15803d' },
+  open:     { bg: '#dcfce7', color: '#15803d' },
+  closed:   { bg: '#f1f5f9', color: '#64748b' },
+  pending:  { bg: '#ffe088', color: '#735c00' },
+  decided:  { bg: '#dcfce7', color: '#15803d' },
+  filed:    { bg: '#d5e3ff', color: '#001c3b' },
+  default:  { bg: '#f1f5f9', color: '#374151' },
+};
 
 export default function PortalDashboard() {
-  const router = useRouter()
-  const [name, setName] = useState('')
-  const [cases, setCases] = useState<PortalCase[]>([])
-  const [invoices, setInvoices] = useState<PortalInvoice[]>([])
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'cases' | 'invoices'>('cases')
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [cases, setCases] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('portal_token')
-    const n = localStorage.getItem('portal_name')
-    if (!token) { router.push('/portal/login'); return }
-    setName(n || 'Client')
+    const token = localStorage.getItem('portal_token');
+    const n = localStorage.getItem('portal_name');
+    if (!token) { router.push('/portal/login'); return; }
+    setName(n || 'Client');
 
-    const h = { Authorization: `Bearer ${token}` }
+    const h = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/portal/cases`, { headers: h }).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/portal/invoices`, { headers: h }).then(r => r.json()),
-    ])
-      .then(([cd, id]) => {
-        setCases(cd.cases || [])
-        setInvoices(id.invoices || [])
-      })
-      .catch(() => router.push('/portal/login'))
-      .finally(() => setLoading(false))
-  }, [])
+      fetch(`${BASE}/v1/portal/cases`, { headers: h }).then(r => r.json()),
+      fetch(`${BASE}/v1/portal/invoices`, { headers: h }).then(r => r.json()),
+    ]).then(([cd, id]) => {
+      setCases(cd.cases || []);
+      setInvoices(id.invoices || []);
+    }).catch(() => router.push('/portal/login'))
+      .finally(() => setLoading(false));
+  }, []);
 
-  function handleLogout() {
-    localStorage.removeItem('portal_token')
-    localStorage.removeItem('portal_name')
-    router.push('/portal/login')
-  }
+  const upcomingHearings = cases
+    .flatMap((c: any) => (c.hearings || []).map((h: any) => ({ ...h, caseTitle: c.title, caseId: c.id })))
+    .filter((h: any) => new Date(h.date) >= new Date())
+    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 3);
+
+  const pendingInvoices = invoices.filter((i: any) => i.status !== 'paid');
+  const totalOutstanding = pendingInvoices.reduce((s: number, i: any) => s + (Number(i.total_amount) - Number(i.paid_amount || 0)), 0);
 
   const s: Record<string, React.CSSProperties> = {
-    page: { minHeight: '100vh', background: '#f4f5f7', fontFamily: 'Manrope, sans-serif' },
-    header: {
-      background: '#022448',
-      padding: '0 32px',
-      height: '60px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    headerLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
-    logoBox: {
-      width: '34px', height: '34px', background: '#ffe088', borderRadius: '8px',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: '#022448', fontFamily: 'Newsreader, serif', fontWeight: '700', fontSize: '17px',
-    },
-    logoText: { color: '#fff', fontFamily: 'Newsreader, serif', fontSize: '16px', fontWeight: '700' },
-    portalBadge: {
-      background: 'rgba(255,224,136,0.15)', color: '#ffe088',
-      fontSize: '11px', fontWeight: '600', padding: '3px 10px',
-      borderRadius: '20px', letterSpacing: '0.05em', textTransform: 'uppercase' as const,
-    },
-    headerRight: { display: 'flex', alignItems: 'center', gap: '12px' },
-    userName: { color: '#93c5fd', fontSize: '13px' },
-    logoutBtn: {
-      background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
-      padding: '6px 14px', borderRadius: '8px', fontSize: '13px',
-      cursor: 'pointer', fontFamily: 'Manrope, sans-serif',
-    },
-    content: { maxWidth: '900px', margin: '0 auto', padding: 'clamp(20px,4vw,40px)' },
-    welcome: {
-      color: '#022448', fontFamily: 'Newsreader, serif',
-      fontSize: '24px', fontWeight: '700', marginBottom: '4px',
-    },
-    sub: { color: '#64748b', fontSize: '14px', marginBottom: '28px' },
-    tabs: { display: 'flex', gap: '8px', marginBottom: '20px' },
-    tab: (active: boolean): React.CSSProperties => ({
-      padding: '9px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: '600',
-      cursor: 'pointer', border: 'none', fontFamily: 'Manrope, sans-serif',
-      background: active ? '#022448' : '#fff',
-      color: active ? '#ffe088' : '#374151',
-      boxShadow: active ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
+    page: { padding: 'clamp(20px,4vw,40px)', fontFamily: 'Manrope, sans-serif', maxWidth: '900px' },
+    greeting: { fontFamily: 'Newsreader, serif', fontSize: '1.8rem', fontWeight: 700, color: '#022448', marginBottom: '4px' },
+    sub: { fontSize: '14px', color: '#64748b', marginBottom: '32px' },
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' },
+    statCard: { background: '#fff', borderRadius: '14px', padding: '20px', border: '1px solid rgba(196,198,207,0.2)', boxShadow: '0 1px 4px rgba(2,36,72,0.04)' },
+    statIcon: { width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' },
+    statLabel: { fontSize: '11px', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: '4px' },
+    statValue: { fontFamily: 'Newsreader, serif', fontSize: '28px', fontWeight: 700, color: '#022448' },
+    section: { marginBottom: '28px' },
+    sectionHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
+    sectionTitle: { fontFamily: 'Newsreader, serif', fontSize: '18px', fontWeight: 700, color: '#022448' },
+    viewAll: { fontSize: '13px', fontWeight: 600, color: '#022448', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' },
+    card: { background: '#fff', borderRadius: '14px', border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden' },
+    row: { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', borderBottom: '1px solid #f8fafc' },
+    dot: { width: '8px', height: '8px', borderRadius: '50%', background: '#022448', flexShrink: 0 },
+    rowTitle: { fontSize: '14px', fontWeight: 600, color: '#022448', flex: 1 },
+    rowSub: { fontSize: '12px', color: '#64748b', marginTop: '2px' },
+    rowRight: { fontSize: '13px', fontWeight: 600, color: '#64748b', flexShrink: 0 },
+    statusPill: (s: string): React.CSSProperties => ({
+      ...(STATUS_COLORS[s?.toLowerCase()] || STATUS_COLORS.default),
+      fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', flexShrink: 0,
     }),
-    card: {
-      background: '#fff', borderRadius: '16px', marginBottom: '12px',
-      border: '1px solid rgba(196,198,207,0.2)', overflow: 'hidden',
-    },
-    cardHeader: {
-      padding: '18px 22px', display: 'flex', alignItems: 'flex-start',
-      justifyContent: 'space-between', cursor: 'pointer',
-    },
-    caseTitle: {
-      color: '#022448', fontWeight: '700', fontSize: '15px',
-      fontFamily: 'Newsreader, serif', marginBottom: '3px',
-    },
-    caseMeta: { color: '#64748b', fontSize: '13px' },
-    statusPill: (status: string): React.CSSProperties => ({
-      ...statusColors(status),
-      fontSize: '11px', fontWeight: '600', padding: '3px 10px',
-      borderRadius: '20px', flexShrink: 0,
-    }),
-    chevron: (open: boolean): React.CSSProperties => ({
-      fontSize: '12px', color: '#94a3b8', marginTop: '2px',
-      transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s',
-    }),
-    cardBody: { padding: '0 22px 18px', borderTop: '1px solid #f1f5f9' },
-    sectionLabel: {
-      fontSize: '11px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.08em',
-      textTransform: 'uppercase' as const, margin: '14px 0 8px',
-    },
-    nextBox: {
-      background: '#f0f4ff', borderRadius: '10px', padding: '12px 16px',
-      display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px',
-    },
-    hearingRow: {
-      display: 'flex', gap: '12px', padding: '8px 0',
-      borderBottom: '1px solid #f8fafc', alignItems: 'flex-start',
-    },
-    dot: {
-      width: '7px', height: '7px', borderRadius: '50%',
-      background: '#022448', marginTop: '5px', flexShrink: 0,
-    },
-    hearingDate: { fontSize: '13px', fontWeight: '600', color: '#022448' },
-    hearingPurpose: { fontSize: '13px', color: '#64748b' },
-    outcomePill: {
-      display: 'inline-block', background: '#dcfce7', color: '#15803d',
-      fontSize: '11px', padding: '2px 8px', borderRadius: '6px', marginTop: '3px',
-    },
-    // Invoice
-    invoiceRow: {
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '16px 22px', borderBottom: '1px solid #f8fafc',
-    },
-    invNum: { color: '#022448', fontWeight: '600', fontSize: '14px' },
-    invMeta: { color: '#64748b', fontSize: '12px', marginTop: '2px' },
-    invAmt: { fontFamily: 'Newsreader, serif', fontWeight: '700', fontSize: '20px', color: '#022448' },
-    payBtn: {
-      display: 'block', background: '#022448', color: '#ffe088', border: 'none',
-      padding: '7px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600',
-      cursor: 'pointer', fontFamily: 'Manrope, sans-serif', marginTop: '6px',
-    },
-    paidTag: {
-      display: 'inline-block', background: '#dcfce7', color: '#15803d',
-      padding: '5px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600',
-    },
-    empty: { textAlign: 'center' as const, padding: '48px', color: '#94a3b8', fontSize: '14px' },
-  }
+    empty: { padding: '32px', textAlign: 'center' as const, color: '#94a3b8', fontSize: '14px' },
+  };
 
-  if (loading) {
-    return (
-      <div style={{ ...s.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#64748b' }}>Loading your portal...</div>
-      </div>
-    )
-  }
+  if (loading) return (
+    <div style={{ ...s.page, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <div style={{ color: '#64748b' }}>Loading your dashboard...</div>
+    </div>
+  );
 
   return (
     <div style={s.page}>
-      <div style={s.header}>
-        <div style={s.headerLeft}>
-          <div style={s.logoBox}>S</div>
-          <div style={s.logoText}>Sovereign Counsel</div>
-          <div style={s.portalBadge}>Client Portal</div>
+      <div style={s.greeting}>Good day, {name.split(' ')[0]} 👋</div>
+      <div style={s.sub}>Here's a summary of your cases and upcoming hearings.</div>
+
+      {/* Stat cards */}
+      <div style={s.grid}>
+        <div style={s.statCard}>
+          <div style={{ ...s.statIcon, background: '#f0f4ff' }}><FolderOpen size={20} color="#022448" /></div>
+          <div style={s.statLabel}>Active Cases</div>
+          <div style={s.statValue}>{cases.length}</div>
         </div>
-        <div style={s.headerRight}>
-          <span style={s.userName}>Hello, {name}</span>
-          <button style={s.logoutBtn} onClick={handleLogout}>Sign out</button>
+        <div style={s.statCard}>
+          <div style={{ ...s.statIcon, background: '#f0fdf4' }}><Gavel size={20} color="#15803d" /></div>
+          <div style={s.statLabel}>Upcoming Hearings</div>
+          <div style={s.statValue}>{upcomingHearings.length}</div>
+        </div>
+        <div style={s.statCard}>
+          <div style={{ ...s.statIcon, background: totalOutstanding > 0 ? '#ffdad6' : '#f0fdf4' }}><Receipt size={20} color={totalOutstanding > 0 ? '#ba1a1a' : '#15803d'} /></div>
+          <div style={s.statLabel}>Outstanding</div>
+          <div style={{ ...s.statValue, color: totalOutstanding > 0 ? '#ba1a1a' : '#15803d', fontSize: '22px' }}>
+            {totalOutstanding > 0 ? fmtINR(totalOutstanding) : 'Nil'}
+          </div>
         </div>
       </div>
 
-      <div style={s.content}>
-        <div style={s.welcome}>Your Case Dashboard</div>
-        <div style={s.sub}>Track your cases, hearings, and outstanding invoices.</div>
-
-        <div style={s.tabs}>
-          <button style={s.tab(tab === 'cases')} onClick={() => setTab('cases')}>
-            Cases ({cases.length})
-          </button>
-          <button style={s.tab(tab === 'invoices')} onClick={() => setTab('invoices')}>
-            Invoices ({invoices.length})
-          </button>
+      {/* Upcoming hearings */}
+      <div style={s.section}>
+        <div style={s.sectionHeader}>
+          <div style={s.sectionTitle}>Upcoming Hearings</div>
+          <Link href="/portal/calendar" style={s.viewAll}>View calendar <ChevronRight size={14} /></Link>
         </div>
-
-        {tab === 'cases' && (
-          <>
-            {cases.length === 0 && <div style={s.empty}>No cases linked to your account yet.</div>}
-            {cases.map(c => (
-              <div key={c.id} style={s.card}>
-                <div style={s.cardHeader} onClick={() => setExpanded(expanded === c.id ? null : c.id)}>
-                  <div style={{ flex: 1 }}>
-                    <div style={s.caseTitle}>{c.title}</div>
-                    <div style={s.caseMeta}>
-                      {c.case_number && <span>{c.case_number} &middot; </span>}
-                      {c.court_name} &middot; {c.case_type}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '6px', marginLeft: '12px' }}>
-                    <span style={s.statusPill(c.status)}>{c.status}</span>
-                    <span style={s.chevron(expanded === c.id)}>▼</span>
-                  </div>
-                </div>
-
-                {expanded === c.id && (
-                  <div style={s.cardBody}>
-                    {c.next_hearing_date && (
-                      <div style={s.nextBox}>
-                        <span style={{ fontSize: '20px' }}>📅</span>
-                        <div>
-                          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>
-                            Next Hearing
-                          </div>
-                          <div style={{ color: '#022448', fontWeight: '700', fontSize: '14px' }}>
-                            {fmtDate(c.next_hearing_date)}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={s.sectionLabel}>Hearing History</div>
-                    {c.hearings.length === 0 && (
-                      <div style={{ color: '#94a3b8', fontSize: '13px' }}>No hearings recorded yet.</div>
-                    )}
-                    {c.hearings.map(h => (
-                      <div key={h.id} style={s.hearingRow}>
-                        <div style={s.dot} />
-                        <div>
-                          <div style={s.hearingDate}>{fmtDate(h.date)}</div>
-                          <div style={s.hearingPurpose}>{h.purpose || 'Hearing'}</div>
-                          {h.outcome && <div style={s.outcomePill}>{h.outcome}</div>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        <div style={s.card}>
+          {upcomingHearings.length === 0 ? (
+            <div style={s.empty}>No upcoming hearings scheduled.</div>
+          ) : upcomingHearings.map((h: any, i: number) => (
+            <div key={h.id} style={{ ...s.row, borderBottom: i < upcomingHearings.length - 1 ? '1px solid #f8fafc' : 'none' }}>
+              <div style={s.dot} />
+              <div style={{ flex: 1 }}>
+                <div style={s.rowTitle}>{h.caseTitle}</div>
+                <div style={s.rowSub}>{h.purpose || 'Hearing'}</div>
               </div>
-            ))}
-          </>
-        )}
+              <div style={s.rowRight}>{fmtDate(h.date)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        {tab === 'invoices' && (
-          <div style={s.card}>
-            {invoices.length === 0 && <div style={s.empty}>No invoices yet.</div>}
-            {invoices.map((inv, i) => (
-              <div
-                key={inv.id}
-                style={{
-                  ...s.invoiceRow,
-                  borderBottom: i === invoices.length - 1 ? 'none' : undefined,
-                }}
-              >
-                <div>
-                  <div style={s.invNum}>{inv.invoice_number}</div>
-                  <div style={s.invMeta}>
-                    {inv.case?.title || 'General'} &middot; Due {fmtDate(inv.due_date)}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' as const }}>
-                  <div style={s.invAmt}>{fmtINR(inv.total_amount)}</div>
-                  {inv.status === 'paid' ? (
-                    <div style={s.paidTag}>Paid</div>
-                  ) : inv.client_view_token ? (
-                    <button
-                      style={s.payBtn}
-                      onClick={() => window.open(`/pay/${inv.client_view_token}`, '_blank')}
-                    >
-                      Pay Now
-                    </button>
-                  ) : (
-                    <div style={{ ...s.invMeta, marginTop: '6px' }}>Payment link pending</div>
-                  )}
-                </div>
+      {/* My cases */}
+      <div style={s.section}>
+        <div style={s.sectionHeader}>
+          <div style={s.sectionTitle}>My Cases</div>
+          <Link href="/portal/cases" style={s.viewAll}>View all <ChevronRight size={14} /></Link>
+        </div>
+        <div style={s.card}>
+          {cases.length === 0 ? (
+            <div style={s.empty}>No cases linked to your account.</div>
+          ) : cases.slice(0, 5).map((c: any, i: number) => (
+            <Link key={c.id} href={`/portal/cases/${c.id}`} style={{ ...s.row, textDecoration: 'none', borderBottom: i < Math.min(cases.length, 5) - 1 ? '1px solid #f8fafc' : 'none', cursor: 'pointer' }}>
+              <FolderOpen size={16} color="#022448" style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={s.rowTitle}>{c.title}</div>
+                <div style={s.rowSub}>{c.court_name}</div>
               </div>
-            ))}
-          </div>
-        )}
+              <span style={s.statusPill(c.status)}>{c.status}</span>
+              <ChevronRight size={14} color="#94a3b8" />
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
-  )
+  );
 }

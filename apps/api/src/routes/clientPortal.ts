@@ -226,3 +226,21 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     return reply.send({ invoices });
   });
 }
+
+  // ── POST /v1/portal/change-password ─────────────────────────
+  app.post('/change-password', { preHandler: [portalAuth] }, async (req: any, reply) => {
+    const { old_password, new_password } = req.body as { old_password: string; new_password: string };
+    if (!old_password || !new_password) return reply.status(400).send({ error: 'old_password and new_password required' });
+    if (new_password.length < 8) return reply.status(400).send({ error: 'Password must be at least 8 characters' });
+
+    const user = await prisma.clientPortalUser.findUnique({ where: { id: req.portalUser.portal_user_id } });
+    if (!user) return reply.status(404).send({ error: 'User not found' });
+
+    const bcrypt = await import('bcryptjs');
+    const valid = await bcrypt.default.compare(old_password, user.password_hash);
+    if (!valid) return reply.status(401).send({ error: 'Current password is incorrect' });
+
+    const hash = await bcrypt.default.hash(new_password, 12);
+    await prisma.clientPortalUser.update({ where: { id: user.id }, data: { password_hash: hash } });
+    return reply.send({ success: true });
+  });
