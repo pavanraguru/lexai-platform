@@ -12,7 +12,6 @@ import * as cron from 'node-cron';
 // Redis only used for agent/ocr queues when explicitly triggered
 // Scheduler itself uses node-cron — ZERO Redis calls for scheduling
 });
-
 const prisma = new PrismaClient();
 
 // ── IST helpers ───────────────────────────────────────────────
