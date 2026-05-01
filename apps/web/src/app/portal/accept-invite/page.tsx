@@ -1,130 +1,66 @@
-'use client'
+'use client';
 // apps/web/src/app/portal/accept-invite/page.tsx
+import { Suspense } from 'react';
+import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+function AcceptInviteForm() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const token = params.get('token') || '';
 
-export default function AcceptInvitePage() {
-  const router = useRouter()
-  const params = useSearchParams()
-  const token = params.get('token') || ''
-
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [done, setDone] = useState(false)
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
 
   const s: Record<string, React.CSSProperties> = {
     page: {
-      minHeight: '100vh',
-      background: '#f4f5f7',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'Manrope, sans-serif',
-      padding: '24px',
+      minHeight: '100vh', background: '#f4f5f7',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'Manrope, sans-serif', padding: '24px',
     },
     card: {
-      background: '#fff',
-      borderRadius: '20px',
-      padding: '48px 40px',
-      width: '100%',
-      maxWidth: '420px',
+      background: '#fff', borderRadius: '20px', padding: '48px 40px',
+      width: '100%', maxWidth: '420px',
       boxShadow: '0 4px 32px rgba(2,36,72,0.10)',
       border: '1px solid rgba(196,198,207,0.2)',
     },
-    logoRow: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      marginBottom: '36px',
-    },
+    logoRow: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px' },
     logoBox: {
-      width: '40px',
-      height: '40px',
-      background: '#022448',
-      borderRadius: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#ffe088',
-      fontFamily: 'Newsreader, serif',
-      fontWeight: '700',
-      fontSize: '20px',
+      width: '40px', height: '40px', background: '#022448', borderRadius: '10px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: '#ffe088', fontFamily: 'Newsreader, serif', fontWeight: '700', fontSize: '20px',
     },
-    logoText: {
-      color: '#022448',
-      fontFamily: 'Newsreader, serif',
-      fontSize: '17px',
-      fontWeight: '700',
-    },
+    logoText: { color: '#022448', fontFamily: 'Newsreader, serif', fontSize: '17px', fontWeight: '700' },
     badge: {
-      display: 'inline-block',
-      background: '#f0f4f8',
-      color: '#64748b',
-      fontSize: '11px',
-      fontWeight: '600',
-      padding: '3px 10px',
-      borderRadius: '20px',
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase' as const,
-      marginBottom: '10px',
+      display: 'inline-block', background: '#f0f4f8', color: '#64748b',
+      fontSize: '11px', fontWeight: '600', padding: '3px 10px', borderRadius: '20px',
+      letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: '10px',
     },
-    heading: {
-      color: '#022448',
-      fontFamily: 'Newsreader, serif',
-      fontSize: '26px',
-      fontWeight: '700',
-      margin: '0 0 6px',
-    },
+    heading: { color: '#022448', fontFamily: 'Newsreader, serif', fontSize: '26px', fontWeight: '700', margin: '0 0 6px' },
     sub: { color: '#64748b', fontSize: '14px', margin: '0 0 28px' },
-    label: {
-      display: 'block',
-      fontSize: '13px',
-      fontWeight: '600',
-      color: '#374151',
-      marginBottom: '6px',
-    },
+    label: { display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' },
     input: {
-      width: '100%',
-      padding: '11px 14px',
-      border: '1.5px solid #e5e7eb',
-      borderRadius: '10px',
-      fontSize: '14px',
-      color: '#111827',
-      marginBottom: '16px',
-      boxSizing: 'border-box' as const,
-      fontFamily: 'Manrope, sans-serif',
+      width: '100%', padding: '11px 14px', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+      fontSize: '14px', color: '#111827', marginBottom: '16px',
+      boxSizing: 'border-box' as const, fontFamily: 'Manrope, sans-serif',
     },
     error: {
-      background: '#ffdad6',
-      color: '#ba1a1a',
-      padding: '10px 14px',
-      borderRadius: '8px',
-      fontSize: '13px',
-      marginBottom: '16px',
+      background: '#ffdad6', color: '#ba1a1a', padding: '10px 14px',
+      borderRadius: '8px', fontSize: '13px', marginBottom: '16px',
     },
     btn: {
-      width: '100%',
-      padding: '13px',
-      background: '#022448',
-      color: '#ffe088',
-      border: 'none',
-      borderRadius: '10px',
-      fontSize: '15px',
-      fontWeight: '700',
-      cursor: 'pointer',
-      fontFamily: 'Manrope, sans-serif',
+      width: '100%', padding: '13px', background: '#022448', color: '#ffe088',
+      border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700',
+      cursor: 'pointer', fontFamily: 'Manrope, sans-serif',
     },
     success: {
-      background: '#dcfce7',
-      color: '#15803d',
-      padding: '24px',
-      borderRadius: '12px',
-      textAlign: 'center' as const,
+      background: '#dcfce7', color: '#15803d', padding: '24px',
+      borderRadius: '12px', textAlign: 'center' as const,
     },
-  }
+  };
 
   if (!token) {
     return (
@@ -133,15 +69,15 @@ export default function AcceptInvitePage() {
           <div style={s.error}>Invalid invite link. Please check your email.</div>
         </div>
       </div>
-    )
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (password !== confirm) return setError('Passwords do not match')
-    if (password.length < 8) return setError('Password must be at least 8 characters')
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    if (password !== confirm) return setError('Passwords do not match');
+    if (password.length < 8) return setError('Password must be at least 8 characters');
+    setLoading(true);
+    setError('');
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/v1/portal/accept-invite`,
@@ -150,17 +86,17 @@ export default function AcceptInvitePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, password }),
         }
-      )
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed')
-      localStorage.setItem('portal_token', data.token)
-      localStorage.setItem('portal_name', data.name)
-      setDone(true)
-      setTimeout(() => router.push('/portal/dashboard'), 1600)
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      localStorage.setItem('portal_token', data.token);
+      localStorage.setItem('portal_name', data.name);
+      setDone(true);
+      setTimeout(() => router.push('/portal/dashboard'), 1600);
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -187,21 +123,15 @@ export default function AcceptInvitePage() {
             <form onSubmit={handleSubmit}>
               <label style={s.label}>New password</label>
               <input
-                style={s.input}
-                type="password"
-                value={password}
+                style={s.input} type="password" value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Min 8 characters"
-                required
+                placeholder="Min 8 characters" required
               />
               <label style={s.label}>Confirm password</label>
               <input
-                style={s.input}
-                type="password"
-                value={confirm}
+                style={s.input} type="password" value={confirm}
                 onChange={e => setConfirm(e.target.value)}
-                placeholder="Repeat password"
-                required
+                placeholder="Repeat password" required
               />
               <button
                 type="submit"
@@ -215,5 +145,17 @@ export default function AcceptInvitePage() {
         )}
       </div>
     </div>
-  )
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Manrope, sans-serif' }}>
+        <div style={{ color: '#64748b' }}>Loading...</div>
+      </div>
+    }>
+      <AcceptInviteForm />
+    </Suspense>
+  );
 }
