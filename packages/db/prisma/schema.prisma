@@ -318,6 +318,9 @@ model Tenant {
   invoices             Invoice[]
   audit_logs           AuditLog[]
 
+  client_portal_users ClientPortalUser[]
+  bulk_upload_jobs    BulkUploadJob[]
+
   @@map("tenants")
 }
 
@@ -346,6 +349,8 @@ model User {
   audit_logs        AuditLog[]
 
   @@unique([tenant_id, email])
+  bulk_upload_jobs    BulkUploadJob[]
+
   @@map("users")
 }
 
@@ -397,6 +402,8 @@ model Case {
   @@unique([tenant_id, cnr_number])
   @@index([tenant_id, status])
   @@index([tenant_id, next_hearing_date])
+  bulk_upload_jobs    BulkUploadJob[]
+
   @@map("cases")
 }
 
@@ -762,6 +769,8 @@ model Client {
 
   @@index([tenant_id, full_name])
   @@index([tenant_id, phone])
+  client_portal_users ClientPortalUser[]
+
   @@map("clients")
 }
 
