@@ -1562,10 +1562,6 @@ export default function CaseDetailPage() {
 
         </div>
         <AssignClientPanel caseId={id} token={token || ''} />
-      {/*ENDOVERVIEW*/}
-
-        </div>
-
       )}
 
       {/* --- DOCUMENTS ------------------------------------ */}
