@@ -316,4 +316,66 @@ export const caseRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.send({ data: updated });
   });
+
+  // ── GET /v1/cases/:id/clients ─────────────────────────────
+  fastify.get('/:id/clients', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    const { id } = request.params as { id: string };
+
+    const existing = await fastify.prisma.case.findFirst({ where: { id, tenant_id } });
+    if (!existing) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
+
+    const caseClients = await fastify.prisma.caseClient.findMany({
+      where: { case_id: id },
+      include: {
+        client: { select: { id: true, full_name: true, phone: true, email: true } },
+      },
+    });
+
+    return reply.send({ data: caseClients });
+  });
+
+  // ── POST /v1/cases/:id/clients ────────────────────────────
+  fastify.post('/:id/clients', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id, id: user_id } = request.user;
+    const { id } = request.params as { id: string };
+    const { client_id, role } = request.body as { client_id: string; role?: string };
+
+    if (!client_id) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'client_id required' } });
+
+    const existing = await fastify.prisma.case.findFirst({ where: { id, tenant_id } });
+    if (!existing) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
+
+    const client = await fastify.prisma.client.findFirst({ where: { id: client_id, tenant_id } });
+    if (!client) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Client not found' } });
+
+    const caseClient = await fastify.prisma.caseClient.upsert({
+      where: { case_id_client_id: { case_id: id, client_id } },
+      create: { case_id: id, client_id, role: (role as any) || 'accused', added_by: user_id },
+      update: { role: (role as any) || 'accused' },
+      include: { client: { select: { id: true, full_name: true, phone: true, email: true } } },
+    });
+
+    return reply.status(201).send({ data: caseClient });
+  });
+
+  // ── DELETE /v1/cases/:id/clients/:client_id ───────────────
+  fastify.delete('/:id/clients/:client_id', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { tenant_id } = request.user;
+    const { id, client_id } = request.params as { id: string; client_id: string };
+
+    const existing = await fastify.prisma.case.findFirst({ where: { id, tenant_id } });
+    if (!existing) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
+
+    await fastify.prisma.caseClient.deleteMany({ where: { case_id: id, client_id } });
+
+    return reply.send({ data: { success: true } });
+  });
+
 };

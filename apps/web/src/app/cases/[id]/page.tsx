@@ -9,6 +9,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
 import SearchPanel from './SearchPanel';
+import AssignClientPanel from './AssignClientPanel';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import {
@@ -1560,6 +1561,7 @@ export default function CaseDetailPage() {
           <LimitationCalc caseType={c.case_type || 'civil_district'} />
 
         </div>
+        <AssignClientPanel caseId={id} token={token || ''} />
       )}
 
       {/* --- DOCUMENTS ------------------------------------ */}
