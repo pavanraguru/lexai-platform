@@ -8,15 +8,16 @@ import DraftingSidebar from './DraftingSidebar';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
+import SearchPanel from './SearchPanel';
+import AssignClientPanel from './AssignClientPanel';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
-import AssignClientPanel from './AssignClientPanel';
 import {
   MapPin, FileText, Gavel, CheckSquare, Square, Bot, BookOpen,
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
   Eye, Download, Monitor, Languages, Sparkles, Clock,
-  BookMarked, Save, TrendingUp, Scale,
+  BookMarked, Save, TrendingUp, Scale, Search,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -33,6 +34,7 @@ const TABS = [
   { key: 'intel',         Icon: TrendingUp,  labelKey: 'strategy_intel' },
   { key: 'precedents',    Icon: Scale,       labelKey: 'precedents' },
   { key: 'filings',       Icon: BookMarked,  labelKey: 'filings' },
+  { key: 'search',       Icon: Search,     labelKey: 'search' },
 ];
 
 const HEARING_PURPOSES = [
@@ -622,7 +624,7 @@ Use AI Generate above to get a complete draft pre-filled with your case details,
                   <p style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.title}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '2px', background: tc.bg, color: tc.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{typeLabel(draft.doc_type)}</span>
-                    <span style={{ fontSize: '11px', color: '#74777f' }}>{draft.word_count || 0} words</span>
+                    <span style={{ fontSize: '11px', color: '#74777f' }}>{draft.word_count ? draft.word_count + ' words' : 'Open to count'}</span>
                     <span style={{ fontSize: '11px', color: '#74777f' }}>v{draft.version}</span>
                     <span style={{ fontSize: '11px', color: '#74777f' }}>
                       {new Date(draft.last_modified_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -1183,7 +1185,25 @@ export default function CaseDetailPage() {
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+
+  const toggleJobExpand = async (jobId: string, currentStatus: string) => {
+    if (currentStatus !== 'completed') return;
+    if (expandedJobId === jobId) { setExpandedJobId(null); return; }
+    setExpandedJobId(jobId);
+    if (jobOutputs[jobId]) return; // already cached
+    setLoadingOutput(jobId);
+    try {
+      const res = await fetch(BASE + '/v1/agents/jobs/' + jobId + '/output', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const j = await res.json();
+      if (j.data?.output) setJobOutputs(prev => ({ ...prev, [jobId]: j.data.output }));
+    } catch {}
+    setLoadingOutput(null);
+  };
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [jobOutputs, setJobOutputs] = useState<Record<string, any>>({});
+  const [loadingOutput, setLoadingOutput] = useState<string | null>(null);
   const [showFailedJobs, setShowFailedJobs] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
 
@@ -1200,6 +1220,8 @@ export default function CaseDetailPage() {
       return (await res.json()).data;
     },
     enabled: !!token && !!id,
+    staleTime: 30 * 1000,       // 30s — no re-fetch on quick tab switches
+    gcTime: 5 * 60 * 1000,      // keep in memory 5 min
   });
 
   const { data: presData } = useQuery({
@@ -1349,7 +1371,7 @@ export default function CaseDetailPage() {
   };
 
   if (isLoading) return (
-    <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
+    <div style={{ padding: 'clamp(14px, 3vw, 32px) clamp(14px, 3vw, 28px)', fontFamily: 'Manrope, sans-serif', maxWidth: '960px', width: '100%', boxSizing: 'border-box' as const }}>
       <div style={{ height: '120px', borderRadius: '20px', background: '#edeef0', marginBottom: '16px' }} />
       <div style={{ height: '48px', borderRadius: '12px', background: '#edeef0', marginBottom: '16px' }} />
       <div style={{ height: '300px', borderRadius: '20px', background: '#edeef0' }} />
@@ -1386,7 +1408,7 @@ export default function CaseDetailPage() {
     <div style={{ padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '960px' }}>
 
       {/* -- Case Header ----------------------------------- */}
-      <div style={{ ...cardStyle, padding: '20px', marginBottom: '16px', maxWidth: '860px' }}>
+      <div style={{ ...cardStyle, padding: 'clamp(14px, 2.5vw, 20px)', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -1903,11 +1925,11 @@ export default function CaseDetailPage() {
               </div>
               {agents.filter((job: any) => showFailedJobs || job.status !== 'failed').slice(0, 15).map((job: any) => {
                 const isExpanded = expandedJobId === job.id;
-                const o = job.output as any;
+                const o = jobOutputs[job.id] || (job as any).output;
                 return (
                   <div key={job.id} style={{ borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
                     <div
-                      onClick={() => job.status === 'completed' && setExpandedJobId(isExpanded ? null : job.id)}
+                      onClick={() => toggleJobExpand(job.id, job.status)}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 20px', cursor: job.status === 'completed' ? 'pointer' : 'default', background: isExpanded ? '#f0f4ff' : 'transparent' }}>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>
@@ -1947,7 +1969,12 @@ export default function CaseDetailPage() {
                         <strong>Error:</strong> {job.error_message}
                       </div>
                     )}
-                    {isExpanded && o && (
+                    {isExpanded && loadingOutput === job.id && (
+                      <div style={{ padding: '20px', textAlign: 'center', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
+                        <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Loading output...</p>
+                      </div>
+                    )}
+                    {isExpanded && o && !loadingOutput && (
                       <div style={{ padding: '20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
                           <button
@@ -2263,6 +2290,10 @@ export default function CaseDetailPage() {
       {/* --- FILINGS -------------------------------------- */}
       {activeTab === 'filings' && (
         <CaseFilingsTab c={c} />
+      )}
+
+      {activeTab === 'search' && (
+        <SearchPanel caseId={id as string} token={token || ''} />
       )}
 
       {/* --- PRESENTATIONS -------------------------------- */}
