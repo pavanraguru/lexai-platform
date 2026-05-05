@@ -7,12 +7,14 @@
 
 import { FastifyPluginAsync } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   const supabase = createClient(
     process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { realtime: { transport: ws } }
   );
 
   // Helper: look up user and issue LexAI JWT
