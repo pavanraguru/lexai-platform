@@ -8,16 +8,15 @@ import DraftingSidebar from './DraftingSidebar';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
-import SearchPanel from './SearchPanel';
-import AssignClientPanel from './AssignClientPanel';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
+import AssignClientPanel from './AssignClientPanel';
 import {
   MapPin, FileText, Gavel, CheckSquare, Square, Bot, BookOpen,
   Plus, ChevronRight, CheckCircle2, AlertCircle, Loader2,
   Trash2, Play, RotateCcw, Info, Upload,
   Eye, Download, Monitor, Languages, Sparkles, Clock,
-  BookMarked, Save, TrendingUp, Scale, Search,
+  BookMarked, Save, TrendingUp, Scale,
 } from 'lucide-react';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -34,7 +33,6 @@ const TABS = [
   { key: 'intel',         Icon: TrendingUp,  labelKey: 'strategy_intel' },
   { key: 'precedents',    Icon: Scale,       labelKey: 'precedents' },
   { key: 'filings',       Icon: BookMarked,  labelKey: 'filings' },
-  { key: 'search',       Icon: Search,     labelKey: 'search' },
 ];
 
 const HEARING_PURPOSES = [
@@ -2265,10 +2263,6 @@ export default function CaseDetailPage() {
       {/* --- FILINGS -------------------------------------- */}
       {activeTab === 'filings' && (
         <CaseFilingsTab c={c} />
-      )}
-
-      {activeTab === 'search' && (
-        <SearchPanel caseId={id as string} token={token || ''} />
       )}
 
       {/* --- PRESENTATIONS -------------------------------- */}
