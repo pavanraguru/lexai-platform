@@ -41,6 +41,8 @@ function getBackHref(pathname: string): string | null {
   if (pathname === '/dashboard') return null;
   if (pathname === '/cases/new') return '/cases';
   if (pathname.match(/^\/cases\/[^/]+$/)) return '/cases';
+  if (pathname.match(/^\/settings\/.+/)) return '/settings';
+  if (pathname === '/settings') return '/dashboard';
   return '/dashboard';
 }
 
