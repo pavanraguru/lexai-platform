@@ -4,7 +4,8 @@ import { useLang } from '@/hooks/useLanguage';
 import { useState } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { User, Building2, Bell, Shield, CreditCard, LogOut, ChevronRight } from 'lucide-react';
+import { User, Building2, Bell, Shield, CreditCard, LogOut, ChevronRight, Users, ClipboardList } from 'lucide-react';
+import Link from 'next/link';
 
 const s = { padding: '32px 28px', fontFamily: 'Manrope, sans-serif', maxWidth: '720px' };
 
@@ -127,6 +128,26 @@ export default function SettingsPage() {
         ))}
       </div>
 
+      {/* Team Management */}
+      <div style={card}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Users size={14} color="#022448" />
+          <p style={{ fontSize: '11px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>TEAM</p>
+        </div>
+        <Link href="/settings/team" style={{ ...row, textDecoration: 'none', display: 'flex', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+          <div><p style={lbl}>Team Members</p><p style={sub}>Invite and manage your firm's advocates and staff</p></div>
+          <ChevronRight size={16} color="#c4c6cf" />
+        </Link>
+        <Link href="/settings/roles" style={{ ...row, textDecoration: 'none', display: 'flex', borderBottom: '1px solid rgba(196,198,207,0.08)' }}>
+          <div><p style={lbl}>Permission Roles</p><p style={sub}>Create custom roles with view/edit access per feature</p></div>
+          <ChevronRight size={16} color="#c4c6cf" />
+        </Link>
+        <Link href="/settings/audit-log" style={{ ...row, textDecoration: 'none', display: 'flex' }}>
+          <div><p style={lbl}>Audit Log</p><p style={sub}>Full activity history — logins, edits, downloads</p></div>
+          <ChevronRight size={16} color="#c4c6cf" />
+        </Link>
+      </div>
+
       {/* Security */}
       <div style={card}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(196,198,207,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -161,9 +182,9 @@ export default function SettingsPage() {
             </p>
             <p style={{ fontSize: '13px', color: '#74777f', margin: 0 }}>AI agents, document OCR, eCourts sync</p>
           </div>
-          <button style={{ padding: '10px 20px', background: '#022448', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
-            Upgrade Plan
-          </button>
+          <Link href="/settings/plan" style={{ padding: '10px 20px', background: '#022448', color: '#fff', borderRadius: '8px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', display: 'inline-block' }}>
+            View Plans
+          </Link>
         </div>
       </div>
 
