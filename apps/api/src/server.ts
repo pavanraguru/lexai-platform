@@ -30,6 +30,7 @@ import { billingRoutes }      from './routes/billing.js';
 import { searchRoutes }       from './routes/search.js';
 import { translationRoutes }  from './routes/translation.js';
 import { clientPortalRoutes } from './routes/clientPortal.js';
+import { teamRoutes }         from './routes/team.js';
 import { bulkUploadRoutes }   from './routes/bulkUpload.js';
 
 // Plugin imports
@@ -228,6 +229,7 @@ async function bootstrap() {
     await app.register(searchRoutes,       { prefix: '/search' });
     await app.register(translationRoutes,  { prefix: '/documents' });
     await app.register(bulkUploadRoutes,   { prefix: '/bulk-upload' });
+    await app.register(teamRoutes,         { prefix: '/team' });
   }, { prefix: '/v1' });
 
   await server.register(clientPortalRoutes, { prefix: '/v1/portal' });
