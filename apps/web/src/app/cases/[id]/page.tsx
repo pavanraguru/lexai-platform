@@ -1167,7 +1167,12 @@ export default function CaseDetailPage() {
   const qc = useQueryClient();
   const { tr } = useLang();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  useEffect(() => { try { const t = new URLSearchParams(window.location.search).get('tab'); if (t) setActiveTab(t as TabKey); } catch(e) {} }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      if (t) setActiveTab(t as TabKey);
+    }
+  }, []);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
