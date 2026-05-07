@@ -39,10 +39,23 @@ function TranslateItem({ docId, filename, token, caseId, onRefresh }: { docId: s
   const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'|'english'>('idle');
   const [result, setResult] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressStage, setProgressStage] = useState('');
   const [creatingPdf, setCreatingPdf] = useState(false);
   const [pdfDone, setPdfDone] = useState(false);
   const [savingToCase, setSavingToCase] = useState(false);
   const [savedToCase, setSavedToCase] = useState(false);
+
+  const STAGES = [
+    { pct: 10, label: 'Extracting text from document...' },
+    { pct: 25, label: 'Detecting source language...' },
+    { pct: 45, label: 'Translating content to English...' },
+    { pct: 70, label: 'Processing legal terminology...' },
+    { pct: 85, label: 'Generating summary...' },
+    { pct: 95, label: 'Finalising translation...' },
+  ];
 
   useEffect(() => {
     fetch(`${BASE}/v1/documents/${docId}/translation`, { headers: { Authorization: `Bearer ${token}` } })
@@ -52,18 +65,59 @@ function TranslateItem({ docId, filename, token, caseId, onRefresh }: { docId: s
   }, [docId, token]);
 
   const trigger = async (force = false) => {
-    setStatus('loading'); setResult(null);
+    setStatus('loading'); setResult(null); setProgress(0);
+    setProgressStage(STAGES[0].label);
+    setShowProgress(true);
+    setShowComplete(false);
+
     await fetch(`${BASE}/v1/documents/${docId}/translate`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ force }),
     });
+
+    // Animate progress through stages while polling
+    let stageIdx = 0;
+    const stageInterval = setInterval(() => {
+      stageIdx = Math.min(stageIdx + 1, STAGES.length - 1);
+      setProgress(STAGES[stageIdx].pct);
+      setProgressStage(STAGES[stageIdx].label);
+    }, 8000);
+
+    // Smooth progress animation
+    let currentPct = 10;
+    const progressInterval = setInterval(() => {
+      setProgress(p => {
+        const target = STAGES[Math.min(stageIdx, STAGES.length - 1)].pct;
+        if (p < target - 1) return p + 0.5;
+        return p;
+      });
+    }, 200);
+
     const poll = setInterval(async () => {
       const r = await fetch(`${BASE}/v1/documents/${docId}/translation`, { headers: { Authorization: `Bearer ${token}` } });
       const j = await r.json();
-      if (j.data?.status === 'done') { clearInterval(poll); setResult(j.data); setStatus(j.data.is_already_english ? 'english' : 'done'); setShowModal(true); if (!j.data.is_already_english) saveTranslationToCase(j.data, true); }
-      else if (j.data?.status === 'failed') { clearInterval(poll); setStatus('error'); }
+      if (j.data?.status === 'done') {
+        clearInterval(poll);
+        clearInterval(stageInterval);
+        clearInterval(progressInterval);
+        setProgress(100);
+        setProgressStage('Translation complete!');
+        setTimeout(() => {
+          setShowProgress(false);
+          setResult(j.data);
+          setStatus(j.data.is_already_english ? 'english' : 'done');
+          setShowComplete(true);
+          if (!j.data.is_already_english) saveTranslationToCase(j.data, true);
+        }, 800);
+      } else if (j.data?.status === 'failed') {
+        clearInterval(poll);
+        clearInterval(stageInterval);
+        clearInterval(progressInterval);
+        setShowProgress(false);
+        setStatus('error');
+      }
     }, 3000);
-    setTimeout(() => clearInterval(poll), 180000);
+    setTimeout(() => { clearInterval(poll); clearInterval(stageInterval); clearInterval(progressInterval); }, 180000);
   };
 
   const createPdfFile = () => {
@@ -147,10 +201,11 @@ function TranslateItem({ docId, filename, token, caseId, onRefresh }: { docId: s
     <>
       <button onClick={() => {
         if (status === 'done' && result) { setShowModal(true); }
+        else if (status === 'loading') { setShowProgress(true); }
         else { trigger(); }
       }} style={{
         display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 14px',
-        background: 'none', border: 'none', cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+        background: 'none', border: 'none', cursor: 'pointer',
         fontSize: '13px', fontWeight: 500, color: '#191c1e', fontFamily: 'Manrope, sans-serif', textAlign: 'left',
       }}
         onMouseEnter={e => (e.currentTarget.style.background = '#f4f5f7')}
@@ -161,6 +216,80 @@ function TranslateItem({ docId, filename, token, caseId, onRefresh }: { docId: s
           : status === 'english' ? <><Languages size={13} /> Already English</>
           : <><Languages size={13} /> Translate</>}
       </button>
+
+      {/* Progress Modal */}
+      {showProgress && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div style={{ background: '#fff', borderRadius: '20px', padding: '36px 32px', maxWidth: '440px', width: '100%', boxShadow: '0 24px 64px rgba(2,36,72,0.25)', textAlign: 'center' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#d5e3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <Languages size={28} color="#022448" />
+            </div>
+            <h3 style={{ fontFamily: 'Newsreader, serif', fontSize: '1.3rem', fontWeight: 700, color: '#022448', margin: '0 0 6px' }}>
+              {progress >= 100 ? 'Translation Complete!' : 'Translating Document'}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 24px', maxWidth: '320px', marginLeft: 'auto', marginRight: 'auto' }}>
+              {filename}
+            </p>
+
+            {/* Progress bar */}
+            <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '10px', overflow: 'hidden', marginBottom: '10px' }}>
+              <div style={{
+                height: '10px', borderRadius: '999px',
+                background: progress >= 100 ? '#15803d' : 'linear-gradient(90deg, #022448, #3b82f6)',
+                width: `${progress}%`,
+                transition: 'width 0.4s ease, background 0.3s',
+              }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{progressStage}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#022448' }}>{Math.round(progress)}%</span>
+            </div>
+
+            {progress < 100 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12px', color: '#94a3b8' }}>
+                <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                This usually takes 30–90 seconds
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Completion Popup */}
+      {showComplete && result && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.5)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+          onClick={() => setShowComplete(false)}>
+          <div style={{ background: '#fff', borderRadius: '20px', padding: '36px 32px', maxWidth: '420px', width: '100%', boxShadow: '0 24px 64px rgba(2,36,72,0.25)', textAlign: 'center' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <span style={{ fontSize: '36px' }}>✅</span>
+            </div>
+            <h3 style={{ fontFamily: 'Newsreader, serif', fontSize: '1.4rem', fontWeight: 700, color: '#022448', margin: '0 0 8px' }}>Translation Ready!</h3>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 8px' }}>{filename}</p>
+            {result.detected_language && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0f4ff', padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: '#022448', marginBottom: '24px' }}>
+                🌐 Detected: {result.detected_language}
+              </div>
+            )}
+            {result.summary && (
+              <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', textAlign: 'left' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', marginBottom: '6px' }}>SUMMARY</div>
+                <div style={{ fontSize: '13px', color: '#374151', lineHeight: 1.6 }}>{result.summary}</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+              <button onClick={() => { setShowComplete(false); setShowModal(true); }}
+                style={{ width: '100%', padding: '12px', background: '#022448', color: '#ffe088', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                Read Full Translation
+              </button>
+              <button onClick={() => setShowComplete(false)}
+                style={{ width: '100%', padding: '12px', background: '#f1f5f9', color: '#374151', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && result && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
