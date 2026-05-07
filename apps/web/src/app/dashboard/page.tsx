@@ -139,7 +139,7 @@ export default function DashboardPage() {
               const daysUntil = Math.ceil((new Date(h.date).getTime() - Date.now()) / 86400000);
               const isUrgent = daysUntil <= 1;
               return (
-                <Link key={h.id} href={`/cases/${h.case?.id}`} style={{ textDecoration: 'none' }}>
+                <Link key={h.id} href={`/cases/${h.case?.id}?tab=hearings`} style={{ textDecoration: 'none' }}>
                   <div style={{
                     background: '#fff', borderRadius: '10px', padding: '20px',
                     border: '1px solid rgba(196,198,207,0.18)',
