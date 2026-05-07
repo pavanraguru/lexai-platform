@@ -1166,7 +1166,8 @@ export default function CaseDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const { tr } = useLang();
-  const [activeTab, setActiveTab] = useState<TabKey>((searchParams?.get('tab') as TabKey) || 'overview');
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  useEffect(() => { const t = searchParams?.get('tab'); if (t) setActiveTab(t as TabKey); }, [searchParams]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
