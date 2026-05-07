@@ -5,7 +5,7 @@ import DocumentsTab from './DocumentsTab';
 import StrategyIntelPanel from './StrategyIntelPanel';
 import PrecedentPanel from './PrecedentPanel';
 import DraftingSidebar from './DraftingSidebar';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
 import SearchPanel from './SearchPanel';
@@ -1161,13 +1161,12 @@ function LimitationCalc({ caseType }: { caseType: string }) {
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const searchParams = useSearchParams();
   const { token } = useAuthStore();
   const router = useRouter();
   const qc = useQueryClient();
   const { tr } = useLang();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  useEffect(() => { const t = searchParams?.get('tab'); if (t) setActiveTab(t as TabKey); }, [searchParams]);
+  useEffect(() => { const t = new URLSearchParams(window.location.search).get('tab'); if (t) setActiveTab(t as TabKey); }, []);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
