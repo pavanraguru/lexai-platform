@@ -9,6 +9,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLang } from '@/hooks/useLanguage';
 import SearchPanel from './SearchPanel';
+import AssignClientPanel from './AssignClientPanel';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import {
@@ -1166,7 +1167,7 @@ export default function CaseDetailPage() {
   const qc = useQueryClient();
   const { tr } = useLang();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  useEffect(() => { const t = new URLSearchParams(window.location.search).get('tab'); if (t) setActiveTab(t as TabKey); }, []);
+  useEffect(() => { try { const t = new URLSearchParams(window.location.search).get('tab'); if (t) setActiveTab(t as TabKey); } catch(e) {} }, []);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -1561,6 +1562,7 @@ export default function CaseDetailPage() {
           <LimitationCalc caseType={c.case_type || 'civil_district'} />
 
         </div>
+        <AssignClientPanel caseId={id} token={token || ''} />
       )}
 
       {/* --- DOCUMENTS ------------------------------------ */}

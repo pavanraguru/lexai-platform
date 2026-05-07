@@ -41,8 +41,6 @@ function getBackHref(pathname: string): string | null {
   if (pathname === '/dashboard') return null;
   if (pathname === '/cases/new') return '/cases';
   if (pathname.match(/^\/cases\/[^/]+$/)) return '/cases';
-  if (pathname.match(/^\/settings\/.+/)) return '/settings';
-  if (pathname === '/settings') return '/dashboard';
   return '/dashboard';
 }
 
@@ -72,7 +70,7 @@ const NOTIF_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
 };
 
 // ── Notification Drawer ────────────────────────────────────────
-function NotificationDrawer({ token, onClose }: { token: string; onClose: () => void }) {
+function NotificationDrawer({ token, onClose, onUnreadChange }: { token: string; onClose: () => void; onUnreadChange: (count: number) => void }) {
   const [notifs, setNotifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -104,7 +102,11 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
         },
         body: JSON.stringify({}),
       });
-      setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      setNotifs(prev => {
+        const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+        onUnreadChange(updated.filter(n => !n.read).length);
+        return updated;
+      });
     } catch (err) {
       console.error('markRead failed:', err);
     }
@@ -120,7 +122,7 @@ function NotificationDrawer({ token, onClose }: { token: string; onClose: () => 
         },
         body: JSON.stringify({}),
       });
-      setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifs(prev => { onUnreadChange(0); return prev.map(n => ({ ...n, read: true })); });
     } catch (err) {
       console.error('markAllRead failed:', err);
     }
