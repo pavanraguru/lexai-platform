@@ -322,7 +322,7 @@ export default function CalendarPage() {
                           <Link href={`/cases/${h.case?.id}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
                             <ExternalLink size={13} /> VIEW CASE FILE
                           </Link>
-                          <Link href={`/cases/${h.case?.id}?tab=drafts`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
+                          <Link href={`/cases/${h.case?.id}?tab=hearings`} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#022448', textDecoration: 'none' }}>
                             <FileText size={13} /> BRIEFING NOTE
                           </Link>
                         </div>
