@@ -1515,6 +1515,7 @@ export default function CaseDetailPage() {
 
       {/* --- OVERVIEW ------------------------------------- */}
       {activeTab === 'overview' && (
+        <div>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
           <div style={{ ...cardStyle, padding: '20px', gridColumn: 'span 2' }}>
             <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1rem', color: '#022448', margin: '0 0 16px' }}>Case Details</h3>
@@ -1568,6 +1569,7 @@ export default function CaseDetailPage() {
 
         </div>
         <AssignClientPanel caseId={id} token={token || ''} />
+      </div>
       )}
 
       {/* --- DOCUMENTS ------------------------------------ */}
