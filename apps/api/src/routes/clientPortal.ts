@@ -166,7 +166,8 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       where: { id: { in: caseIds }, tenant_id },
       select: {
         id: true, title: true, status: true,
-        court_name: true, case_type: true, next_hearing_date: true, created_at: true,
+        court: true, case_type: true, court_level: true, cnr_number: true,
+        next_hearing_date: true, created_at: true,
         hearings: {
           orderBy: { date: 'desc' }, take: 5,
           select: { id: true, date: true, purpose: true, outcome: true, next_hearing_date: true },
@@ -175,7 +176,14 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       orderBy: { created_at: 'desc' },
     });
 
-    return reply.send({ cases });
+    // Normalise field names for the frontend
+    const normalised = cases.map((c: any) => ({
+      ...c,
+      court_name: c.court,
+      case_number: c.cnr_number,
+    }));
+
+    return reply.send({ cases: normalised });
   });
 
   // ── GET /v1/portal/cases/:id ─────────────────────────────
