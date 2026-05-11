@@ -224,13 +224,19 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       where: { client_id, tenant_id },
       select: {
         id: true, invoice_number: true, status: true,
-        total_amount: true, paid_amount: true, due_date: true,
-        client_view_token: true, created_at: true,
+        total_paise: true, amount_paid_paise: true, balance_paise: true, due_date: true,
+        razorpay_payment_link: true, created_at: true,
         case: { select: { id: true, title: true, cnr_number: true } },
       },
       orderBy: { created_at: 'desc' },
     });
 
-    return reply.send({ invoices });
+    const normalisedInvoices = invoices.map((inv: any) => ({
+      ...inv,
+      total_amount: inv.total_paise,
+      paid_amount: inv.amount_paid_paise,
+      client_view_token: inv.razorpay_payment_link,
+    }));
+    return reply.send({ invoices: normalisedInvoices });
   });
 }
