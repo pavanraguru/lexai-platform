@@ -197,8 +197,8 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     const caseData = await prisma.case.findFirst({
       where: { id, tenant_id },
       select: {
-        id: true, title: true, case_number: true, status: true,
-        court_name: true, case_type: true, description: true,
+        id: true, title: true, cnr_number: true, status: true,
+        court: true, case_type: true, court_level: true,
         next_hearing_date: true, created_at: true,
         hearings: {
           orderBy: { date: 'desc' },
@@ -213,7 +213,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     });
 
     if (!caseData) return reply.status(404).send({ error: 'Case not found' });
-    return reply.send({ case: caseData });
+    return reply.send({ case: normalisedCase });
   });
 
   // ── GET /v1/portal/invoices ──────────────────────────────
@@ -226,7 +226,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
         id: true, invoice_number: true, status: true,
         total_amount: true, paid_amount: true, due_date: true,
         client_view_token: true, created_at: true,
-        case: { select: { id: true, title: true, case_number: true } },
+        case: { select: { id: true, title: true, cnr_number: true } },
       },
       orderBy: { created_at: 'desc' },
     });
