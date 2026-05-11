@@ -170,7 +170,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
         next_hearing_date: true, created_at: true,
         hearings: {
           orderBy: { date: 'desc' }, take: 5,
-          select: { id: true, date: true, purpose: true, outcome: true, next_hearing_date: true },
+          select: { id: true, date: true, purpose: true, outcome: true, order_summary: true },
         },
       },
       orderBy: { created_at: 'desc' },
@@ -202,7 +202,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
         next_hearing_date: true, created_at: true,
         hearings: {
           orderBy: { date: 'desc' },
-          select: { id: true, date: true, purpose: true, outcome: true, next_hearing_date: true },
+          select: { id: true, date: true, purpose: true, outcome: true, order_summary: true },
         },
         tasks: {
           where: { status: { not: 'done' } },
