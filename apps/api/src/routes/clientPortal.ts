@@ -1,5 +1,5 @@
 // apps/api/src/routes/clientPortal.ts
-// Uses only: crypto (Node built-in) — zero external dependencies
+// Uses only: crypto (Node built-in), @fastify/jwt (already in API), bcryptjs (lazy)
 import { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 
@@ -24,29 +24,6 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
     if (payload.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expired');
     return payload;
-  }
-
-
-  // ── Password helpers (Node crypto — no external deps) ────────
-  async function hashPassword(password: string): Promise<string> {
-    const salt = crypto.randomBytes(16).toString('hex');
-    return new Promise((resolve, reject) => {
-      crypto.scrypt(password, salt, 64, (err, key) => {
-        if (err) reject(err);
-        else resolve(salt + ':' + key.toString('hex'));
-      });
-    });
-  }
-
-  async function verifyPassword(password: string, stored: string): Promise<boolean> {
-    if (!stored || !stored.includes(':')) return false;
-    const [salt, hash] = stored.split(':');
-    return new Promise((resolve, reject) => {
-      crypto.scrypt(password, salt, 64, (err, key) => {
-        if (err) reject(err);
-        else resolve(key.toString('hex') === hash);
-      });
-    });
   }
 
   // ── Portal auth middleware ────────────────────────────────
@@ -133,7 +110,8 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       return reply.status(410).send({ error: 'Invite link has expired. Please ask your advocate to re-invite you.' });
     }
 
-    const hash = await hashPassword(password);
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.default.hash(password, 12);
     await prisma.clientPortalUser.update({
       where: { id: user.id },
       data: { password_hash: hash, invite_token: null, invite_expires_at: null, is_active: true },
@@ -152,8 +130,9 @@ export async function clientPortalRoutes(app: FastifyInstance) {
       where: { email: email.toLowerCase().trim(), is_active: true },
     });
 
-    const dummyHash = 'dummy:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
-    const valid = await verifyPassword(password, user?.password_hash || dummyHash);
+    const bcrypt = await import('bcryptjs');
+    const dummyHash = '$2b$12$invalidhashfortimingsafety00000';
+    const valid = await bcrypt.default.compare(password, user?.password_hash || dummyHash);
 
     if (!user || !valid || !user.password_hash) {
       return reply.status(401).send({ error: 'Invalid email or password' });
@@ -186,7 +165,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     const cases = await prisma.case.findMany({
       where: { id: { in: caseIds }, tenant_id },
       select: {
-        id: true, title: true, case_number: true, status: true,
+        id: true, title: true, status: true,
         court_name: true, case_type: true, next_hearing_date: true, created_at: true,
         hearings: {
           orderBy: { date: 'desc' }, take: 5,
@@ -246,20 +225,4 @@ export async function clientPortalRoutes(app: FastifyInstance) {
 
     return reply.send({ invoices });
   });
-
-  // ── POST /v1/portal/change-password ─────────────────────────
-  app.post('/change-password', { preHandler: [portalAuth] }, async (req: any, reply) => {
-    const { old_password, new_password } = req.body as { old_password: string; new_password: string };
-    if (!old_password || !new_password) return reply.status(400).send({ error: 'old_password and new_password required' });
-    if (new_password.length < 8) return reply.status(400).send({ error: 'Password must be at least 8 characters' });
-
-    const user = await prisma.clientPortalUser.findUnique({ where: { id: req.portalUser.portal_user_id } });
-    if (!user) return reply.status(404).send({ error: 'User not found' });
-
-    const valid = await verifyPassword(old_password, user.password_hash);
-    if (!valid) return reply.status(401).send({ error: 'Current password is incorrect' });
-
-    const hash = await hashPassword(new_password);
-    await prisma.clientPortalUser.update({ where: { id: user.id }, data: { password_hash: hash } });
-    return reply.send({ success: true });
-  });
+}
