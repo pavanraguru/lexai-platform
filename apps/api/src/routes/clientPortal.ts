@@ -240,4 +240,105 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     }));
     return reply.send({ invoices: normalisedInvoices });
   });
+
+  // ── GET /v1/portal/cases/:id/documents ───────────────────
+  app.get('/cases/:id/documents', { preHandler: [portalAuth] }, async (req: any, reply) => {
+    const { client_id, tenant_id } = req.portalUser;
+    const { id: case_id } = req.params as { id: string };
+
+    // Verify client has access to this case
+    const link = await prisma.caseClient.findFirst({ where: { case_id, client_id } });
+    if (!link) return reply.status(403).send({ error: 'Access denied' });
+
+    const docs = await prisma.document.findMany({
+      where: { case_id, tenant_id },
+      select: { id: true, filename: true, file_size_bytes: true, mime_type: true, created_at: true, ocr_status: true },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return reply.send({ data: docs });
+  });
+
+  // ── POST /v1/portal/cases/:id/documents/presign ──────────
+  app.post('/cases/:id/documents/presign', { preHandler: [portalAuth] }, async (req: any, reply) => {
+    const { client_id, tenant_id } = req.portalUser;
+    const { id: case_id } = req.params as { id: string };
+    const { filename, mime_type, file_size_bytes } = req.body as any;
+
+    const link = await prisma.caseClient.findFirst({ where: { case_id, client_id } });
+    if (!link) return reply.status(403).send({ error: 'Access denied' });
+
+    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+
+    const s3 = new S3Client({ region: process.env.AWS_REGION || 'ap-south-1' });
+    const docId = crypto.randomUUID();
+    const s3Key = `tenants/${tenant_id}/cases/${case_id}/docs/${docId}.${filename.split('.').pop()}`;
+
+    const cmd = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET!,
+      Key: s3Key,
+      ContentType: mime_type,
+      Metadata: { tenant_id, case_id, original_filename: encodeURIComponent(filename) },
+    });
+
+    const presigned_url = await getSignedUrl(s3, cmd, { expiresIn: 300 });
+
+    return reply.send({ data: { presigned_url, s3_key: s3Key, doc_id: docId } });
+  });
+
+  // ── POST /v1/portal/cases/:id/documents ──────────────────
+  app.post('/cases/:id/documents', { preHandler: [portalAuth] }, async (req: any, reply) => {
+    const { client_id, tenant_id } = req.portalUser;
+    const { id: case_id } = req.params as { id: string };
+    const { filename, s3_key, mime_type, file_size_bytes } = req.body as any;
+
+    const link = await prisma.caseClient.findFirst({ where: { case_id, client_id } });
+    if (!link) return reply.status(403).send({ error: 'Access denied' });
+
+    const doc = await prisma.document.create({
+      data: { tenant_id, case_id, filename, s3_key, mime_type, file_size_bytes: file_size_bytes || 0, uploaded_by: client_id },
+    });
+
+    return reply.status(201).send({ data: doc });
+  });
+
+  // ── GET /v1/portal/cases/:id/documents/:doc_id/download ──
+  app.get('/cases/:id/documents/:doc_id/download', { preHandler: [portalAuth] }, async (req: any, reply) => {
+    const { client_id, tenant_id } = req.portalUser;
+    const { id: case_id, doc_id } = req.params as { id: string; doc_id: string };
+
+    const link = await prisma.caseClient.findFirst({ where: { case_id, client_id } });
+    if (!link) return reply.status(403).send({ error: 'Access denied' });
+
+    const doc = await prisma.document.findFirst({ where: { id: doc_id, case_id, tenant_id } });
+    if (!doc) return reply.status(404).send({ error: 'Document not found' });
+
+    const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+
+    const s3 = new S3Client({ region: process.env.AWS_REGION || 'ap-south-1' });
+    const cmd = new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: doc.s3_key });
+    const download_url = await getSignedUrl(s3, cmd, { expiresIn: 300 });
+
+    return reply.send({ data: { download_url } });
+  });
+
+  // ── GET /v1/portal/cases/:id/drafts ──────────────────────
+  app.get('/cases/:id/drafts', { preHandler: [portalAuth] }, async (req: any, reply) => {
+    const { client_id, tenant_id } = req.portalUser;
+    const { id: case_id } = req.params as { id: string };
+
+    const link = await prisma.caseClient.findFirst({ where: { case_id, client_id } });
+    if (!link) return reply.status(403).send({ error: 'Access denied' });
+
+    const drafts = await prisma.draft.findMany({
+      where: { case_id, tenant_id },
+      select: { id: true, title: true, doc_type: true, content: true, updated_at: true, version: true },
+      orderBy: { updated_at: 'desc' },
+    });
+
+    return reply.send({ data: drafts });
+  });
+
 }

@@ -96,7 +96,7 @@ function DocumentsTab({ caseId, token }: { caseId: string; token: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   function fetchDocs() {
-    fetch(`${BASE}/v1/documents?case_id=${caseId}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${BASE}/v1/portal/cases/${caseId}/documents`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setDocs(d.data || [])).finally(() => setLoading(false));
   }
   useEffect(() => { fetchDocs(); }, [caseId]);
@@ -107,19 +107,19 @@ function DocumentsTab({ caseId, token }: { caseId: string; token: string }) {
     setUploadProgress(10);
     for (const file of files) {
       try {
-        const pr = await fetch(`${BASE}/v1/documents/presign`, {
+        const pr = await fetch(`${BASE}/v1/portal/cases/${caseId}/documents/presign`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ filename: file.name, mime_type: file.type || 'application/octet-stream', case_id: caseId, file_size_bytes: file.size }),
+          body: JSON.stringify({ filename: file.name, mime_type: file.type || 'application/octet-stream', file_size_bytes: file.size }),
         });
         const { data: presign } = await pr.json();
         setUploadProgress(40);
         await fetch(presign.presigned_url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
         setUploadProgress(80);
-        await fetch(`${BASE}/v1/documents`, {
+        await fetch(`${BASE}/v1/portal/cases/${caseId}/documents`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ case_id: caseId, filename: file.name, s3_key: presign.s3_key, mime_type: file.type, file_size_bytes: file.size }),
+          body: JSON.stringify({ filename: file.name, s3_key: presign.s3_key, mime_type: file.type, file_size_bytes: file.size }),
         });
         setUploadProgress(100);
       } catch (e) { console.error(e); }
@@ -128,7 +128,7 @@ function DocumentsTab({ caseId, token }: { caseId: string; token: string }) {
   }
 
   async function handleDownload(doc: any) {
-    const res = await fetch(`${BASE}/v1/documents/${doc.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`${BASE}/v1/portal/cases/${caseId}/documents/${doc.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
     const { data } = await res.json();
     window.open(data.download_url, '_blank');
   }
@@ -276,7 +276,7 @@ function DraftsTab({ caseId, token }: { caseId: string; token: string }) {
   const [selected, setSelected] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`${BASE}/v1/drafts/case/${caseId}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${BASE}/v1/portal/cases/${caseId}/drafts`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setDrafts(d.data || [])).finally(() => setLoading(false));
   }, [caseId]);
 
