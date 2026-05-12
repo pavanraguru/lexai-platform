@@ -213,6 +213,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     });
 
     if (!caseData) return reply.status(404).send({ error: 'Case not found' });
+    const normalisedCase: any = { ...caseData, court_name: (caseData as any).court, case_number: (caseData as any).cnr_number };
     return reply.send({ case: normalisedCase });
   });
 
