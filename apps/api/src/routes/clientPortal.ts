@@ -252,7 +252,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
 
     const docs = await prisma.document.findMany({
       where: { case_id, tenant_id },
-      select: { id: true, filename: true, file_size_bytes: true, mime_type: true, created_at: true, ocr_status: true },
+      select: { id: true, filename: true, file_size_bytes: true, mime_type: true, created_at: true, processing_status: true },
       orderBy: { created_at: 'desc' },
     });
 
@@ -276,7 +276,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     const s3Key = `tenants/${tenant_id}/cases/${case_id}/docs/${docId}.${filename.split('.').pop()}`;
 
     const cmd = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET!,
+      Bucket: process.env.S3_BUCKET || 'lexai-documents-prod',
       Key: s3Key,
       ContentType: mime_type,
       Metadata: { tenant_id, case_id, original_filename: encodeURIComponent(filename) },
@@ -318,7 +318,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
 
     const s3 = new S3Client({ region: process.env.AWS_REGION || 'ap-south-1' });
-    const cmd = new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: doc.s3_key });
+    const cmd = new GetObjectCommand({ Bucket: process.env.S3_BUCKET || 'lexai-documents-prod', Key: doc.s3_key });
     const download_url = await getSignedUrl(s3, cmd, { expiresIn: 300 });
 
     return reply.send({ data: { download_url } });
@@ -334,8 +334,8 @@ export async function clientPortalRoutes(app: FastifyInstance) {
 
     const drafts = await prisma.draft.findMany({
       where: { case_id, tenant_id },
-      select: { id: true, title: true, doc_type: true, content: true, updated_at: true, version: true },
-      orderBy: { updated_at: 'desc' },
+      select: { id: true, title: true, doc_type: true, content: true, last_modified_at: true, version: true },
+      orderBy: { last_modified_at: 'desc' },
     });
 
     return reply.send({ data: drafts });
