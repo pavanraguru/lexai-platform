@@ -296,8 +296,21 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     const link = await prisma.caseClient.findFirst({ where: { case_id, client_id } });
     if (!link) return reply.status(403).send({ error: 'Access denied' });
 
+    // Portal uploads need a valid User as uploader - use the tenant's admin
+    const adminUser = await prisma.user.findFirst({
+      where: { tenant_id, role: { in: ['managing_partner', 'super_admin'] }, is_active: true },
+      select: { id: true },
+    });
+    if (!adminUser) return reply.status(500).send({ error: 'No admin user found for tenant' });
+
     const doc = await prisma.document.create({
-      data: { filename, s3_key, mime_type, file_size_bytes: file_size_bytes || 0, tenant: { connect: { id: tenant_id } }, case: { connect: { id: case_id } } },
+      data: {
+        filename, s3_key, mime_type,
+        file_size_bytes: file_size_bytes || 0,
+        tenant: { connect: { id: tenant_id } },
+        case: { connect: { id: case_id } },
+        uploader: { connect: { id: adminUser.id } },
+      },
     });
 
     return reply.status(201).send({ data: doc });
