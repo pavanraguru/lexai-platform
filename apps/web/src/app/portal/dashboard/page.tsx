@@ -13,7 +13,7 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 function fmtINR(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
@@ -57,7 +57,7 @@ export default function PortalDashboard() {
     .slice(0, 3);
 
   const pendingInvoices = invoices.filter((i: any) => i.status !== 'paid');
-  const totalOutstanding = pendingInvoices.reduce((s: number, i: any) => s + (Number(i.total_amount) - Number(i.paid_amount || 0)), 0);
+  const totalOutstanding = pendingInvoices.reduce((s: number, i: any) => s + (Number(i.total_amount) - Number(i.paid_amount || 0)) / 100, 0);
 
   const s: Record<string, React.CSSProperties> = {
     page: { padding: 'clamp(20px,4vw,40px)', fontFamily: 'Manrope, sans-serif', maxWidth: '900px' },

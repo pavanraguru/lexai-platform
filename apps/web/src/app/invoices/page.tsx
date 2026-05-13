@@ -334,7 +334,7 @@ function NewInvoiceForm({ cases, clients, timeEntries, token, onDone, onCancel }
                     onChange={e => updateItem(item.id, 'rate', Number(e.target.value))}
                     style={{ ...inp, padding: '7px 8px', fontSize: '13px', textAlign: 'right' }} />
                   <span style={{ fontSize: '13px', fontWeight: 700, color: '#022448', textAlign: 'right' }}>
-                    ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <button onClick={() => items.length > 1 && removeItem(item.id)} style={{ background: 'none', border: 'none', cursor: items.length > 1 ? 'pointer' : 'not-allowed', color: items.length > 1 ? '#74777f' : '#c4c6cf', padding: '4px', borderRadius: '5px' }}>
                     <Trash2 size={14}/>
@@ -704,8 +704,8 @@ export default function BillingPage() {
                     </p>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#022448', margin: '0 0 2px' }}>₹{(total/100).toLocaleString('en-IN')}</p>
-                    {balance > 0 && balance < total && <p style={{ fontSize: '11px', color: '#c2410c', margin: 0 }}>₹{(balance/100).toLocaleString('en-IN')} due</p>}
+                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#022448', margin: '0 0 2px' }}>₹{(total/100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    {balance > 0 && balance < total && <p style={{ fontSize: '11px', color: '#c2410c', margin: 0 }}>₹{(balance/100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} due</p>}
                   </div>
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
@@ -838,7 +838,7 @@ export default function BillingPage() {
                       onChange={e => setEditForm(f => ({ ...f, discount_pct: Math.min(100, Math.max(0, Number(e.target.value))) }))}
                       style={{ ...inp, width: '80px', textAlign: 'right' }} />
                     <span style={{ fontSize: '12px', color: '#74777f' }}>
-                      {editForm.discount_pct > 0 ? `−₹${editDiscount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}` : 'No discount'}
+                      {editForm.discount_pct > 0 ? `−₹${editDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'No discount'}
                     </span>
                   </div>
                 </div>
@@ -866,7 +866,7 @@ export default function BillingPage() {
                     <input type="number" min={0} value={item.rate_paise / 100} onChange={e => updateItem(item.id, 'rate_paise', Math.round(Number(e.target.value) * 100))}
                       style={{ ...inp, padding: '6px 6px', fontSize: '12px', textAlign: 'right' }} />
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#022448', textAlign: 'right' }}>
-                      ₹{(item.quantity * item.rate_paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                      ₹{(item.quantity * item.rate_paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     <button onClick={() => editForm.line_items.length > 1 && removeItem(item.id)}
                       style={{ background: 'none', border: 'none', cursor: editForm.line_items.length > 1 ? 'pointer' : 'not-allowed', color: editForm.line_items.length > 1 ? '#74777f' : '#c4c6cf', padding: '2px', display: 'flex', alignItems: 'center' }}>
