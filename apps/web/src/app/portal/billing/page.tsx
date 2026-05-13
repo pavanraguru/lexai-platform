@@ -8,7 +8,7 @@ import { Receipt } from 'lucide-react';
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function fmtINR(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 function fmtDate(d: string | null) {
   if (!d) return '—';
