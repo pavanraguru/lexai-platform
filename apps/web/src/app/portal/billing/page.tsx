@@ -39,11 +39,11 @@ export default function PortalBillingPage() {
 
   const totalOutstanding = invoices
     .filter(i => i.status !== 'paid')
-    .reduce((s, i) => s + (Number(i.total_amount) - Number(i.paid_amount || 0)), 0);
+    .reduce((s, i) => s + (Number(i.total_amount) - Number(i.paid_amount || 0)) / 100, 0);
 
   const totalPaid = invoices
     .filter(i => i.status === 'paid')
-    .reduce((s, i) => s + Number(i.total_amount), 0);
+    .reduce((s, i) => s + Number(i.total_amount) / 100, 0);
 
   const s: Record<string, React.CSSProperties> = {
     page: { padding: 'clamp(20px,4vw,40px)', fontFamily: 'Manrope, sans-serif', maxWidth: '800px' },
@@ -97,7 +97,7 @@ export default function PortalBillingPage() {
             <div>No invoices yet.</div>
           </div>
         ) : invoices.map((inv: any, i: number) => {
-          const outstanding = Number(inv.total_amount) - Number(inv.paid_amount || 0);
+          const outstanding = (Number(inv.total_amount) - Number(inv.paid_amount || 0)) / 100;
           return (
             <div key={inv.id} style={{ ...s.row, borderBottom: i < invoices.length - 1 ? '1px solid #f8fafc' : 'none' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f0f4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -110,7 +110,7 @@ export default function PortalBillingPage() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                <div style={s.amount}>{fmtINR(inv.total_amount)}</div>
+                <div style={s.amount}>{fmtINR(Number(inv.total_amount) / 100)}</div>
                 <span style={s.statusPill(inv.status)}>{STATUS_STYLE[inv.status]?.label || inv.status}</span>
                 {inv.status !== 'paid' && inv.client_view_token && (
                   <button style={s.payBtn} onClick={() => window.open(`/pay/${inv.client_view_token}`, '_blank')}>
