@@ -297,7 +297,7 @@ export async function clientPortalRoutes(app: FastifyInstance) {
     if (!link) return reply.status(403).send({ error: 'Access denied' });
 
     const doc = await prisma.document.create({
-      data: { tenant_id, case_id, filename, s3_key, mime_type, file_size_bytes: file_size_bytes || 0 },
+      data: { filename, s3_key, mime_type, file_size_bytes: file_size_bytes || 0, tenant: { connect: { id: tenant_id } }, case: { connect: { id: case_id } } },
     });
 
     return reply.status(201).send({ data: doc });
