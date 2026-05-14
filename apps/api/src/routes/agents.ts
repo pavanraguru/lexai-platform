@@ -186,7 +186,18 @@ async function runAgentInline(
         user: `Reconstruct timeline:\n\n${docContext}`,
       },
       research: {
-        system: `You are a senior Indian advocate's AI assistant specialising in Indian legal research.\n${baseContext}\nFor every precedent, include indiankanoon_query: a 3-5 word phrase to find it on Indian Kanoon.\nCRITICAL: Return ONLY a raw JSON object. No markdown fences. Start with { end with }.\nFormat:\n{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"...","indiankanoon_query":"short search phrase"}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"...","indiankanoon_query":"short search phrase"}],"disclaimer":"AI research — verify on SCC Online / Manupatra before relying in court"}`,
+        system: `You are a senior Indian advocate's AI assistant specialising in Indian legal research.
+${baseContext}
+
+For each precedent you cite, you must assess whether it is reliably indexed on Indian Kanoon (indiankanoon.org).
+Indian Kanoon has good coverage of: Supreme Court judgments post-1950, most High Court judgments post-1990, major tribunal orders.
+Indian Kanoon typically does NOT have: very old cases pre-1950, unreported judgments, district court orders, foreign cases, AIR citations before 1960 (often missing), NCLAT/NCLT orders pre-2018.
+
+For each precedent set ik_available to true only if you are confident it exists on Indian Kanoon. When true, also set indiankanoon_query to a 3-5 word search phrase. When false, leave indiankanoon_query null.
+
+CRITICAL: Return ONLY a raw JSON object. No markdown fences. Start with { end with }.
+Format:
+{"applicable_statutes":[{"act":"...","section":"...","description":"...","relevance":"..."}],"favorable_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","relevance":"...","ik_available":true,"indiankanoon_query":"short search phrase or null"}],"adverse_precedents":[{"citation":"...","court":"SC|HC","year":2023,"held":"...","how_to_distinguish":"...","ik_available":false,"indiankanoon_query":null}],"disclaimer":"AI research — verify on SCC Online / Manupatra before relying in court"}`,
         user: `Research Indian law and cite relevant statutes and precedents:\n\n${docContext.substring(0, 6000)}`,
       },
       deposition: {

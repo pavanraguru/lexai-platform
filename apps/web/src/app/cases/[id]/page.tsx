@@ -2376,10 +2376,12 @@ export default function CaseDetailPage() {
                               <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', borderLeft: '3px solid #15803d' }}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
                                   <p style={{ fontWeight: 700, color: '#15803d', margin: 0 }}>{p.citation}{p.court ? ' - ' + p.court : ''}{p.year ? ' (' + p.year + ')' : ''}</p>
-                                  <a href={`https://indiankanoon.org/search/?formInput=${encodeURIComponent(p.indiankanoon_query || p.citation || '')}`} target="_blank" rel="noopener noreferrer"
-                                    style={{ fontSize: '9px', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 }}>
-                                    IK ↗
-                                  </a>
+                                  {p.ik_available === true && p.indiankanoon_query && (
+                                    <a href={`https://indiankanoon.org/search/?formInput=${encodeURIComponent(p.indiankanoon_query)}`} target="_blank" rel="noopener noreferrer"
+                                      style={{ fontSize: '9px', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 }}>
+                                      IK ↗
+                                    </a>
+                                  )}
                                 </div>
                                 <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
                                 {p.relevance && <p style={{ fontSize: '11px', color: '#15803d', margin: 0, fontStyle: 'italic' }}>{p.relevance}</p>}
@@ -2399,10 +2401,12 @@ export default function CaseDetailPage() {
                               <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff5f5', borderRadius: '6px', borderLeft: '3px solid #ba1a1a' }}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
                                   <p style={{ fontWeight: 700, color: '#ba1a1a', margin: 0 }}>{p.citation}{p.year ? ' (' + p.year + ')' : ''}</p>
-                                  <a href={`https://indiankanoon.org/search/?formInput=${encodeURIComponent(p.indiankanoon_query || p.citation || '')}`} target="_blank" rel="noopener noreferrer"
-                                    style={{ fontSize: '9px', fontWeight: 700, color: '#93000a', background: '#ffdad6', padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 }}>
-                                    IK ↗
-                                  </a>
+                                  {p.ik_available === true && p.indiankanoon_query && (
+                                    <a href={`https://indiankanoon.org/search/?formInput=${encodeURIComponent(p.indiankanoon_query)}`} target="_blank" rel="noopener noreferrer"
+                                      style={{ fontSize: '9px', fontWeight: 700, color: '#93000a', background: '#ffdad6', padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 }}>
+                                      IK ↗
+                                    </a>
+                                  )}
                                 </div>
                                 <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
                                 {p.how_to_distinguish && <p style={{ fontSize: '11px', color: '#022448', margin: 0, fontStyle: 'italic' }}>Distinguish: {p.how_to_distinguish}</p>}
