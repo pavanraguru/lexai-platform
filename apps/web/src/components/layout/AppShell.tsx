@@ -465,7 +465,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               </button>
               {showNotifs && token && (
-                <NotificationDrawer token={token} onClose={() => setShowNotifs(false)} />
+                <NotificationDrawer token={token} onClose={() => setShowNotifs(false)} onUnreadChange={setUnreadCount} />
               )}
             </div>
           </div>
