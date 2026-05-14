@@ -2484,16 +2484,14 @@ export default function CaseDetailPage() {
                         )}
 
                         {/* ── Closing Arguments — handles closing_skeleton (old) + closing_points (new) ── */}
-                        {((o.closing_skeleton && o.closing_skeleton.length > 0) || (o.closing_points && o.closing_points.length > 0)) && (() => {
-                          const pts = o.closing_points || o.closing_skeleton || [];
-                          return (
+                        {(o.closing_points || o.closing_skeleton || []).length > 0 && (
                           <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>CLOSING ARGUMENTS SKELETON ({pts.length} points)</p>
-                              <button onClick={() => { try { navigator.clipboard.writeText(pts.map((pt: any, i: number) => (pt.point || pt.point_number || i+1) + '. ' + pt.heading + '\n   ' + (pt.detail || pt.elaboration || '')).join('\n\n')); } catch (err) {} }}
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>CLOSING ARGUMENTS SKELETON ({(o.closing_points || o.closing_skeleton || []).length} points)</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText((o.closing_points || o.closing_skeleton || []).map((pt: any, i: number) => (pt.point || pt.point_number || i+1) + '. ' + pt.heading + '\n   ' + (pt.detail || pt.elaboration || '')).join('\n\n')); } catch (err) {} }}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
-                            {pts.map((pt: any, i: number) => (
+                            {(o.closing_points || o.closing_skeleton || []).map((pt: any, i: number) => (
                               <div key={i} style={{ marginBottom: '8px', padding: '10px 12px', background: '#fff', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.2)', borderLeft: '3px solid #022448' }}>
                                 <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>{pt.point || pt.point_number || i+1}. {pt.heading}</p>
                                 {(pt.detail || pt.elaboration) && <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.5 }}>{pt.detail || pt.elaboration}</p>}
@@ -2501,8 +2499,7 @@ export default function CaseDetailPage() {
                               </div>
                             ))}
                           </div>
-                          );
-                        })()}
+                        )}
 
                         {/* ── Bench Questions ───────────────────── */}
                         {o.bench_questions && o.bench_questions.length > 0 && (
