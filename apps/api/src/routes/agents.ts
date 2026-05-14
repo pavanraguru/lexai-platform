@@ -57,25 +57,42 @@ function courtAddress(court_level: string): string {
 }
 
 // ── Helper: Indian doc type label ────────────────────────────
+const DOC_TYPE_LABELS: Record<string, string> = {
+  bail_application: 'Bail Application',
+  plaint: 'Plaint',
+  written_statement: 'Written Statement',
+  writ_petition: 'Writ Petition',
+  affidavit: 'Affidavit',
+  vakalatnama: 'Vakalatnama',
+  opening_statement: 'Opening Statement',
+  closing_statement: 'Closing Statement',
+  rejoinder: 'Rejoinder',
+  memo_of_appeal: 'Memo of Appeal',
+  legal_notice: 'Legal Notice',
+  reply_notice: 'Reply to Legal Notice',
+  objection: 'Objection Petition',
+  revision_petition: 'Revision Petition',
+  other: 'Legal Document',
+};
+
+// Reverse map: "Bail Application" → "bail_application"
+const DOC_TYPE_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(DOC_TYPE_LABELS).map(([k, v]) => [v.toLowerCase(), k])
+);
+
 function docTypeLabel(doc_type: string): string {
-  const labels: Record<string, string> = {
-    bail_application: 'Bail Application',
-    plaint: 'Plaint',
-    written_statement: 'Written Statement',
-    writ_petition: 'Writ Petition',
-    affidavit: 'Affidavit',
-    vakalatnama: 'Vakalatnama',
-    opening_statement: 'Opening Statement',
-    closing_statement: 'Closing Statement',
-    rejoinder: 'Rejoinder',
-    memo_of_appeal: 'Memo of Appeal',
-    legal_notice: 'Legal Notice',
-    reply_notice: 'Reply to Legal Notice',
-    objection: 'Objection Petition',
-    revision_petition: 'Revision Petition',
-    other: 'Legal Document',
-  };
-  return labels[doc_type] || doc_type;
+  return DOC_TYPE_LABELS[doc_type] || doc_type;
+}
+
+// Normalise whatever Claude returns → valid Prisma DraftDocType enum value
+function normaliseDraftDocType(raw: string | undefined): string {
+  if (!raw) return 'other';
+  if (DOC_TYPE_LABELS[raw]) return raw;
+  const reversed = DOC_TYPE_REVERSE[raw.toLowerCase().trim()];
+  if (reversed) return reversed;
+  const slugged = raw.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  if (DOC_TYPE_LABELS[slugged]) return slugged;
+  return 'other';
 }
 
 // ── Inline agent runner ───────────────────────────────────────
@@ -637,8 +654,9 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (job.agent_type === 'drafter') {
       // Drafter output promotes directly as a proper draft
-      title = output.title || docTypeLabel(output.doc_type || 'other');
-      docType = output.doc_type || 'other';
+      // normaliseDraftDocType handles Claude returning labels like "Bail Application" instead of "bail_application"
+      docType = normaliseDraftDocType(output.doc_type);
+      title = output.title || docTypeLabel(docType);
       text = output.content || '';
     } else if (job.agent_type === 'reviewer') {
       title = `Document Review: ${output.document_name || 'Review Report'}`;
