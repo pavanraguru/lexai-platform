@@ -115,7 +115,11 @@ async function runAgentInline(
     if (!agentJob) throw new Error('Job not found');
 
     const cfg = agentJob.input_config as any;
-    const caseData = cfg.case_metadata;
+    // Safe fallback: some older jobs stored fields at root level instead of under case_metadata
+    const caseData = cfg.case_metadata || cfg || {};
+    if (!cfg.case_metadata) {
+      console.warn(`[Agents Inline] job ${job_id} has no case_metadata in input_config — falling back to root cfg`);
+    }
     const addr = courtAddress(caseData.court_level || '');
     const baseContext = `Case: ${caseData.title || 'Unknown'}\nCourt: ${caseData.court || 'Unknown'}\nCase type: ${caseData.case_type || 'Unknown'}\nPerspective: ${caseData.perspective || 'defence'}\nAddress court as: ${addr}`;
 
@@ -128,8 +132,9 @@ async function runAgentInline(
     let documents: any[] = [];
 
     if (isPhase1 || agent_type === 'drafter') {
+      const docIdsToUse = cfg.doc_ids || cfg.agent_settings?.doc_ids || [];
       documents = await fastify.prisma.document.findMany({
-        where: { id: { in: cfg.doc_ids } },
+        where: { id: { in: docIdsToUse } },
         select: { id: true, filename: true, doc_category: true, extracted_text: true, processing_status: true },
       });
       if (!documents.length) throw new Error('No documents found for this case.');
@@ -160,8 +165,9 @@ async function runAgentInline(
 
     // Build prior outputs (for strategy agent)
     const priorOutputs: Record<string, any> = {};
-    if (cfg.prior_agent_outputs) {
-      for (const [t, jid] of Object.entries(cfg.prior_agent_outputs as Record<string, string>)) {
+    const priorOutputsConfig = cfg.prior_agent_outputs || cfg.agent_settings?.prior_agent_outputs || {};
+    if (Object.keys(priorOutputsConfig).length > 0) {
+      for (const [t, jid] of Object.entries(priorOutputsConfig as Record<string, string>)) {
         const pj = await fastify.prisma.agentJob.findUnique({ where: { id: jid }, select: { output: true } });
         if (pj?.output) priorOutputs[t] = pj.output;
       }
@@ -332,6 +338,7 @@ Format:
     if (!p) throw new Error(`Unknown agent type: ${agent_type}`);
 
     // Call Claude
+    console.log(`[Agents Inline] Calling Claude for ${agent_type}, system prompt length: ${p.system.length}, user prompt length: ${p.user.length}`);
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: agent_type === 'drafter' ? 8000 : agent_type === 'strategy' ? 6000 : agent_type === 'research' ? 5000 : 4000,
@@ -340,6 +347,7 @@ Format:
     });
 
     const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+    console.log(`[Agents Inline] Got response for ${agent_type}, length: ${raw.length}, first 200 chars: ${raw.substring(0, 200)}`);
 
     // Robust JSON parse — handle all Claude output formats + truncation recovery
     let parsed: any;
@@ -436,12 +444,14 @@ Format:
 
     console.log(`[Agents Inline] ✅ ${agent_type} done. Tokens: ${inputTokens}+${outputTokens}. Cost: ₹${costINR}`);
   } catch (err: any) {
-    console.error(`[Agents Inline] ❌ ${agent_type} failed:`, err.message);
+    const errMsg = String(err.message || err).substring(0, 500);
+    console.error(`[Agents Inline] ❌ ${agent_type} failed:`, errMsg);
+    console.error(`[Agents Inline] Stack:`, String(err.stack || '').substring(0, 600));
     await fastify.prisma.agentJob.update({
       where: { id: job_id },
       data: {
         status: 'failed',
-        error_message: String(err.message).substring(0, 500),
+        error_message: errMsg,
         completed_at: new Date(),
       },
     }).catch(() => {});
