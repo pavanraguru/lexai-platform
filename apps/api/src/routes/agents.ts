@@ -189,7 +189,7 @@ async function runAgentInline(
       },
       strategy: {
         system: `You are a senior Indian advocate's AI assistant. Develop comprehensive court strategy.\n${baseContext}\nAddress court as ${addr}.\nCRITICAL: Return ONLY a raw JSON object. No markdown fences. Start with { end with }.\nFormat:\n{"perspective":"defence","opening_statement":"In the matter of...","argument_tree":{"main_argument":"The single strongest overarching argument","sub_arguments":[{"argument":"Sub-argument heading","supporting_facts":["Fact from docs"],"statutes":["IPC §302"],"precedents":["Case citation"]}]},"closing_skeleton":[{"point_number":1,"heading":"Point heading","elaboration":"One sentence","supporting_evidence":"Evidence reference"}],"bench_questions":[{"question":"Anticipated bench question","suggested_answer":"Suggested answer","why_judge_asks":"Why the bench is likely to raise this"}],"sentiment":{"label":"Favorable|Neutral|Unfavorable","score":65,"reasoning":"...","evidence_strength":"Strong|Moderate|Weak","precedent_strength":"Strong|Moderate|Weak","timeline_consistency":"Consistent|Minor Gaps|Major Gaps","witness_credibility":"High|Medium|Low"},"strengths":["..."],"vulnerabilities":[{"issue":"...","mitigation":"..."}]}`,
-        user: `Develop strategy.\n\nEVIDENCE: ${JSON.stringify(priorOutputs.evidence || {}).substring(0, 2000)}\nRESEARCH: ${JSON.stringify(priorOutputs.research || {}).substring(0, 2000)}\nDOCS:\n${docContext.substring(0, 4000)}`,
+        user: `Develop strategy.\n\nEVIDENCE SUMMARY: ${JSON.stringify(priorOutputs.evidence || {}).substring(0, 1500)}\nRESEARCH SUMMARY: ${JSON.stringify(priorOutputs.research || {}).substring(0, 1500)}\nCASE DOCS:\n${docContext.substring(0, 3000)}`,
       },
 
       // ── Phase 2: Document Drafter ──────────────────────────
@@ -298,33 +298,61 @@ Format:
     // Call Claude
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: agent_type === 'drafter' ? 8000 : 4000,
+      max_tokens: agent_type === 'drafter' ? 8000 : agent_type === 'strategy' ? 6000 : agent_type === 'research' ? 5000 : 4000,
       system: p.system,
       messages: [{ role: 'user', content: p.user }],
     });
 
     const raw = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    // Robust JSON parse — handle all Claude output formats
+    // Robust JSON parse — handle all Claude output formats + truncation recovery
     let parsed: any;
     try {
       let jsonStr = raw.trim();
+      // Strip markdown fences
       jsonStr = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
       const fenceMatch = jsonStr.match(/```(?:json)?[\s\n]*([\s\S]+?)[\s\n]*```/);
       if (fenceMatch) jsonStr = fenceMatch[1].trim();
+      // Find the start of the JSON object
       if (!jsonStr.startsWith('{')) {
         const start = jsonStr.indexOf('{');
-        if (start !== -1) {
-          let depth = 0, end = -1;
-          for (let i = start; i < jsonStr.length; i++) {
-            if (jsonStr[i] === '{') depth++;
-            else if (jsonStr[i] === '}' && --depth === 0) { end = i; break; }
-          }
-          if (end !== -1) jsonStr = jsonStr.slice(start, end + 1);
+        if (start !== -1) jsonStr = jsonStr.slice(start);
+      }
+      // Try direct parse first
+      try {
+        parsed = JSON.parse(jsonStr);
+      } catch {
+        // Claude truncated mid-JSON — try to recover by closing open structures
+        let recovered = jsonStr;
+        // Count unclosed brackets and braces
+        let braceDepth = 0, bracketDepth = 0, inString = false, escape = false;
+        for (let ci = 0; ci < recovered.length; ci++) {
+          const ch = recovered[ci];
+          if (escape) { escape = false; continue; }
+          if (ch === '\\' && inString) { escape = true; continue; }
+          if (ch === '"' && !escape) { inString = !inString; continue; }
+          if (inString) continue;
+          if (ch === '{') braceDepth++;
+          else if (ch === '}') braceDepth--;
+          else if (ch === '[') bracketDepth++;
+          else if (ch === ']') bracketDepth--;
+        }
+        // Trim trailing comma if any
+        recovered = recovered.replace(/,\s*$/, '');
+        // Close any open strings, arrays, objects
+        if (inString) recovered += '"';
+        recovered += ']'.repeat(Math.max(0, bracketDepth));
+        recovered += '}'.repeat(Math.max(0, braceDepth));
+        try {
+          parsed = JSON.parse(recovered);
+          console.warn('[Agents Inline] Recovered truncated JSON for', agent_type);
+        } catch (recoveryErr: any) {
+          console.error('[Agents Inline] JSON parse failed. Raw start:', raw.substring(0, 400));
+          throw new Error('AI returned an invalid response format. Please retry the agent.');
         }
       }
-      parsed = JSON.parse(jsonStr);
     } catch (parseErr: any) {
+      if (parseErr.message.includes('invalid response format')) throw parseErr;
       console.error('[Agents Inline] JSON parse failed. Raw:', raw.substring(0, 300));
       throw new Error('AI returned an invalid response format. Please retry the agent.');
     }
