@@ -1333,11 +1333,23 @@ export default function CaseDetailPage() {
     setRunningAgent(agentType); setError('');
     try {
       const body = extraBody ? JSON.stringify(extraBody) : undefined;
-      const res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
+      let res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token, ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body,
       });
+      // 409 = stuck job from a previous run — auto-cancel it and retry once
+      if (res.status === 409) {
+        await fetch(BASE + '/v1/agents/cases/' + id + '/cancel-queued', {
+          method: 'POST', headers: { Authorization: 'Bearer ' + token },
+        });
+        await new Promise(r => setTimeout(r, 800)); // brief wait for DB write
+        res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+          body,
+        });
+      }
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
 
@@ -1888,7 +1900,7 @@ export default function CaseDetailPage() {
                 <p style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', margin: '0 0 2px' }}>
                   {(agents as any[]).filter((j: any) => j.status === 'queued' || j.status === 'running').length} job(s) stuck in queue
                 </p>
-                <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Redis may be unavailable. Cancel stuck jobs then re-run — agents now work without Redis.</p>
+                <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>A previous run didn't finish cleanly. Cancel stuck jobs then re-run.</p>
               </div>
               <button onClick={async () => {
                 try {
