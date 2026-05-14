@@ -2598,7 +2598,7 @@ export default function CaseDetailPage() {
               </p>
             </div>
 
-            <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '10px' }}>
               {(c?.documents || []).filter((d: any) => d.processing_status === 'ready').length === 0 && (
                 <div style={{ padding: '24px', textAlign: 'center', color: '#74777f', fontSize: '13px' }}>
                   No OCR-processed documents yet. Wait for text extraction to complete.
