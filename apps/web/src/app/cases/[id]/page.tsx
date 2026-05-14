@@ -50,11 +50,14 @@ const HEARING_PURPOSES = [
 ];
 
 const AGENTS = [
-  { type: 'evidence',   Icon: FileText,   label: 'Evidence',   desc: 'Extract and analyse all evidence from documents' },
-  { type: 'timeline',   Icon: RotateCcw,  label: 'Timeline',   desc: 'Reconstruct chronological order of events' },
-  { type: 'research',   Icon: BookOpen,   label: 'Research',   desc: 'Find relevant Indian case law and statutes' },
-  { type: 'deposition', Icon: FileText,   label: 'Deposition', desc: 'Analyse transcripts, find inconsistencies' },
-  { type: 'strategy',   Icon: Bot,        label: 'Strategy',   desc: 'Develop court strategy from all prior analysis' },
+  { type: 'evidence',   Icon: FileText,   label: 'Evidence',   desc: 'Extract and analyse all evidence from documents', phase: 1 },
+  { type: 'timeline',   Icon: RotateCcw,  label: 'Timeline',   desc: 'Reconstruct chronological order of events', phase: 1 },
+  { type: 'research',   Icon: BookOpen,   label: 'Research',   desc: 'Find relevant Indian case law and statutes', phase: 1 },
+  { type: 'deposition', Icon: FileText,   label: 'Deposition', desc: 'Analyse transcripts, find inconsistencies', phase: 1 },
+  { type: 'strategy',   Icon: Bot,        label: 'Strategy',   desc: 'Develop court strategy from all prior analysis', phase: 1 },
+  { type: 'drafter',    Icon: FileText,   label: 'Drafter',    desc: 'AI drafts bail applications, plaints, writs and more', phase: 2 },
+  { type: 'reviewer',   Icon: FileText,   label: 'Reviewer',   desc: 'Review any document for risks, gaps, and issues', phase: 2 },
+  { type: 'summarizer', Icon: FileText,   label: 'Summarizer', desc: 'Instant plain-English summary of any document', phase: 2 },
 ];
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
@@ -1191,6 +1194,12 @@ export default function CaseDetailPage() {
 
   // Agent state
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  // Phase 2: Drafter / Reviewer / Summarizer modal state
+  const [showDrafterModal, setShowDrafterModal] = useState(false);
+  const [drafterDocType, setDrafterDocType] = useState('bail_application');
+  const [drafterInstructions, setDrafterInstructions] = useState('');
+  const [showDocPickerModal, setShowDocPickerModal] = useState<'reviewer' | 'summarizer' | null>(null);
+  const [pickedDocId, setPickedDocId] = useState<string>('');
 
   const toggleJobExpand = async (jobId: string, currentStatus: string) => {
     if (currentStatus !== 'completed') return;
@@ -1319,13 +1328,15 @@ export default function CaseDetailPage() {
     } catch (err: any) { setError(err.message); }
   };
 
-  const handleRunAgent = async (agentType: string) => {
+  const handleRunAgent = async (agentType: string, extraBody?: Record<string, any>) => {
     if (!c) return;
     setRunningAgent(agentType); setError('');
     try {
+      const body = extraBody ? JSON.stringify(extraBody) : undefined;
       const res = await fetch(BASE + '/v1/agents/cases/' + id + '/run/' + agentType, {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + token },
+        headers: { Authorization: 'Bearer ' + token, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        body,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message || 'Agent failed to start');
@@ -1892,7 +1903,11 @@ export default function CaseDetailPage() {
             </div>
           )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
-            {AGENTS.map(({ type, Icon, label, desc }) => {
+            {/* Phase 1 agents */}
+            <div style={{ width: '100%', marginBottom: '4px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: 0 }}>ANALYSIS AGENTS</p>
+            </div>
+            {AGENTS.filter(a => a.phase === 1).map(({ type, Icon, label, desc }) => {
               const isRunning = runningAgent === type;
               const lastRun = agents.find((j: any) => j.agent_type === type);
               return (
@@ -1918,6 +1933,96 @@ export default function CaseDetailPage() {
                 </div>
               );
             })}
+
+            {/* Phase 2 agents — Document Drafter, Reviewer, Summarizer */}
+            <div style={{ width: '100%', marginTop: '8px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.08em', margin: 0 }}>DOCUMENT AGENTS</p>
+              <span style={{ fontSize: '9px', fontWeight: 700, background: '#ffe088', color: '#745c00', padding: '1px 7px', borderRadius: '3px' }}>NEW</span>
+            </div>
+
+            {/* Drafter card */}
+            {(() => {
+              const isRunning = runningAgent === 'drafter';
+              const lastRun = agents.find((j: any) => j.agent_type === 'drafter');
+              return (
+                <div style={{ ...cardStyle, padding: '20px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px', borderColor: 'rgba(2,36,72,0.12)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ffe08850', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '18px' }}>✍️</span>
+                    </div>
+                    {lastRun?.status === 'completed' && (
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>
+                    )}
+                  </div>
+                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 4px' }}>Drafter</h3>
+                  <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px', lineHeight: 1.5 }}>AI drafts bail applications, plaints, writs and more</p>
+                  <button onClick={() => setShowDrafterModal(true)} disabled={!!runningAgent} style={{
+                    ...btnPrimary, width: '100%', justifyContent: 'center',
+                    opacity: runningAgent && !isRunning ? 0.4 : 1,
+                    background: isRunning ? '#edeef0' : '#022448',
+                    color: isRunning ? '#43474e' : '#ffe088',
+                  }}>
+                    {isRunning ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Drafting...</> : <><span style={{ fontSize: '13px' }}>✍️</span> Draft Document</>}
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Reviewer card */}
+            {(() => {
+              const isRunning = runningAgent === 'reviewer';
+              const lastRun = agents.find((j: any) => j.agent_type === 'reviewer');
+              return (
+                <div style={{ ...cardStyle, padding: '20px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px', borderColor: 'rgba(2,36,72,0.12)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ffdad620', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '18px' }}>🔍</span>
+                    </div>
+                    {lastRun?.status === 'completed' && (
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>
+                    )}
+                  </div>
+                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 4px' }}>Reviewer</h3>
+                  <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px', lineHeight: 1.5 }}>Review any document for risks, gaps, and issues</p>
+                  <button onClick={() => setShowDocPickerModal('reviewer')} disabled={!!runningAgent} style={{
+                    ...btnPrimary, width: '100%', justifyContent: 'center',
+                    opacity: runningAgent && !isRunning ? 0.4 : 1,
+                    background: isRunning ? '#edeef0' : '#ba1a1a',
+                    color: isRunning ? '#43474e' : '#fff',
+                  }}>
+                    {isRunning ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Reviewing...</> : <><span style={{ fontSize: '13px' }}>🔍</span> Review Document</>}
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Summarizer card */}
+            {(() => {
+              const isRunning = runningAgent === 'summarizer';
+              const lastRun = agents.find((j: any) => j.agent_type === 'summarizer');
+              return (
+                <div style={{ ...cardStyle, padding: '20px', minWidth: '200px', maxWidth: '260px', flex: '1 1 200px', borderColor: 'rgba(2,36,72,0.12)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '18px' }}>✦</span>
+                    </div>
+                    {lastRun?.status === 'completed' && (
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', background: '#dcfce7', color: '#15803d', borderRadius: '2px' }}>DONE</span>
+                    )}
+                  </div>
+                  <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '15px', color: '#022448', margin: '0 0 4px' }}>Summarizer</h3>
+                  <p style={{ fontSize: '12px', color: '#74777f', margin: '0 0 14px', lineHeight: 1.5 }}>Instant plain-English summary of any document</p>
+                  <button onClick={() => setShowDocPickerModal('summarizer')} disabled={!!runningAgent} style={{
+                    ...btnPrimary, width: '100%', justifyContent: 'center',
+                    opacity: runningAgent && !isRunning ? 0.4 : 1,
+                    background: isRunning ? '#edeef0' : '#5b21b6',
+                    color: isRunning ? '#43474e' : '#fff',
+                  }}>
+                    {isRunning ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Summarising...</> : <><span style={{ fontSize: '13px' }}>✦</span> Summarise Document</>}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
 
           {agents.length > 0 && (
@@ -1940,8 +2045,8 @@ export default function CaseDetailPage() {
                       onClick={() => toggleJobExpand(job.id, job.status)}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 20px', cursor: job.status === 'completed' ? 'pointer' : 'default', background: isExpanded ? '#f0f4ff' : 'transparent' }}>
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, textTransform: 'capitalize' }}>
-                          {job.agent_type} Analysis
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0 }}>
+                          {job.agent_type === 'drafter' ? '✍️ Drafted Document' : job.agent_type === 'reviewer' ? '🔍 Document Review' : job.agent_type === 'summarizer' ? '✦ Document Summary' : job.agent_type.charAt(0).toUpperCase() + job.agent_type.slice(1) + ' Analysis'}
                         </p>
                         <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0' }}>
                           {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
@@ -1984,13 +2089,158 @@ export default function CaseDetailPage() {
                     )}
                     {isExpanded && o && !loadingOutput && (
                       <div style={{ padding: '20px', background: '#f8f9fb', borderTop: '1px solid rgba(196,198,207,0.1)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {/* Promote to Draft button — for all completed agent types */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const r = await fetch(BASE + '/v1/agents/jobs/' + job.id + '/promote', {
+                                    method: 'POST', headers: { Authorization: 'Bearer ' + token },
+                                  });
+                                  const rj = await r.json();
+                                  if (!r.ok) throw new Error(rj.error?.message || 'Promote failed');
+                                  alert('Promoted to Drafts!');
+                                  refresh();
+                                } catch (err: any) { alert(err.message); }
+                              }}
+                              style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', background: '#f0f4ff', color: '#022448', border: '1px solid rgba(2,36,72,0.2)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                              → Save to Drafts
+                            </button>
+                          </div>
                           <button
                             onClick={() => { try { navigator.clipboard.writeText(JSON.stringify(o, null, 2)); } catch (err) {} }}
                             style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', background: '#022448', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
                             Copy All Data
                           </button>
                         </div>
+
+                        {/* ── Drafter output ────────────────────── */}
+                        {job.agent_type === 'drafter' && o.content && (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                              <span style={{ fontSize: '10px', fontWeight: 800, color: '#745c00', letterSpacing: '0.06em' }}>DRAFTED DOCUMENT</span>
+                              {o.overall_assessment && (
+                                <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', background: '#ffe088', color: '#745c00', borderRadius: '3px' }}>{o.overall_assessment}</span>
+                              )}
+                            </div>
+                            {o.warnings && o.warnings.length > 0 && (
+                              <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#9a3412', margin: '0 0 6px', letterSpacing: '0.04em' }}>⚠️ REVIEW THESE BEFORE FILING</p>
+                                {o.warnings.map((w: string, i: number) => (
+                                  <p key={i} style={{ fontSize: '12px', color: '#9a3412', margin: '0 0 3px', lineHeight: 1.5 }}>• {w}</p>
+                                ))}
+                              </div>
+                            )}
+                            {o.prayer && (
+                              <div style={{ background: '#d5e3ff30', border: '1px solid rgba(2,36,72,0.15)', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', margin: '0 0 6px', letterSpacing: '0.04em' }}>PRAYER / RELIEF SOUGHT</p>
+                                <p style={{ fontSize: '13px', color: '#022448', margin: 0, lineHeight: 1.7 }}>{o.prayer}</p>
+                              </div>
+                            )}
+                            <div style={{ background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '8px', padding: '16px', maxHeight: '400px', overflowY: 'auto' }}>
+                              <pre style={{ fontSize: '12px', color: '#191c1e', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.8, fontFamily: 'Manrope, sans-serif' }}>{o.content}</pre>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.content); } catch (err) {} }}
+                                style={{ fontSize: '11px', fontWeight: 600, padding: '6px 14px', background: '#edeef0', color: '#43474e', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>Copy Draft Text</button>
+                              <span style={{ fontSize: '11px', color: '#74777f', display: 'flex', alignItems: 'center' }}>~{o.word_count || '?'} words · {o.disclaimer || 'Review before filing'}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Reviewer output ───────────────────── */}
+                        {job.agent_type === 'reviewer' && (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                              <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '28px', fontWeight: 800, color: o.risk_score >= 70 ? '#ba1a1a' : o.risk_score >= 40 ? '#b45309' : '#15803d', lineHeight: 1 }}>{o.risk_score ?? '—'}</div>
+                                <div style={{ fontSize: '9px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em' }}>RISK SCORE</div>
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '4px', marginBottom: '4px',
+                                  background: o.overall_assessment === 'Defective' ? '#ffdad6' : o.overall_assessment === 'Needs Revision' ? '#ffe088' : '#dcfce7',
+                                  color: o.overall_assessment === 'Defective' ? '#93000a' : o.overall_assessment === 'Needs Revision' ? '#745c00' : '#15803d'
+                                }}>{o.overall_assessment || '—'}</span>
+                                <p style={{ fontSize: '12px', color: '#43474e', margin: 0, lineHeight: 1.5 }}>{o.summary}</p>
+                              </div>
+                            </div>
+                            {o.critical_issues && o.critical_issues.length > 0 && (
+                              <div style={{ marginBottom: '14px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#ba1a1a', letterSpacing: '0.06em', margin: '0 0 8px' }}>CRITICAL ISSUES ({o.critical_issues.length})</p>
+                                {o.critical_issues.map((issue: any, i: number) => (
+                                  <div key={i} style={{ background: '#fff', border: '1px solid rgba(186,26,26,0.15)', borderLeft: '3px solid #ba1a1a', borderRadius: '6px', padding: '10px 12px', marginBottom: '6px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                      <p style={{ fontSize: '12px', fontWeight: 700, color: '#191c1e', margin: 0 }}>{issue.issue}</p>
+                                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 6px', background: issue.severity === 'Critical' ? '#ffdad6' : '#ffe088', color: issue.severity === 'Critical' ? '#93000a' : '#745c00', borderRadius: '3px', flexShrink: 0, marginLeft: '8px' }}>{issue.severity}</span>
+                                    </div>
+                                    <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 4px', lineHeight: 1.5 }}>{issue.explanation}</p>
+                                    {issue.recommendation && <p style={{ fontSize: '11px', color: '#022448', margin: 0, fontWeight: 600 }}>→ {issue.recommendation}</p>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {o.missing_elements && o.missing_elements.length > 0 && (
+                              <div style={{ marginBottom: '14px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', margin: '0 0 8px' }}>MISSING ELEMENTS</p>
+                                {o.missing_elements.map((m: string, i: number) => (
+                                  <p key={i} style={{ fontSize: '12px', color: '#43474e', margin: '0 0 4px' }}>• {m}</p>
+                                ))}
+                              </div>
+                            )}
+                            {o.strengths && o.strengths.length > 0 && (
+                              <div>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>STRENGTHS</p>
+                                {o.strengths.map((s: string, i: number) => (
+                                  <p key={i} style={{ fontSize: '12px', color: '#43474e', margin: '0 0 4px' }}>✓ {s}</p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* ── Summarizer output ─────────────────── */}
+                        {job.agent_type === 'summarizer' && (
+                          <div>
+                            <div style={{ background: '#ede9fe', borderRadius: '10px', padding: '14px 16px', marginBottom: '14px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#5b21b6', letterSpacing: '0.06em', margin: '0 0 6px' }}>SUMMARY</p>
+                              <p style={{ fontSize: '14px', color: '#191c1e', margin: 0, lineHeight: 1.7 }}>{o.summary}</p>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                              <div style={{ background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '8px', padding: '12px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.05em', margin: '0 0 4px' }}>PARTIES</p>
+                                <p style={{ fontSize: '12px', color: '#191c1e', margin: '0 0 2px' }}>{o.parties?.primary || '—'}</p>
+                                <p style={{ fontSize: '11px', color: '#74777f', margin: 0 }}>vs {o.parties?.opposing || '—'}</p>
+                              </div>
+                              <div style={{ background: '#fff', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '8px', padding: '12px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#74777f', letterSpacing: '0.05em', margin: '0 0 4px' }}>DATE</p>
+                                <p style={{ fontSize: '12px', color: '#191c1e', margin: 0 }}>{o.date_of_document || '—'}</p>
+                              </div>
+                            </div>
+                            {o.key_facts && o.key_facts.length > 0 && (
+                              <div style={{ marginBottom: '14px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY FACTS</p>
+                                {o.key_facts.map((f: string, i: number) => (
+                                  <p key={i} style={{ fontSize: '12px', color: '#43474e', margin: '0 0 4px' }}>• {f}</p>
+                                ))}
+                              </div>
+                            )}
+                            {o.implications_for_case && (
+                              <div style={{ background: '#f0f4ff', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 4px' }}>IMPLICATIONS FOR THIS CASE</p>
+                                <p style={{ fontSize: '12px', color: '#022448', margin: 0, lineHeight: 1.6 }}>{o.implications_for_case}</p>
+                              </div>
+                            )}
+                            {o.action_items && o.action_items.length > 0 && (
+                              <div>
+                                <p style={{ fontSize: '10px', fontWeight: 800, color: '#b45309', letterSpacing: '0.06em', margin: '0 0 8px' }}>ACTION ITEMS</p>
+                                {o.action_items.map((a: string, i: number) => (
+                                  <p key={i} style={{ fontSize: '12px', color: '#43474e', margin: '0 0 4px', fontWeight: 600 }}>→ {a}</p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {o.exhibits && o.exhibits.length > 0 && (
                           <div style={{ marginBottom: '16px' }}>
@@ -2255,6 +2505,142 @@ export default function CaseDetailPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Phase 2: Drafter Modal ───────────────────────────── */}
+      {showDrafterModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+          onClick={() => setShowDrafterModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '20px', padding: '32px', maxWidth: '500px', width: '100%', boxShadow: '0 24px 64px rgba(2,36,72,0.25)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ffe08860', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>✍️</div>
+              <div>
+                <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.3rem', color: '#022448', margin: 0 }}>AI Document Drafter</h3>
+                <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>Select document type and add any special instructions</p>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>DOCUMENT TYPE</label>
+              <select value={drafterDocType} onChange={e => setDrafterDocType(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '14px', color: '#191c1e', fontFamily: 'Manrope, sans-serif', background: '#fff', outline: 'none' }}>
+                <optgroup label="Criminal">
+                  <option value="bail_application">Bail Application (CrPC §437/439)</option>
+                  <option value="written_statement">Written Statement</option>
+                  <option value="affidavit">Affidavit</option>
+                </optgroup>
+                <optgroup label="Civil">
+                  <option value="plaint">Plaint</option>
+                  <option value="written_statement">Written Statement</option>
+                  <option value="rejoinder">Rejoinder</option>
+                  <option value="objection">Objection Petition</option>
+                </optgroup>
+                <optgroup label="Constitutional">
+                  <option value="writ_petition">Writ Petition (Article 226/227)</option>
+                  <option value="memo_of_appeal">Memo of Appeal</option>
+                  <option value="revision_petition">Revision Petition</option>
+                </optgroup>
+                <optgroup label="Advocacy">
+                  <option value="opening_statement">Opening Statement</option>
+                  <option value="closing_statement">Closing Statement / Arguments</option>
+                  <option value="vakalatnama">Vakalatnama</option>
+                </optgroup>
+                <optgroup label="Notices">
+                  <option value="legal_notice">Legal Notice</option>
+                  <option value="reply_notice">Reply to Legal Notice</option>
+                </optgroup>
+                <option value="other">Other Legal Document</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: '#74777f', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>SPECIAL INSTRUCTIONS <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
+              <textarea value={drafterInstructions} onChange={e => setDrafterInstructions(e.target.value)} rows={3}
+                placeholder="E.g. Include surety of ₹50,000. Accused is a first-time offender. Emphasis on personal liberty under Article 21..."
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid rgba(196,198,207,0.5)', borderRadius: '8px', fontSize: '13px', color: '#191c1e', fontFamily: 'Manrope, sans-serif', resize: 'vertical', outline: 'none', lineHeight: 1.6, boxSizing: 'border-box' }} />
+            </div>
+
+            <div style={{ background: '#f0f4ff', borderRadius: '10px', padding: '10px 14px', marginBottom: '20px', fontSize: '12px', color: '#022448', lineHeight: 1.6 }}>
+              💡 The agent will use all case documents as source material. Run the Evidence + Research agents first for the best results.
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setShowDrafterModal(false)}
+                style={{ flex: 1, padding: '11px', background: '#edeef0', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', color: '#43474e', fontFamily: 'Manrope, sans-serif' }}>Cancel</button>
+              <button onClick={() => {
+                setShowDrafterModal(false);
+                handleRunAgent('drafter', { doc_type: drafterDocType, draft_instructions: drafterInstructions || undefined });
+              }}
+                style={{ flex: 2, padding: '11px', background: '#022448', color: '#ffe088', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}>
+                ✍️ Draft Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Phase 2: Doc Picker Modal (Reviewer + Summarizer) ── */}
+      {showDocPickerModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,36,72,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+          onClick={() => setShowDocPickerModal(null)}>
+          <div style={{ background: '#fff', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '100%', boxShadow: '0 24px 64px rgba(2,36,72,0.25)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontFamily: 'Newsreader, serif', fontWeight: 700, fontSize: '1.2rem', color: '#022448', margin: '0 0 4px' }}>
+                {showDocPickerModal === 'reviewer' ? '🔍 Select Document to Review' : '✦ Select Document to Summarise'}
+              </h3>
+              <p style={{ fontSize: '12px', color: '#74777f', margin: 0 }}>
+                {showDocPickerModal === 'reviewer'
+                  ? 'The agent will analyse this document for risks, gaps, and procedural issues.'
+                  : 'The agent will generate a plain-English summary of this document.'}
+              </p>
+            </div>
+
+            <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid rgba(196,198,207,0.3)', borderRadius: '10px', overflow: 'hidden' }}>
+              {(c?.documents || []).filter((d: any) => d.processing_status === 'ready').length === 0 && (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#74777f', fontSize: '13px' }}>
+                  No OCR-processed documents yet. Wait for text extraction to complete.
+                </div>
+              )}
+              {(c?.documents || []).filter((d: any) => d.processing_status === 'ready').map((doc: any, i: number, arr: any[]) => (
+                <div key={doc.id}
+                  onClick={() => setPickedDocId(doc.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', cursor: 'pointer',
+                    borderBottom: i < arr.length - 1 ? '1px solid rgba(196,198,207,0.1)' : 'none',
+                    background: pickedDocId === doc.id ? '#e8eeff' : 'transparent',
+                    transition: '0.1s',
+                  }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: pickedDocId === doc.id ? '#022448' : '#edeef0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '14px' }}>📄</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#191c1e', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.filename}</p>
+                    <p style={{ fontSize: '11px', color: '#74777f', margin: '2px 0 0', textTransform: 'capitalize' }}>{doc.doc_category?.replace(/_/g, ' ') || 'Document'}</p>
+                  </div>
+                  {pickedDocId === doc.id && <span style={{ color: '#022448', fontWeight: 700, fontSize: '16px' }}>✓</span>}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => { setShowDocPickerModal(null); setPickedDocId(''); }}
+                style={{ flex: 1, padding: '11px', background: '#edeef0', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', color: '#43474e', fontFamily: 'Manrope, sans-serif' }}>Cancel</button>
+              <button disabled={!pickedDocId}
+                onClick={() => {
+                  const mode = showDocPickerModal;
+                  setShowDocPickerModal(null);
+                  if (mode === 'reviewer') handleRunAgent('reviewer', { review_doc_id: pickedDocId });
+                  else handleRunAgent('summarizer', { summarize_doc_id: pickedDocId });
+                  setPickedDocId('');
+                }}
+                style={{ flex: 2, padding: '11px', background: pickedDocId ? (showDocPickerModal === 'reviewer' ? '#ba1a1a' : '#5b21b6') : '#edeef0', color: pickedDocId ? '#fff' : '#74777f', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 700, cursor: pickedDocId ? 'pointer' : 'not-allowed', fontFamily: 'Manrope, sans-serif' }}>
+                {showDocPickerModal === 'reviewer' ? '🔍 Review Document' : '✦ Summarise Document'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

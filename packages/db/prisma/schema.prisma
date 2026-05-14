@@ -148,6 +148,9 @@ enum AgentType {
   deposition
   research
   strategy
+  drafter
+  reviewer
+  summarizer
 }
 
 enum AgentStatus {
@@ -169,6 +172,10 @@ enum DraftDocType {
   closing_statement
   rejoinder
   memo_of_appeal
+  legal_notice
+  reply_notice
+  objection
+  revision_petition
   other
 }
 
@@ -412,22 +419,27 @@ model Case {
 }
 
 model Document {
-  id                  String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id           String                   @db.Uuid
-  case_id             String                   @db.Uuid
-  filename            String                   @db.VarChar(500)
-  s3_key              String                   @unique
-  mime_type           String                   @db.VarChar(100)
-  file_size_bytes     BigInt
-  doc_category        DocCategory?
-  processing_status   DocumentProcessingStatus @default(pending)
-  extracted_text      String?
-  page_count          Int?
-  shared_with_client  Boolean                  @default(false)
-  version_number      Int                      @default(1)
-  previous_version_id String?                  @db.Uuid
-  uploaded_by         String                   @db.Uuid
-  created_at          DateTime                 @default(now()) @db.Timestamptz(6)
+  id                        String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id                 String                   @db.Uuid
+  case_id                   String                   @db.Uuid
+  filename                  String                   @db.VarChar(500)
+  s3_key                    String                   @unique
+  mime_type                 String                   @db.VarChar(100)
+  file_size_bytes           BigInt
+  doc_category              DocCategory?
+  processing_status         DocumentProcessingStatus @default(pending)
+  extracted_text            String?
+  page_count                Int?
+  shared_with_client        Boolean                  @default(false)
+  version_number            Int                      @default(1)
+  previous_version_id       String?                  @db.Uuid
+  uploaded_by               String                   @db.Uuid
+  // Phase 2: AI Summarizer + Reviewer
+  ai_summary                String?
+  ai_summary_generated_at   DateTime?                @db.Timestamptz(6)
+  review_risk_score         Int?
+  review_flags              Json?
+  created_at                DateTime                 @default(now()) @db.Timestamptz(6)
 
   tenant              Tenant                   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   case                Case                     @relation(fields: [case_id], references: [id], onDelete: Cascade)
