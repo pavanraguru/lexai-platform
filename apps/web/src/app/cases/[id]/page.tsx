@@ -2442,19 +2442,19 @@ export default function CaseDetailPage() {
                           </div>
                         )}
 
-                        {/* ── Argument Tree ─────────────────────── */}
-                        {o.argument_tree && (
+                        {/* ── Argument Tree — handles both old {argument_tree:{}} and new flat {main_argument, sub_arguments} ── */}
+                        {(o.argument_tree || o.main_argument) && (
                           <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>ARGUMENT TREE</p>
-                              <button onClick={() => { try { const t = o.argument_tree; navigator.clipboard.writeText('MAIN: ' + t.main_argument + '\n\n' + (t.sub_arguments || []).map((s: any, i: number) => (i+1) + '. ' + s.argument + '\n   Facts: ' + (s.supporting_facts || []).join('; ')).join('\n\n')); } catch (err) {} }}
+                              <button onClick={() => { try { const mainArg = o.main_argument || o.argument_tree?.main_argument || ''; const subs = o.sub_arguments || o.argument_tree?.sub_arguments || []; navigator.clipboard.writeText('MAIN: ' + mainArg + '\n\n' + subs.map((s: any, i: number) => (i+1) + '. ' + s.argument + '\n   Facts: ' + (s.supporting_facts || []).join('; ')).join('\n\n')); } catch (err) {} }}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
                             <div style={{ background: '#022448', borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#ffe088', letterSpacing: '0.05em', margin: '0 0 4px' }}>MAIN ARGUMENT</p>
-                              <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.6 }}>{o.argument_tree.main_argument}</p>
+                              <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.6 }}>{o.main_argument || o.argument_tree?.main_argument}</p>
                             </div>
-                            {(o.argument_tree.sub_arguments || []).map((sub: any, si: number) => (
+                            {(o.sub_arguments || o.argument_tree?.sub_arguments || []).map((sub: any, si: number) => (
                               <div key={si} style={{ marginBottom: '8px', border: '1px solid rgba(2,36,72,0.12)', borderRadius: '8px', overflow: 'hidden' }}>
                                 <div style={{ background: '#f0f4ff', padding: '8px 12px', borderBottom: '1px solid rgba(2,36,72,0.08)' }}>
                                   <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: 0 }}>{si + 1}. {sub.argument}</p>
@@ -2483,23 +2483,26 @@ export default function CaseDetailPage() {
                           </div>
                         )}
 
-                        {/* ── Closing Arguments Skeleton ────────── */}
-                        {o.closing_skeleton && o.closing_skeleton.length > 0 && (
+                        {/* ── Closing Arguments — handles closing_skeleton (old) + closing_points (new) ── */}
+                        {((o.closing_skeleton && o.closing_skeleton.length > 0) || (o.closing_points && o.closing_points.length > 0)) && (() => {
+                          const pts = o.closing_points || o.closing_skeleton || [];
+                          return (
                           <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>CLOSING ARGUMENTS SKELETON ({Array.isArray(o.closing_skeleton) ? o.closing_skeleton.length : '—'} points)</p>
-                              <button onClick={() => { try { navigator.clipboard.writeText((Array.isArray(o.closing_skeleton) ? o.closing_skeleton : []).map((pt: any) => pt.point_number + '. ' + pt.heading + '\n   ' + (pt.elaboration || '')).join('\n\n')); } catch (err) {} }}
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>CLOSING ARGUMENTS SKELETON ({pts.length} points)</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(pts.map((pt: any, i: number) => (pt.point || pt.point_number || i+1) + '. ' + pt.heading + '\n   ' + (pt.detail || pt.elaboration || '')).join('\n\n')); } catch (err) {} }}
                                 style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
                             </div>
-                            {(Array.isArray(o.closing_skeleton) ? o.closing_skeleton : []).map((pt: any, i: number) => (
+                            {pts.map((pt: any, i: number) => (
                               <div key={i} style={{ marginBottom: '8px', padding: '10px 12px', background: '#fff', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.2)', borderLeft: '3px solid #022448' }}>
-                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>{pt.point_number}. {pt.heading}</p>
-                                {pt.elaboration && <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.5 }}>{pt.elaboration}</p>}
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>{pt.point || pt.point_number || i+1}. {pt.heading}</p>
+                                {(pt.detail || pt.elaboration) && <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.5 }}>{pt.detail || pt.elaboration}</p>}
                                 {pt.supporting_evidence && <p style={{ fontSize: '11px', color: '#74777f', margin: 0, fontStyle: 'italic' }}>Evidence: {pt.supporting_evidence}</p>}
                               </div>
                             ))}
                           </div>
-                        )}
+                          );
+                        })()}
 
                         {/* ── Bench Questions ───────────────────── */}
                         {o.bench_questions && o.bench_questions.length > 0 && (
@@ -2512,8 +2515,8 @@ export default function CaseDetailPage() {
                             {o.bench_questions.map((q: any, i: number) => (
                               <div key={i} style={{ marginBottom: '10px', padding: '10px 12px', background: '#fff', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.2)' }}>
                                 <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>Q{i + 1}: {q.question}</p>
-                                <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.6 }}>{q.suggested_answer}</p>
-                                {q.why_judge_asks && <p style={{ fontSize: '11px', color: '#74777f', margin: 0, fontStyle: 'italic' }}>Why bench asks: {q.why_judge_asks}</p>}
+                                <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.6 }}>{q.suggested_answer || q.answer}</p>
+                                {(q.why_judge_asks || q.why) && <p style={{ fontSize: '11px', color: '#74777f', margin: 0, fontStyle: 'italic' }}>Why bench asks: {q.why_judge_asks || q.why}</p>}
                               </div>
                             ))}
                           </div>

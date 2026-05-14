@@ -188,8 +188,44 @@ async function runAgentInline(
         user: `Analyse this deposition and generate a detailed witness cross-examination script:\n\n${docContext}`,
       },
       strategy: {
-        system: `You are a senior Indian advocate's AI assistant. Develop comprehensive court strategy.\n${baseContext}\nAddress court as ${addr}.\nCRITICAL: Return ONLY a raw JSON object. No markdown fences. Start with { end with }.\nFormat:\n{"perspective":"defence","opening_statement":"In the matter of...","argument_tree":{"main_argument":"The single strongest overarching argument","sub_arguments":[{"argument":"Sub-argument heading","supporting_facts":["Fact from docs"],"statutes":["IPC §302"],"precedents":["Case citation"]}]},"closing_skeleton":[{"point_number":1,"heading":"Point heading","elaboration":"One sentence","supporting_evidence":"Evidence reference"}],"bench_questions":[{"question":"Anticipated bench question","suggested_answer":"Suggested answer","why_judge_asks":"Why the bench is likely to raise this"}],"sentiment":{"label":"Favorable|Neutral|Unfavorable","score":65,"reasoning":"...","evidence_strength":"Strong|Moderate|Weak","precedent_strength":"Strong|Moderate|Weak","timeline_consistency":"Consistent|Minor Gaps|Major Gaps","witness_credibility":"High|Medium|Low"},"strengths":["..."],"vulnerabilities":[{"issue":"...","mitigation":"..."}]}`,
-        user: `Develop strategy.\n\nEVIDENCE SUMMARY: ${JSON.stringify(priorOutputs.evidence || {}).substring(0, 1500)}\nRESEARCH SUMMARY: ${JSON.stringify(priorOutputs.research || {}).substring(0, 1500)}\nCASE DOCS:\n${docContext.substring(0, 3000)}`,
+        system: `You are a senior Indian advocate's AI assistant. Develop court strategy for the case below.
+${baseContext}
+Address the court as: ${addr}
+
+Return a single raw JSON object. No markdown, no code fences, no explanation. Start with { and end with }.
+
+Use exactly this structure:
+{
+  "perspective": "defence or prosecution or petitioner or respondent",
+  "opening_statement": "Full opening statement text addressed to the court",
+  "main_argument": "The single most powerful overarching argument in one sentence",
+  "sub_arguments": [
+    {
+      "argument": "Sub-argument label",
+      "supporting_facts": ["fact 1 from case documents", "fact 2"],
+      "statutes": ["IPC Section 302", "CrPC Section 437"],
+      "precedents": ["Case name, year"]
+    }
+  ],
+  "closing_points": [
+    {"point": 1, "heading": "Point heading", "detail": "One sentence detail"}
+  ],
+  "bench_questions": [
+    {"question": "Question judge will ask", "answer": "Suggested answer", "why": "Why bench raises this"}
+  ],
+  "sentiment": {
+    "label": "Favorable",
+    "score": 65,
+    "reasoning": "Brief reasoning",
+    "evidence_strength": "Strong",
+    "precedent_strength": "Moderate",
+    "timeline_consistency": "Consistent",
+    "witness_credibility": "High"
+  },
+  "strengths": ["strength 1", "strength 2"],
+  "vulnerabilities": [{"issue": "issue description", "mitigation": "how to handle it"}]
+}`,
+        user: `CASE DOCUMENTS:\n${docContext.substring(0, 3000)}\n\nEVIDENCE FINDINGS: ${JSON.stringify(priorOutputs.evidence || {}).substring(0, 1200)}\n\nLEGAL RESEARCH: ${JSON.stringify(priorOutputs.research || {}).substring(0, 1200)}\n\nDevelop the full court strategy now.`,
       },
 
       // ── Phase 2: Document Drafter ──────────────────────────
