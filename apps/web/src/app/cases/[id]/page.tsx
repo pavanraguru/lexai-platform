@@ -2362,7 +2362,15 @@ export default function CaseDetailPage() {
                             </div>
                             {o.favorable_precedents.map((p: any, i: number) => (
                               <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', borderLeft: '3px solid #15803d' }}>
-                                <p style={{ fontWeight: 700, color: '#15803d', margin: '0 0 3px' }}>{p.citation}{p.court ? ' - ' + p.court : ''}{p.year ? ' (' + p.year + ')' : ''}</p>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+                                  <p style={{ fontWeight: 700, color: '#15803d', margin: 0 }}>{p.citation}{p.court ? ' - ' + p.court : ''}{p.year ? ' (' + p.year + ')' : ''}</p>
+                                  {p.indiankanoon_query && (
+                                    <a href={`https://indiankanoon.org/search/?formInput=${encodeURIComponent(p.indiankanoon_query)}`} target="_blank" rel="noopener noreferrer"
+                                      style={{ fontSize: '9px', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 }}>
+                                      IK ↗
+                                    </a>
+                                  )}
+                                </div>
                                 <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
                                 {p.relevance && <p style={{ fontSize: '11px', color: '#15803d', margin: 0, fontStyle: 'italic' }}>{p.relevance}</p>}
                               </div>
@@ -2379,7 +2387,15 @@ export default function CaseDetailPage() {
                             </div>
                             {o.adverse_precedents.map((p: any, i: number) => (
                               <div key={i} style={{ fontSize: '12px', color: '#43474e', marginBottom: '8px', padding: '8px 12px', background: '#fff5f5', borderRadius: '6px', borderLeft: '3px solid #ba1a1a' }}>
-                                <p style={{ fontWeight: 700, color: '#ba1a1a', margin: '0 0 3px' }}>{p.citation}{p.year ? ' (' + p.year + ')' : ''}</p>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+                                  <p style={{ fontWeight: 700, color: '#ba1a1a', margin: 0 }}>{p.citation}{p.year ? ' (' + p.year + ')' : ''}</p>
+                                  {p.indiankanoon_query && (
+                                    <a href={`https://indiankanoon.org/search/?formInput=${encodeURIComponent(p.indiankanoon_query)}`} target="_blank" rel="noopener noreferrer"
+                                      style={{ fontSize: '9px', fontWeight: 700, color: '#93000a', background: '#ffdad6', padding: '2px 7px', borderRadius: '4px', whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 }}>
+                                      IK ↗
+                                    </a>
+                                  )}
+                                </div>
                                 <p style={{ margin: '0 0 3px', lineHeight: 1.5 }}>{p.held}</p>
                                 {p.how_to_distinguish && <p style={{ fontSize: '11px', color: '#022448', margin: 0, fontStyle: 'italic' }}>Distinguish: {p.how_to_distinguish}</p>}
                               </div>
@@ -2414,6 +2430,66 @@ export default function CaseDetailPage() {
                           </div>
                         )}
 
+                        {/* ── Argument Tree ─────────────────────── */}
+                        {o.argument_tree && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>ARGUMENT TREE</p>
+                              <button onClick={() => { try { const t = o.argument_tree; navigator.clipboard.writeText('MAIN: ' + t.main_argument + '\n\n' + (t.sub_arguments || []).map((s: any, i: number) => (i+1) + '. ' + s.argument + '\n   Facts: ' + (s.supporting_facts || []).join('; ')).join('\n\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            <div style={{ background: '#022448', borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#ffe088', letterSpacing: '0.05em', margin: '0 0 4px' }}>MAIN ARGUMENT</p>
+                              <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.6 }}>{o.argument_tree.main_argument}</p>
+                            </div>
+                            {(o.argument_tree.sub_arguments || []).map((sub: any, si: number) => (
+                              <div key={si} style={{ marginBottom: '8px', border: '1px solid rgba(2,36,72,0.12)', borderRadius: '8px', overflow: 'hidden' }}>
+                                <div style={{ background: '#f0f4ff', padding: '8px 12px', borderBottom: '1px solid rgba(2,36,72,0.08)' }}>
+                                  <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: 0 }}>{si + 1}. {sub.argument}</p>
+                                </div>
+                                <div style={{ padding: '10px 12px', background: '#fff' }}>
+                                  {(sub.supporting_facts || []).map((fact: string, fi: number) => (
+                                    <p key={fi} style={{ fontSize: '11px', color: '#43474e', margin: '0 0 3px', paddingLeft: '10px', borderLeft: '2px solid #d5e3ff' }}>• {fact}</p>
+                                  ))}
+                                  {sub.statutes && sub.statutes.length > 0 && (
+                                    <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                      {sub.statutes.map((s: string, si2: number) => (
+                                        <span key={si2} style={{ fontSize: '9px', fontWeight: 700, padding: '2px 7px', background: '#ffe08860', color: '#745c00', borderRadius: '4px' }}>{s}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {sub.precedents && sub.precedents.length > 0 && (
+                                    <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                      {sub.precedents.map((pr: string, pi: number) => (
+                                        <span key={pi} style={{ fontSize: '9px', fontWeight: 600, padding: '2px 7px', background: '#f0fdf4', color: '#15803d', borderRadius: '4px' }}>{pr}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* ── Closing Arguments Skeleton ────────── */}
+                        {o.closing_skeleton && o.closing_skeleton.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: 0 }}>CLOSING ARGUMENTS SKELETON ({Array.isArray(o.closing_skeleton) ? o.closing_skeleton.length : '—'} points)</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText((Array.isArray(o.closing_skeleton) ? o.closing_skeleton : []).map((pt: any) => pt.point_number + '. ' + pt.heading + '\n   ' + (pt.elaboration || '')).join('\n\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy</button>
+                            </div>
+                            {(Array.isArray(o.closing_skeleton) ? o.closing_skeleton : []).map((pt: any, i: number) => (
+                              <div key={i} style={{ marginBottom: '8px', padding: '10px 12px', background: '#fff', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.2)', borderLeft: '3px solid #022448' }}>
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>{pt.point_number}. {pt.heading}</p>
+                                {pt.elaboration && <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.5 }}>{pt.elaboration}</p>}
+                                {pt.supporting_evidence && <p style={{ fontSize: '11px', color: '#74777f', margin: 0, fontStyle: 'italic' }}>Evidence: {pt.supporting_evidence}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* ── Bench Questions ───────────────────── */}
                         {o.bench_questions && o.bench_questions.length > 0 && (
                           <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -2423,8 +2499,9 @@ export default function CaseDetailPage() {
                             </div>
                             {o.bench_questions.map((q: any, i: number) => (
                               <div key={i} style={{ marginBottom: '10px', padding: '10px 12px', background: '#fff', borderRadius: '6px', border: '1px solid rgba(196,198,207,0.2)' }}>
-                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 5px' }}>Q{i + 1}: {q.question}</p>
-                                <p style={{ fontSize: '12px', color: '#43474e', margin: 0, lineHeight: 1.6 }}>{q.suggested_answer}</p>
+                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#022448', margin: '0 0 3px' }}>Q{i + 1}: {q.question}</p>
+                                <p style={{ fontSize: '12px', color: '#43474e', margin: '0 0 3px', lineHeight: 1.6 }}>{q.suggested_answer}</p>
+                                {q.why_judge_asks && <p style={{ fontSize: '11px', color: '#74777f', margin: 0, fontStyle: 'italic' }}>Why bench asks: {q.why_judge_asks}</p>}
                               </div>
                             ))}
                           </div>
@@ -2474,7 +2551,56 @@ export default function CaseDetailPage() {
                           </div>
                         )}
 
-                        {o.cross_examination_questions && o.cross_examination_questions.length > 0 && (
+                        {/* ── Witness Prep Notes ───────────────── */}
+                        {o.witness_prep_notes && (
+                          <div style={{ marginBottom: '14px', padding: '12px 14px', background: '#f0f4ff', borderRadius: '8px', borderLeft: '3px solid #022448' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#022448', letterSpacing: '0.06em', margin: '0 0 6px' }}>CROSS-EXAMINATION STRATEGY</p>
+                            <p style={{ fontSize: '12px', color: '#022448', margin: 0, lineHeight: 1.7 }}>{o.witness_prep_notes}</p>
+                          </div>
+                        )}
+
+                        {/* ── Key Admissions ────────────────────── */}
+                        {o.key_admissions && o.key_admissions.length > 0 && (
+                          <div style={{ marginBottom: '14px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', letterSpacing: '0.06em', margin: '0 0 8px' }}>KEY ADMISSIONS (already on record)</p>
+                            {o.key_admissions.map((adm: string, i: number) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#15803d', marginBottom: '4px', padding: '5px 10px', background: '#f0fdf4', borderRadius: '6px', borderLeft: '3px solid #15803d' }}>
+                                ✓ {adm}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* ── Witness Scripts ───────────────────── */}
+                        {o.witness_scripts && o.witness_scripts.length > 0 && (
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <p style={{ fontSize: '10px', fontWeight: 800, color: '#5b21b6', letterSpacing: '0.06em', margin: 0 }}>CROSS-EXAMINATION SCRIPT ({o.witness_scripts.length} questions)</p>
+                              <button onClick={() => { try { navigator.clipboard.writeText(o.witness_scripts.map((s: any) => 'Q' + s.sequence_number + ': ' + s.question + '\nExpected: ' + s.expected_answer + (s.follow_up_if_lie ? '\nFollow-up if denied: ' + s.follow_up_if_lie : '')).join('\n\n')); } catch (err) {} }}
+                                style={{ fontSize: '10px', color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Copy Script</button>
+                            </div>
+                            {o.witness_scripts.map((ws: any, i: number) => (
+                              <div key={i} style={{ marginBottom: '10px', border: '1px solid rgba(124,58,237,0.15)', borderRadius: '8px', overflow: 'hidden' }}>
+                                <div style={{ background: '#5b21b6', padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff', letterSpacing: '0.04em' }}>Q{ws.sequence_number}</span>
+                                  {ws.objective && <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)' }}>{ws.objective}</span>}
+                                </div>
+                                <div style={{ padding: '10px 12px', background: '#faf5ff' }}>
+                                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#3b0764', margin: '0 0 6px' }}>"{ws.question}"</p>
+                                  <p style={{ fontSize: '11px', color: '#6d28d9', margin: '0 0 4px' }}>Expected: {ws.expected_answer}</p>
+                                  {ws.follow_up_if_lie && (
+                                    <p style={{ fontSize: '11px', color: '#022448', margin: 0, background: '#ede9fe', padding: '4px 8px', borderRadius: '4px' }}>
+                                      ↳ If denied: "{ws.follow_up_if_lie}"
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* ── Flat cross-exam list (fallback for old jobs) ── */}
+                        {o.cross_examination_questions && o.cross_examination_questions.length > 0 && !o.witness_scripts && (
                           <div style={{ marginBottom: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <p style={{ fontSize: '10px', fontWeight: 800, color: '#5b21b6', letterSpacing: '0.06em', margin: 0 }}>CROSS-EXAM QUESTIONS ({o.cross_examination_questions.length})</p>
