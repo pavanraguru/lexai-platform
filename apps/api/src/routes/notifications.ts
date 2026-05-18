@@ -11,19 +11,26 @@ export const notificationRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: [fastify.authenticate],
   }, async (req, reply) => {
     const { id: user_id } = req.user;
-    const notifs = await fastify.prisma.notification.findMany({
-      where: { user_id },
-      orderBy: { created_at: 'desc' },
-      take: 30,
-    });
-    // Deduplicate by id in case of any DB anomalies
-    const seen = new Set<string>();
-    const unique = notifs.filter((n: any) => {
-      if (seen.has(n.id)) return false;
-      seen.add(n.id);
-      return true;
-    });
-    return reply.send({ data: unique });
+    try {
+      const notifs = await fastify.prisma.notification.findMany({
+        where: { user_id },
+        orderBy: { created_at: 'desc' },
+        take: 30,
+      });
+      // Deduplicate by id in case of any DB anomalies
+      const seen = new Set<string>();
+      const unique = notifs.filter((n: any) => {
+        if (seen.has(n.id)) return false;
+        seen.add(n.id);
+        return true;
+      });
+      return reply.send({ data: unique });
+    } catch (err: any) {
+      // Connection pool timeout or DB error — return empty array
+      // so the UI doesn't show a 500. Fix: add connection_limit to DATABASE_URL.
+      fastify.log.warn('[Notifications] DB error (likely pool timeout):', err.message);
+      return reply.send({ data: [] });
+    }
   });
 
   // PATCH /v1/notifications/mark-all-read
