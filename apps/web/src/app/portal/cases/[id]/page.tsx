@@ -269,6 +269,30 @@ function TasksTab({ tasks }: { tasks: any[] }) {
   );
 }
 
+// ── TipTap JSON → plain text extractor ───────────────────────
+function extractDraftText(content: any): string {
+  if (!content) return '';
+  // Already a plain string
+  if (typeof content === 'string') return content;
+  // TipTap/ProseMirror doc node
+  if (content.type === 'doc' || content.type === 'paragraph' || content.type === 'bulletList' ||
+      content.type === 'orderedList' || content.type === 'listItem' || content.type === 'blockquote' ||
+      content.type === 'heading') {
+    const childText = (content.content || []).map((c: any) => extractDraftText(c)).join('');
+    // Add newline after block-level nodes
+    const isBlock = ['paragraph','heading','listItem','blockquote'].includes(content.type);
+    return isBlock ? childText + '\n' : childText;
+  }
+  // Text node — the actual content
+  if (content.type === 'text') return content.text || '';
+  // hardBreak
+  if (content.type === 'hardBreak') return '\n';
+  // Array of nodes (some older formats)
+  if (Array.isArray(content)) return content.map(extractDraftText).join('');
+  // Unknown — skip
+  return '';
+}
+
 // ── Drafts Tab ────────────────────────────────────────────────
 function DraftsTab({ caseId, token }: { caseId: string; token: string }) {
   const [drafts, setDrafts] = useState<any[]>([]);
@@ -297,7 +321,7 @@ function DraftsTab({ caseId, token }: { caseId: string; token: string }) {
       <div style={{ fontFamily: 'Newsreader, serif', fontSize: '20px', fontWeight: 700, color: '#022448', marginBottom: '4px' }}>{selected.title}</div>
       <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>{selected.doc_type?.replace(/_/g, ' ')} · {fmtDate(selected.updated_at)}</div>
       <div style={s.viewer}>
-        {typeof selected.content === 'string' ? selected.content : selected.content?.text || JSON.stringify(selected.content, null, 2)}
+        {extractDraftText(selected.content)}
       </div>
     </div>
   );
