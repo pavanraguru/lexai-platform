@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import AppShell from './AppShell';
 
-const NO_SHELL_PATHS = ['/login', '/signup', '/auth', '/portal', '/pay/'];
+const NO_SHELL_PATHS = ['/', '/login', '/signup', '/auth', '/portal', '/pay/'];
 
 export default function ConditionalShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
