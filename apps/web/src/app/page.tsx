@@ -63,7 +63,7 @@ function MarketingSite() {
           <div className="sc-stat"><div className="sc-snum">8</div><div><div className="sc-slbl">AI Agents</div><div className="sc-ssub">Evidence to Strategy</div></div></div>
           <div className="sc-stat"><div className="sc-snum">14</div><div><div className="sc-slbl">Document Types</div><div className="sc-ssub">Bail to Writ Petition</div></div></div>
           <div className="sc-stat"><div className="sc-snum">145+</div><div><div className="sc-slbl">Tracked Events</div><div className="sc-ssub">Full audit trail</div></div></div>
-          <div className="sc-stat"><div className="sc-snum">3</div><div><div className="sc-slbl">Languages</div><div className="sc-ssub">EN · TE · HI</div></div></div>
+          <div className="sc-stat"><div className="sc-snum">SC→MC</div><div><div className="sc-slbl">All Court Levels</div><div className="sc-ssub">Supreme to Magistrate</div></div></div>
           <div className="sc-stat"><div className="sc-snum">IK</div><div><div className="sc-slbl">Citation Verified</div><div className="sc-ssub">Indian Kanoon linked</div></div></div>
         </div>
       </section>
@@ -197,8 +197,7 @@ function MarketingSite() {
   var N=[];for(var i=0;i<90;i++)N.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,o:Math.random()*.5+.1});
   (function draw(){ctx.clearRect(0,0,c.width,c.height);for(var i=0;i<N.length;i++){var n=N[i];n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>c.width)n.vx*=-1;if(n.y<0||n.y>c.height)n.vy*=-1;for(var j=i+1;j<N.length;j++){var m=N[j],d=Math.hypot(n.x-m.x,n.y-m.y);if(d<130){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(m.x,m.y);ctx.strokeStyle='rgba(255,224,136,'+(1-d/130)*.07+')';ctx.lineWidth=.5;ctx.stroke()}}ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle='rgba(255,224,136,'+n.o*.6+')';ctx.fill();}requestAnimationFrame(draw);})();
   window.addEventListener('scroll',function(){document.getElementById('sc-nav').classList.toggle('sc-scrolled',window.scrollY>40)});
-  var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('sc-vis')})},{threshold:.1,rootMargin:'0px 0px -40px 0px'});
-  document.querySelectorAll('.sc-rev,.sc-revl,.sc-revr').forEach(function(el,i){el.style.transitionDelay=(i%8)*.07+'s';obs.observe(el)});
+  // Reveal handled by CSS — no JS observer needed
 })();
       `}} />
     </div>
@@ -248,7 +247,7 @@ const STYLES = `
 .sc-bmain:hover .sc-arr{transform:translateX(4px)}
 .sc-bgh{font-family:'Manrope',sans-serif;font-size:16px;font-weight:600;color:rgba(255,255,255,0.8);background:none;border:1.5px solid rgba(255,255,255,0.15);padding:16px 36px;border-radius:12px;cursor:pointer;text-decoration:none;transition:all 0.3s}
 .sc-bgh:hover{border-color:rgba(255,255,255,0.5);color:#fff}
-.sc-scroll{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:scHF 1s 1.2s ease forwards;z-index:2}
+.sc-scroll{display:none}
 .sc-sline{width:1px;height:48px;background:linear-gradient(to bottom,rgba(255,255,255,0.3),transparent);animation:scSL 2s ease-in-out infinite}
 @keyframes scSL{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
 .sc-stxt{font-size:10px;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase}
@@ -336,8 +335,8 @@ const STYLES = `
 .sc-flinks a{font-size:12px;color:rgba(255,255,255,0.3);text-decoration:none;transition:color 0.2s}
 .sc-flinks a:hover{color:rgba(255,255,255,0.7)}
 .sc-fcopy{font-size:11px;color:rgba(255,255,255,0.2)}
-.sc-rev{opacity:0;transform:translateY(32px);transition:opacity 0.7s ease,transform 0.7s ease}
-.sc-rev.sc-vis{opacity:1;transform:translateY(0)}
+.sc-rev{opacity:1;transform:none}
+.sc-rev.sc-vis{opacity:1;transform:none}
 @media(max-width:960px){
   .sc-nav{padding:0 20px}.sc-navlinks{display:none}
   .sc-section{padding:80px 20px}.sc-hero{padding:100px 20px 60px}
