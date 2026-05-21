@@ -186,12 +186,33 @@ function MarketingSite() {
 (function(){
   var cur=document.getElementById('sc-cursor'),ring=document.getElementById('sc-ring');
   var mx=0,my=0,rx=0,ry=0;
-  document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
-  (function ar(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar)})();
-  document.querySelectorAll('a,button,.sc-acard,.sc-b,.sc-ipill').forEach(function(el){
-    el.addEventListener('mouseenter',function(){cur.style.transform='translate(-50%,-50%) scale(2.5)';ring.style.width='56px';ring.style.height='56px'});
-    el.addEventListener('mouseleave',function(){cur.style.transform='translate(-50%,-50%) scale(1)';ring.style.width='36px';ring.style.height='36px'});
+  // Dot follows mouse instantly
+  document.addEventListener('mousemove',function(e){
+    mx=e.clientX;my=e.clientY;
+    cur.style.left=mx+'px';cur.style.top=my+'px';
   });
+  // Ring lags behind smoothly
+  (function ar(){
+    rx+=(mx-rx)*0.10;ry+=(my-ry)*0.10;
+    ring.style.left=rx+'px';ring.style.top=ry+'px';
+    requestAnimationFrame(ar);
+  })();
+  // Hover state — enlarge both on interactive elements
+  document.querySelectorAll('a,button,.sc-acard,.sc-b,.sc-ipill,.sc-plan').forEach(function(el){
+    el.addEventListener('mouseenter',function(){
+      cur.classList.add('sc-hover');
+      ring.classList.add('sc-hover');
+    });
+    el.addEventListener('mouseleave',function(){
+      cur.classList.remove('sc-hover');
+      ring.classList.remove('sc-hover');
+    });
+  });
+  // Show cursor once mouse moves (hidden until first move)
+  cur.style.opacity='0';ring.style.opacity='0';
+  document.addEventListener('mousemove',function(){
+    cur.style.opacity='1';ring.style.opacity='1';
+  },{once:true});
   var c=document.getElementById('sc-canvas'),ctx=c.getContext('2d');
   function rsz(){c.width=window.innerWidth;c.height=window.innerHeight}rsz();window.addEventListener('resize',rsz);
   var N=[];for(var i=0;i<90;i++)N.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,o:Math.random()*.5+.1});
@@ -208,8 +229,10 @@ const STYLES = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--navy:#022448;--navy-deep:#010f1f;--navy-mid:#04386e;--gold:#ffe088;--gold-warm:#ffd055;--gold-deep:#b8940a}
 #sc-site{font-family:'Manrope',sans-serif;background:var(--navy-deep);color:#fff;overflow-x:hidden;cursor:none}
-.sc-cursor{position:fixed;width:10px;height:10px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform 0.1s,width 0.3s,height 0.3s;mix-blend-mode:difference}
-.sc-ring{position:fixed;width:36px;height:36px;border:1.5px solid rgba(255,224,136,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width 0.3s,height 0.3s}
+.sc-cursor{position:fixed;width:8px;height:8px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform 0.15s ease,width 0.25s ease,height 0.25s ease;box-shadow:0 0 0 2px rgba(255,224,136,0.3)}
+.sc-ring{position:fixed;width:32px;height:32px;border:1.5px solid rgba(255,224,136,0.6);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left 0s,top 0s,width 0.2s ease,height 0.2s ease,border-color 0.2s ease}
+.sc-cursor.sc-hover{width:14px;height:14px;background:var(--gold);box-shadow:0 0 0 3px rgba(255,224,136,0.25),0 0 20px rgba(255,224,136,0.3)}
+.sc-ring.sc-hover{width:44px;height:44px;border-color:rgba(255,224,136,0.8)}
 .sc-nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 52px;height:68px;transition:all 0.4s}
 .sc-nav.sc-scrolled{background:rgba(1,15,31,0.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
 .sc-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
