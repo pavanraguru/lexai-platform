@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign Counsel — AI Legal Intelligence for Indian Advocates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400;1,6..72,500&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#022448;--navy-deep:#010f1f;--navy-mid:#04386e;--gold:#ffe088;--gold-mid:#f5c842;--gold-deep:#b8940a;--gold-warm:#ffd055;--cream:#faf8f3;--white:#fff;--text:#191c1e;--text-2:#43474e;--text-3:#74777f;--border:rgba(2,36,72,0.1)}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{font-family:'Manrope',sans-serif;background:var(--navy-deep);color:#fff;overflow-x:hidden;cursor:none}
+.cursor{position:fixed;width:10px;height:10px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform 0.1s,width 0.3s,height 0.3s;mix-blend-mode:difference}
+.cursor-ring{position:fixed;width:36px;height:36px;border:1.5px solid rgba(255,224,136,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width 0.3s,height 0.3s,opacity 0.3s}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 52px;height:68px;transition:all 0.4s}
+nav.scrolled{background:rgba(1,15,31,0.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.nav-logo-wrap{position:relative}
+.nav-logo{width:36px;height:36px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Newsreader',serif;font-weight:600;color:var(--navy);font-size:17px;position:relative;z-index:1}
+.nav-logo-glow{position:absolute;inset:-4px;background:var(--gold);border-radius:12px;opacity:0.2;filter:blur(8px);animation:logoGlow 3s ease-in-out infinite}
+@keyframes logoGlow{0%,100%{opacity:0.15;transform:scale(1)}50%{opacity:0.35;transform:scale(1.1)}}
+.nav-name{font-family:'Newsreader',serif;font-weight:500;font-size:17px;color:#fff;letter-spacing:-0.01em}
+.nav-links{display:flex;align-items:center;gap:36px}
+.nav-links a{font-size:13px;font-weight:500;color:rgba(255,255,255,0.6);text-decoration:none;transition:color 0.2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:1px;background:var(--gold);transform:scaleX(0);transition:transform 0.3s;transform-origin:left}
+.nav-links a:hover{color:#fff}
+.nav-links a:hover::after{transform:scaleX(1)}
+.nav-cta{display:flex;align-items:center;gap:12px}
+.btn-ng{font-family:'Manrope',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,0.8);background:none;border:1px solid rgba(255,255,255,0.2);padding:8px 20px;border-radius:8px;cursor:pointer;text-decoration:none;transition:all 0.25s}
+.btn-ng:hover{border-color:rgba(255,255,255,0.6);color:#fff;background:rgba(255,255,255,0.06)}
+.btn-np{font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;color:var(--navy);background:var(--gold);border:none;padding:9px 22px;border-radius:8px;cursor:pointer;text-decoration:none;transition:all 0.25s}
+.btn-np:hover{background:var(--gold-warm);transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,224,136,0.35)}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 48px 80px;position:relative;overflow:hidden}
+#heroCanvas{position:absolute;inset:0;z-index:0}
+.hero-content{position:relative;z-index:2;text-align:center;max-width:900px}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,224,136,0.25);background:rgba(255,224,136,0.06);padding:6px 16px;border-radius:30px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:32px;animation:fadeDown 0.8s ease forwards}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.eyebrow-pulse{width:6px;height:6px;background:var(--gold);border-radius:50%;animation:epulse 2s ease-in-out infinite}
+@keyframes epulse{0%,100%{box-shadow:0 0 0 0 rgba(255,224,136,0.5)}70%{box-shadow:0 0 0 8px rgba(255,224,136,0)}}
+.hero-h1{font-family:'Newsreader',serif;font-size:clamp(48px,7vw,88px);font-weight:400;line-height:1.0;letter-spacing:-0.025em;color:#fff;margin-bottom:28px;opacity:0;animation:hfade 1s 0.2s ease forwards}
+@keyframes hfade{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.hero-h1 .l2{display:block;color:var(--gold);font-style:italic}
+.hero-h1 .l3{display:block;color:rgba(255,255,255,0.45);font-size:0.62em;font-style:normal;margin-top:10px;font-weight:300}
+.hero-sub{font-size:18px;font-weight:400;color:rgba(255,255,255,0.6);line-height:1.75;max-width:580px;margin:0 auto 44px;opacity:0;animation:hfade 1s 0.4s ease forwards}
+.hero-actions{display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap;opacity:0;animation:hfade 1s 0.6s ease forwards}
+.btn-hm{font-family:'Manrope',sans-serif;font-size:16px;font-weight:700;color:var(--navy);background:var(--gold);border:none;padding:16px 36px;border-radius:12px;cursor:pointer;text-decoration:none;transition:all 0.3s;display:inline-flex;align-items:center;gap:10px;position:relative;overflow:hidden}
+.btn-hm::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.2),transparent);opacity:0;transition:opacity 0.3s}
+.btn-hm:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(255,224,136,0.4)}
+.btn-hm:hover::before{opacity:1}
+.arr{width:20px;height:20px;border-radius:50%;background:rgba(2,36,72,0.2);display:flex;align-items:center;justify-content:center;font-size:12px;transition:transform 0.3s}
+.btn-hm:hover .arr{transform:translateX(4px)}
+.btn-hg{font-family:'Manrope',sans-serif;font-size:16px;font-weight:600;color:rgba(255,255,255,0.8);background:none;border:1.5px solid rgba(255,255,255,0.15);padding:16px 36px;border-radius:12px;cursor:pointer;text-decoration:none;transition:all 0.3s}
+.btn-hg:hover{border-color:rgba(255,255,255,0.5);color:#fff;background:rgba(255,255,255,0.05)}
+.hero-scroll{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:hfade 1s 1.2s ease forwards;z-index:2}
+.scroll-line{width:1px;height:48px;background:linear-gradient(to bottom,rgba(255,255,255,0.3),transparent);animation:sline 2s ease-in-out infinite}
+@keyframes sline{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+.scroll-text{font-size:10px;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase}
+.statsbar{position:absolute;bottom:0;left:0;right:0;display:flex;border-top:1px solid rgba(255,255,255,0.06);z-index:2;opacity:0;animation:hfade 1s 0.9s ease forwards}
+.stat-block{flex:1;padding:20px 32px;border-right:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:14px}
+.stat-block:last-child{border-right:none}
+.stat-num{font-family:'Newsreader',serif;font-size:28px;font-weight:400;color:var(--gold);line-height:1}
+.stat-info{display:flex;flex-direction:column}
+.stat-label{font-size:12px;font-weight:700;color:#fff}
+.stat-sub{font-size:11px;color:rgba(255,255,255,0.4)}
+.marquee-wrap{overflow:hidden;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.02)}
+.marquee-track{display:flex;animation:mq 30s linear infinite;width:max-content}
+.mq-item{padding:16px 40px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px}
+.mq-dot{width:4px;height:4px;background:var(--gold);border-radius:50%;opacity:0.6}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.section{padding:120px 52px}
+.si{max-width:1140px;margin:0 auto}
+.slabel{font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.slabel::before{content:'';width:24px;height:1px;background:var(--gold);opacity:0.6}
+.sh2{font-family:'Newsreader',serif;font-weight:400;font-size:clamp(36px,4.5vw,60px);color:#fff;line-height:1.05;letter-spacing:-0.02em}
+.sh2 em{font-style:italic;color:var(--gold)}
+.sbody{font-size:18px;color:rgba(255,255,255,0.55);line-height:1.7;max-width:520px;margin-top:18px}
+.cases-split{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;margin-top:72px}
+.ctab{padding:20px 24px;border-radius:12px;cursor:pointer;transition:all 0.3s;border:1px solid transparent;margin-bottom:2px}
+.ctab.active{background:rgba(255,224,136,0.07);border-color:rgba(255,224,136,0.15)}
+.ctab-num{font-size:10px;font-weight:800;color:rgba(255,224,136,0.4);letter-spacing:0.08em;margin-bottom:6px}
+.ctab-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;transition:color 0.3s}
+.ctab:not(.active) .ctab-title{color:rgba(255,255,255,0.45)}
+.ctab-sub{font-size:12px;color:rgba(255,255,255,0.3);line-height:1.5}
+.ctab:not(.active):hover{background:rgba(255,255,255,0.03)}
+.cdisp{position:sticky;top:100px}
+.ccard{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;overflow:hidden;display:none}
+.ccard.vis{display:block;animation:cin 0.4s ease}
+@keyframes cin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.cch{padding:24px 28px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.cc-type{font-size:9px;font-weight:800;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.cc-type::before{content:'';width:16px;height:1px;background:var(--gold);opacity:0.5}
+.cc-title{font-family:'Newsreader',serif;font-size:16px;font-weight:500;color:#fff;line-height:1.4}
+.cbadge{font-size:9px;font-weight:800;padding:4px 10px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.bg{background:rgba(255,224,136,0.15);color:var(--gold);border:1px solid rgba(255,224,136,0.2)}
+.bb{background:rgba(100,160,255,0.15);color:#7ab4ff;border:1px solid rgba(100,160,255,0.2)}
+.bgrn{background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.2)}
+.ccb{padding:24px 28px;display:flex;flex-direction:column;gap:16px}
+.arb{border-radius:10px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)}
+.arbh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.arbi{width:28px;height:28px;border-radius:7px;background:rgba(255,224,136,0.1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.arbl{font-size:10px;font-weight:800;color:rgba(255,255,255,0.4);letter-spacing:0.08em;text-transform:uppercase}
+.arbt{font-size:13px;font-weight:700;color:#fff}
+.arbc{font-size:12px;color:rgba(255,255,255,0.55);line-height:1.6}
+.arbtags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.at{font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6)}
+.ath{background:rgba(255,224,136,0.1);color:rgba(255,224,136,0.8)}
+.sbar{display:flex;align-items:center;gap:12px;margin-top:8px}
+.sbl{font-size:10px;font-weight:700;color:var(--gold);min-width:70px}
+.sbt{flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+.sbf{height:100%;border-radius:3px;background:linear-gradient(90deg,#4ade80,var(--gold))}
+.sbs{font-size:12px;font-weight:700;color:#fff}
+.bento-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:72px}
+.bento{border-radius:20px;padding:32px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);overflow:hidden;position:relative;transition:border-color 0.3s,background 0.3s}
+.bento:hover{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.05)}
+.bento::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at var(--mx,50%) var(--my,50%),rgba(255,224,136,0.05),transparent 60%);opacity:0;transition:opacity 0.3s;pointer-events:none}
+.bento:hover::after{opacity:1}
+.b1{grid-column:span 5}.b2{grid-column:span 7}.b3{grid-column:span 4}.b4{grid-column:span 4}.b5{grid-column:span 4}.b6{grid-column:span 8}.b7{grid-column:span 4}
+.btag{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:4px 10px;border-radius:4px;margin-bottom:16px}
+.tlive{background:rgba(74,222,128,0.12);color:#4ade80;border:1px solid rgba(74,222,128,0.2)}
+.tnew{background:rgba(255,224,136,0.12);color:var(--gold);border:1px solid rgba(255,224,136,0.2)}
+.bico{font-size:32px;margin-bottom:20px;display:block}
+.btitle{font-family:'Newsreader',serif;font-size:22px;font-weight:500;color:#fff;margin-bottom:10px;line-height:1.2}
+.bdesc{font-size:14px;color:rgba(255,255,255,0.5);line-height:1.65}
+.mini-doc{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-top:20px}
+.md-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.mdlines{display:flex;flex-direction:column;gap:5px}
+.mdl{height:6px;border-radius:3px;background:rgba(255,255,255,0.08)}
+.mdl.gold{background:rgba(255,224,136,0.25);width:70%}
+.riskmeter{display:flex;align-items:center;gap:12px;margin-top:16px}
+.rscore{font-family:'Newsreader',serif;font-size:42px;font-weight:400;color:#fff}
+.rgrade{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;margin-top:4px}
+.cit-list{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.cit{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06)}
+.citn{font-size:11px;font-weight:600;color:rgba(255,255,255,0.7)}
+.citc{font-size:9px;color:rgba(255,255,255,0.35)}
+.cita{font-size:9px;font-weight:800;color:var(--gold);background:rgba(255,224,136,0.1);padding:2px 8px;border-radius:3px;text-decoration:none}
+.calmini{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:16px}
+.cd{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4)}
+.cd.h{background:rgba(255,224,136,0.15);color:var(--gold)}
+.cd.today{background:var(--gold);color:var(--navy);font-weight:800}
+.cd.p{opacity:0.3}
+.team-row{display:flex;align-items:center;margin-top:16px}
+.tav{width:32px;height:32px;border-radius:50%;border:2px solid rgba(1,15,31,0.8);margin-left:-8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.tav:first-child{margin-left:0}
+.tcount{font-size:12px;color:rgba(255,255,255,0.4);margin-left:12px}
+.inv-prev{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;margin-top:16px}
+.inv-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.inv-row:last-child{border-bottom:none;font-weight:700;color:var(--gold);font-size:12px}
+.inv-row:not(:last-child){color:rgba(255,255,255,0.5)}
+.agents-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:64px}
+.acard{border-radius:16px;padding:24px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);cursor:default;transition:all 0.3s;position:relative;overflow:hidden}
+.acard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(255,224,136,0.6),transparent);transform:scaleX(0);transition:transform 0.4s;transform-origin:left}
+.acard:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,224,136,0.2);transform:translateY(-4px)}
+.acard:hover::before{transform:scaleX(1)}
+.anum{font-size:10px;font-weight:800;color:rgba(255,224,136,0.35);letter-spacing:0.1em;margin-bottom:14px}
+.aemoji{font-size:26px;margin-bottom:12px;display:block;filter:grayscale(30%);transition:filter 0.3s}
+.acard:hover .aemoji{filter:grayscale(0%)}
+.aname{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px}
+.adesc{font-size:12px;color:rgba(255,255,255,0.45);line-height:1.55}
+.acard.dim{opacity:0.4}
+.acard.dim:hover{opacity:0.7}
+.adim{font-size:9px;font-weight:700;color:rgba(255,255,255,0.25);margin-top:10px;letter-spacing:0.06em;text-transform:uppercase}
+.india-section{position:relative;overflow:hidden}
+.india-content{max-width:640px}
+.india-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:48px}
+.ipill{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:30px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);font-size:13px;font-weight:500;color:rgba(255,255,255,0.75);transition:all 0.3s;cursor:default}
+.ipill:hover{border-color:rgba(255,224,136,0.3);background:rgba(255,224,136,0.05);color:#fff}
+.ipill-icon{font-size:15px;flex-shrink:0}
+.portal-split{display:grid;grid-template-columns:1fr 1.1fr;gap:80px;align-items:center;margin-top:72px}
+.pf-list{display:flex;flex-direction:column;gap:24px;margin-top:36px}
+.pf{display:flex;gap:16px;align-items:flex-start;padding:20px;border-radius:14px;border:1px solid transparent;transition:all 0.3s}
+.pf:hover{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08)}
+.pf-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:rgba(255,224,136,0.1)}
+.pf-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.pf-desc{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.55}
+.portal-frame{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:24px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,0.5)}
+.pbar{background:rgba(2,36,72,0.8);padding:12px 20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.pdot{width:9px;height:9px;border-radius:50%}
+.pscreen{background:#f4f5f7;padding:24px}
+.pgr{font-family:'Newsreader',serif;font-size:19px;font-weight:500;color:var(--navy)}
+.psub{font-size:11px;color:var(--text-3);margin-top:2px;font-family:'Manrope',sans-serif}
+.pcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:16px 0}
+.pcard{background:#fff;border-radius:10px;padding:12px;border:1px solid rgba(196,198,207,0.3)}
+.pcard-lbl{font-size:8px;font-weight:800;color:var(--text-3);letter-spacing:0.08em;text-transform:uppercase;font-family:'Manrope',sans-serif}
+.pcard-val{font-family:'Newsreader',serif;font-size:20px;font-weight:500;color:var(--navy);margin-top:2px}
+.pcase{background:#fff;border-radius:10px;padding:12px 14px;border:1px solid rgba(196,198,207,0.3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.pcase-t{font-size:12px;font-weight:700;color:var(--navy);font-family:'Manrope',sans-serif}
+.pcase-s{font-size:9px;color:var(--text-3);margin-top:2px;font-family:'Manrope',sans-serif}
+.sp{font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:'Manrope',sans-serif}
+.spg{background:#ffe088;color:#745c00}.spb{background:#d5e3ff;color:#001c3b}.spgr{background:#dcfce7;color:#15803d}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:72px;max-width:960px;margin-left:auto;margin-right:auto}
+.plan{border-radius:24px;padding:40px 32px;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);transition:transform 0.3s;position:relative;overflow:hidden}
+.plan:hover{transform:translateY(-6px)}
+.plan.feat{background:var(--gold);border-color:var(--gold)}
+.plan-badge{font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:24px;display:inline-block;padding:5px 12px;border-radius:4px}
+.plan:not(.feat) .plan-badge{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5)}
+.plan.feat .plan-badge{background:rgba(2,36,72,0.15);color:var(--navy)}
+.plan-name{font-family:'Newsreader',serif;font-size:26px;font-weight:400;color:#fff;margin-bottom:8px}
+.plan.feat .plan-name{color:var(--navy)}
+.plan-desc{font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:28px;line-height:1.5}
+.plan.feat .plan-desc{color:rgba(2,36,72,0.6)}
+.plan-price{display:flex;align-items:baseline;gap:4px;margin-bottom:32px}
+.plan-cur{font-size:20px;font-weight:600;color:#fff}
+.plan.feat .plan-cur{color:var(--navy)}
+.plan-amt{font-family:'Newsreader',serif;font-size:52px;font-weight:400;color:#fff;line-height:1}
+.plan.feat .plan-amt{color:var(--navy)}
+.plan-per{font-size:13px;color:rgba(255,255,255,0.4)}
+.plan.feat .plan-per{color:rgba(2,36,72,0.5)}
+.plan-feats{flex:1;display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+.pf-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4}
+.plan.feat .pf-item{color:rgba(2,36,72,0.75)}
+.pcheck{font-size:12px;color:var(--gold);flex-shrink:0;margin-top:1px;font-weight:700}
+.plan.feat .pcheck{color:var(--navy)}
+.btn-plan{width:100%;padding:14px;border-radius:12px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;display:block;transition:all 0.25s}
+.bpo{background:none;border:1.5px solid rgba(255,255,255,0.2);color:#fff}
+.bpo:hover{border-color:#fff;background:rgba(255,255,255,0.07)}
+.bpn{background:var(--navy);border:none;color:var(--gold)}
+.bpn:hover{background:#04386e;transform:translateY(-1px)}
+.cta-section{position:relative;overflow:hidden;padding:160px 52px;text-align:center}
+.cta-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(2,36,72,0.9),transparent)}
+.cta-glow{position:absolute;width:600px;height:600px;left:50%;top:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,224,136,0.07),transparent 70%);pointer-events:none}
+.cta-inner{position:relative;z-index:1}
+.cta-h2{font-family:'Newsreader',serif;font-size:clamp(40px,5vw,72px);font-weight:400;color:#fff;line-height:1.05;letter-spacing:-0.02em;margin-bottom:20px}
+.cta-h2 em{color:var(--gold);font-style:italic}
+.cta-sub{font-size:18px;color:rgba(255,255,255,0.5);margin-bottom:44px;max-width:480px;margin-left:auto;margin-right:auto}
+footer{background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);padding:48px 52px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px}
+.flogo{width:28px;height:28px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Newsreader',serif;font-weight:600;color:var(--navy);font-size:13px}
+.fname{font-family:'Newsreader',serif;font-size:15px;font-weight:500;color:rgba(255,255,255,0.5)}
+.flinks{display:flex;gap:28px;flex-wrap:wrap}
+.flinks a{font-size:12px;color:rgba(255,255,255,0.3);text-decoration:none;transition:color 0.2s}
+.flinks a:hover{color:rgba(255,255,255,0.7)}
+.fcopy{font-size:11px;color:rgba(255,255,255,0.2)}
+.reveal{opacity:0;transform:translateY(32px);transition:opacity 0.7s ease,transform 0.7s ease}
+.reveal.vis{opacity:1;transform:translateY(0)}
+.revl{opacity:0;transform:translateX(-32px);transition:opacity 0.7s ease,transform 0.7s ease}
+.revl.vis{opacity:1;transform:translateX(0)}
+.revr{opacity:0;transform:translateX(32px);transition:opacity 0.7s ease,transform 0.7s ease}
+.revr.vis{opacity:1;transform:translateX(0)}
+@media(max-width:960px){
+  nav{padding:0 20px}.nav-links{display:none}
+  .section{padding:80px 20px}.hero{padding:100px 20px 60px}
+  .statsbar{display:none}
+  .cases-split,.portal-split{grid-template-columns:1fr}
+  .bento-grid{grid-template-columns:1fr 1fr}
+  .b1,.b2,.b3,.b4,.b5,.b6,.b7{grid-column:span 1}
+  .agents-grid{grid-template-columns:repeat(2,1fr)}
+  .pricing-grid{grid-template-columns:1fr;max-width:420px}
+  footer{flex-direction:column;text-align:center}.flinks{justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<nav id="navbar">
+  <a href="#" class="nav-brand">
+    <div class="nav-logo-wrap">
+      <div class="nav-logo">SC</div>
+      <div class="nav-logo-glow"></div>
+    </div>
+    <span class="nav-name">Sovereign Counsel</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Platform</a>
+    <a href="#agents">AI Agents</a>
+    <a href="#portal">Client Portal</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <div class="nav-cta">
+    <a href="https://lexai-platform-web.vercel.app" class="btn-ng" target="_blank">Log in</a>
+    <a href="https://lexai-platform-web.vercel.app" class="btn-np" target="_blank">Start free trial</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <canvas id="heroCanvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-eyebrow"><div class="eyebrow-pulse"></div>India's first AI-native legal practice platform</div>
+    <h1 class="hero-h1">The counsel that never<br><span class="l2">sleeps, never forgets</span><span class="l3">Bail applications to board resolutions — AI-powered, India-built</span></h1>
+    <p class="hero-sub">Eight AI agents purpose-built for Indian courts. Draft bail applications, research precedents, build court strategies, review documents — in minutes, not hours.</p>
+    <div class="hero-actions">
+      <a href="https://lexai-platform-web.vercel.app" class="btn-hm" target="_blank">Begin your practice <div class="arr">→</div></a>
+      <a href="#features" class="btn-hg">Explore the platform</a>
+    </div>
+  </div>
+  <div class="hero-scroll"><div class="scroll-line"></div><div class="scroll-text">Scroll</div></div>
+  <div class="statsbar">
+    <div class="stat-block"><div class="stat-num">8</div><div class="stat-info"><span class="stat-label">AI Agents</span><span class="stat-sub">Evidence to Strategy</span></div></div>
+    <div class="stat-block"><div class="stat-num">14</div><div class="stat-info"><span class="stat-label">Document Types</span><span class="stat-sub">Bail to Writ Petition</span></div></div>
+    <div class="stat-block"><div class="stat-num">145+</div><div class="stat-info"><span class="stat-label">Tracked Events</span><span class="stat-sub">Full audit trail</span></div></div>
+    <div class="stat-block"><div class="stat-num">3</div><div class="stat-info"><span class="stat-label">Languages</span><span class="stat-sub">EN · TE · HI</span></div></div>
+    <div class="stat-block"><div class="stat-num">IK</div><div class="stat-info"><span class="stat-label">Citation Verified</span><span class="stat-sub">Indian Kanoon linked</span></div></div>
+  </div>
+</section>
+
+<div class="marquee-wrap">
+  <div class="marquee-track" id="mtrack">
+    <div class="mq-item"><div class="mq-dot"></div>Sessions Court</div><div class="mq-item"><div class="mq-dot"></div>High Court</div><div class="mq-item"><div class="mq-dot"></div>Supreme Court</div><div class="mq-item"><div class="mq-dot"></div>NCLT / NCLAT</div><div class="mq-item"><div class="mq-dot"></div>Consumer Forum</div><div class="mq-item"><div class="mq-dot"></div>Labour Tribunal</div><div class="mq-item"><div class="mq-dot"></div>IPC · CrPC · CPC</div><div class="mq-item"><div class="mq-dot"></div>Evidence Act</div><div class="mq-item"><div class="mq-dot"></div>Arbitration Act 1996</div><div class="mq-item"><div class="mq-dot"></div>Companies Act 2013</div><div class="mq-item"><div class="mq-dot"></div>GST Compliant</div><div class="mq-item"><div class="mq-dot"></div>Vakalatnama</div><div class="mq-item"><div class="mq-dot"></div>Telugu · Hindi · English</div><div class="mq-item"><div class="mq-dot"></div>Indian Kanoon</div>
+    <div class="mq-item"><div class="mq-dot"></div>Sessions Court</div><div class="mq-item"><div class="mq-dot"></div>High Court</div><div class="mq-item"><div class="mq-dot"></div>Supreme Court</div><div class="mq-item"><div class="mq-dot"></div>NCLT / NCLAT</div><div class="mq-item"><div class="mq-dot"></div>Consumer Forum</div><div class="mq-item"><div class="mq-dot"></div>Labour Tribunal</div><div class="mq-item"><div class="mq-dot"></div>IPC · CrPC · CPC</div><div class="mq-item"><div class="mq-dot"></div>Evidence Act</div><div class="mq-item"><div class="mq-dot"></div>Arbitration Act 1996</div><div class="mq-item"><div class="mq-dot"></div>Companies Act 2013</div><div class="mq-item"><div class="mq-dot"></div>GST Compliant</div><div class="mq-item"><div class="mq-dot"></div>Vakalatnama</div><div class="mq-item"><div class="mq-dot"></div>Telugu · Hindi · English</div><div class="mq-item"><div class="mq-dot"></div>Indian Kanoon</div>
+  </div>
+</div>
+
+<section class="section" id="cases">
+  <div class="si">
+    <div class="slabel reveal">See it in action</div>
+    <h2 class="sh2 reveal">Real cases, <em>real intelligence</em></h2>
+    <p class="sbody reveal">How Sovereign Counsel handles actual Indian legal matters across practice areas.</p>
+    <div class="cases-split">
+      <div id="caseTabs">
+        <div class="ctab active revl" data-case="0"><div class="ctab-num">01 — Criminal</div><div class="ctab-title">Bail Application · Sessions Court</div><div class="ctab-sub">CrPC §437/439 · Full application drafted in under 5 minutes</div></div>
+        <div class="ctab revl" data-case="1"><div class="ctab-num">02 — Consumer</div><div class="ctab-title">Insurance Repudiation · Consumer Forum</div><div class="ctab-sub">Consumer Protection Act 2019 · Evidence + Research agents deployed</div></div>
+        <div class="ctab revl" data-case="2"><div class="ctab-num">03 — Corporate</div><div class="ctab-title">Insolvency Petition · NCLT Hyderabad</div><div class="ctab-sub">IBC 2016 · Document reviewer flagged 3 critical contract clauses</div></div>
+        <div class="ctab revl" data-case="3"><div class="ctab-num">04 — Constitutional</div><div class="ctab-title">Writ Petition · High Court of Telangana</div><div class="ctab-sub">Article 226 · Argument tree built from 11 verified precedents</div></div>
+      </div>
+      <div class="cdisp revr">
+        <div class="ccard vis" id="case-0">
+          <div class="cch"><div><div class="cc-type">Criminal · CrPC §437/439</div><div class="cc-title">State of Telangana vs Vallabhaneni Aditya Kumar<br>Sessions Court, Hyderabad · CC No. 95/2023</div></div><span class="cbadge bg">Pending Hearing</span></div>
+          <div class="ccb">
+            <div class="arb"><div class="arbh"><div class="arbi">✍️</div><div><div class="arbl">Drafter Agent</div><div class="arbt">Bail Application — Generated</div></div></div><div class="arbc">"It is most respectfully submitted that the Petitioner, Vallabhaneni Aditya Kumar, aged 22 years, is a first-time offender of unblemished character. This Hon'ble Court is humbly invited to grant bail under Section 437 CrPC..."</div><div class="arbtags"><span class="at ath">§437 CrPC</span><span class="at ath">§439 CrPC</span><span class="at">Art. 21 Constitution</span><span class="at">2,050 words · 4 min</span></div></div>
+            <div class="arb"><div class="arbh"><div class="arbi">♟️</div><div><div class="arbl">Strategy Agent</div><div class="arbt">Case Sentiment Score</div></div></div><div class="sbar"><span class="sbl">Favourable</span><div class="sbt"><div class="sbf" style="width:72%"></div></div><span class="sbs">72/100</span></div><div class="arbc" style="margin-top:10px">First-time offender, civil origin of dispute. Bench likely to apply bail as rule, jail as exception.</div></div>
+          </div>
+        </div>
+        <div class="ccard" id="case-1">
+          <div class="cch"><div><div class="cc-type">Consumer · CP Act 2019</div><div class="cc-title">Aditya Kumar vs Bajaj Allianz General Insurance<br>District Consumer Forum, Khammam</div></div><span class="cbadge bb">Arguments Stage</span></div>
+          <div class="ccb">
+            <div class="arb"><div class="arbh"><div class="arbi">⚖️</div><div><div class="arbl">Evidence Agent</div><div class="arbt">3 Key Exhibits Identified</div></div></div><div class="arbc">Insurance policy (TS 04 FB 1166), repudiation letter 02-11-2022, biased investigator report — surveyor never visited accident site. Contradiction established.</div><div class="arbtags"><span class="at ath">Strong evidence</span><span class="at">Contradiction found</span></div></div>
+            <div class="arb"><div class="arbh"><div class="arbi">📚</div><div><div class="arbl">Research Agent · IK Verified</div><div class="arbt">New India Assurance vs Pradeep Kumar (2009)</div></div></div><div class="arbc">Investigator report without site visit cannot be sole basis for repudiation. 7 SCC 787 — Supreme Court 2009.</div><div class="arbtags"><span class="at ath">IK ↗ Verified</span><span class="at">SC 2009</span></div></div>
+          </div>
+        </div>
+        <div class="ccard" id="case-2">
+          <div class="cch"><div><div class="cc-type">Corporate · IBC 2016</div><div class="cc-title">Krishna Cement Ltd. vs Ravi Industries Pvt. Ltd.<br>NCLT Hyderabad · CP(IB)/45/HDB/2024</div></div><span class="cbadge bgrn">Filed</span></div>
+          <div class="ccb">
+            <div class="arb"><div class="arbh"><div class="arbi">🔍</div><div><div class="arbl">Reviewer Agent</div><div class="arbt">Supply Agreement — Risk Assessment</div></div></div>
+            <div class="riskmeter"><div class="rscore">68</div><div><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4)">Risk Score / 100</div><div class="rgrade" style="background:rgba(255,224,136,0.15);color:var(--gold)">Needs Revision</div></div></div>
+            <div class="arbc" style="margin-top:12px">3 critical issues: limitation clause 30 days (inadequate under §9 IBC), missing arbitration seat, no force majeure provision.</div></div>
+          </div>
+        </div>
+        <div class="ccard" id="case-3">
+          <div class="cch"><div><div class="cc-type">Constitutional · Art. 226</div><div class="cc-title">Mohammed Salim vs State of Telangana & Ors.<br>High Court of Telangana, Hyderabad</div></div><span class="cbadge bg">Reserved</span></div>
+          <div class="ccb">
+            <div class="arb"><div class="arbh"><div class="arbi">♟️</div><div><div class="arbl">Strategy · Argument Tree · Main Argument</div><div class="arbt">Triple Constitutional Infirmity</div></div></div><div class="arbc">"The impugned order violates Art. 14 (arbitrary classification), Art. 19(1)(g) (right to livelihood), and Art. 21 (right to dignity) — three independent constitutional grounds."</div><div class="arbtags"><span class="at ath">Art. 14</span><span class="at ath">Art. 19(1)(g)</span><span class="at ath">Art. 21</span><span class="at">11 precedents</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="si">
+    <div class="slabel reveal">The complete platform</div>
+    <h2 class="sh2 reveal">Every feature your<br><em>practice demands</em></h2>
+    <div class="bento-grid">
+      <div class="bento b1 reveal"><span class="btag tlive">● Live</span><span class="bico">⚖️</span><div class="btitle">Case Management</div><div class="bdesc">Full lifecycle across Sessions, HC, SC, NCLT, Consumer Forums. CNR tracking, court hierarchy, status, hearing history.</div><div class="mini-doc"><div class="md-h"><span style="font-size:14px">📁</span><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);font-family:'Manrope',sans-serif">State vs Kumar · Sessions Court HYD</span></div><div class="mdlines"><div class="mdl gold"></div><div class="mdl" style="width:90%"></div><div class="mdl" style="width:60%"></div><div class="mdl" style="width:80%"></div></div></div></div>
+      <div class="bento b2 reveal"><span class="btag tnew">✦ New</span><span class="bico">✍️</span><div class="btitle">AI Document Drafter</div><div class="bdesc">14 document types. Bail applications under §437/439 CrPC, plaints under CPC Order VII, writ petitions under Art. 226/227, legal notices, vakalatnamas — generated with correct Indian legal language, numbered paragraphs, and proper prayer sections. Promotes directly to Drafts for editing.</div></div>
+      <div class="bento b3 reveal"><span class="btag tnew">✦ New</span><span class="bico">🔍</span><div class="btitle">Document Reviewer</div><div class="bdesc">Risk score and gap analysis on any uploaded document.</div><div class="riskmeter"><div class="rscore">23</div><div><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4)">Risk Score</div><div class="rgrade" style="background:rgba(74,222,128,0.15);color:#4ade80">Clean</div></div></div></div>
+      <div class="bento b4 reveal"><span class="btag tlive">● Live</span><span class="bico">📚</span><div class="btitle">Legal Research</div><div class="bdesc">Statutes and precedents with Indian Kanoon links.</div><div class="cit-list"><div class="cit"><div><div class="citn">Gudikanti Narasimhulu</div><div class="citc">SC · AIR 1978 · Bail Rule</div></div><a class="cita" href="#">IK ↗</a></div><div class="cit"><div><div class="citn">Sanjay Chandra vs CBI</div><div class="citc">SC · 2012 · 1 SCC 40</div></div><a class="cita" href="#">IK ↗</a></div></div></div>
+      <div class="bento b5 reveal"><span class="btag tlive">● Live</span><span class="bico">📅</span><div class="btitle">Court Calendar</div><div class="bdesc">Indian holidays. Hearing reminders.</div><div class="calmini"><div class="cd p">28</div><div class="cd p">29</div><div class="cd p">30</div><div class="cd p">31</div><div class="cd h">1</div><div class="cd">2</div><div class="cd">3</div><div class="cd">4</div><div class="cd h">5</div><div class="cd">6</div><div class="cd today">7</div><div class="cd">8</div><div class="cd">9</div><div class="cd h">10</div><div class="cd">11</div><div class="cd">12</div><div class="cd h">13</div><div class="cd">14</div></div></div>
+      <div class="bento b6 reveal"><span class="btag tlive">● Live</span><span class="bico">💰</span><div class="btitle">GST Invoicing & Billing</div><div class="bdesc">Professional GST-compliant invoices. Track payments, outstanding balances in paise-accurate arithmetic. Send reminders through the client portal.</div><div class="inv-prev"><div class="inv-row"><span>Professional fees — Oct 2024</span><span>₹25,000</span></div><div class="inv-row"><span>Appearance fees (3 hearings)</span><span>₹9,000</span></div><div class="inv-row"><span>GST @ 18%</span><span>₹6,120</span></div><div class="inv-row"><span>Total payable</span><span>₹40,120</span></div></div></div>
+      <div class="bento b7 reveal"><span class="btag tlive">● Live</span><span class="bico">👥</span><div class="btitle">Team & Roles</div><div class="bdesc">Invite advocates, associates, clerks. Custom permissions per feature. 145+ audit events.</div><div class="team-row"><div class="tav" style="background:rgba(100,160,255,0.2);color:#7ab4ff">PA</div><div class="tav" style="background:rgba(255,224,136,0.2);color:var(--gold)">SR</div><div class="tav" style="background:rgba(74,222,128,0.2);color:#4ade80">VK</div><div class="tav" style="background:rgba(255,100,100,0.2);color:#ff7070">MN</div><div class="tcount">+6 members</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="agents" style="background:rgba(255,255,255,0.01)">
+  <div class="si">
+    <div class="slabel reveal">AI agent suite</div>
+    <h2 class="sh2 reveal">Eight agents,<br><em>one purpose</em></h2>
+    <p class="sbody reveal">Each agent trained on Indian law, understands court hierarchy, and speaks the correct form of address — My Lord, Your Honour, Learned Tribunal.</p>
+    <div class="agents-grid">
+      <div class="acard reveal"><div class="anum">01 · Analysis</div><div class="aemoji">⚖️</div><div class="aname">Evidence Analyst</div><div class="adesc">Extracts and categorises exhibits. Finds contradictions and rates strength of each piece.</div></div>
+      <div class="acard reveal"><div class="anum">02 · Analysis</div><div class="aemoji">🕐</div><div class="aname">Timeline Builder</div><div class="adesc">Reconstructs events chronologically. Flags prosecution gaps and defence opportunities.</div></div>
+      <div class="acard reveal"><div class="anum">03 · Research</div><div class="aemoji">📚</div><div class="aname">Legal Researcher</div><div class="adesc">Statutes and precedents. Indian Kanoon-verified. How to distinguish adverse cases.</div></div>
+      <div class="acard reveal"><div class="anum">04 · Analysis</div><div class="aemoji">🎤</div><div class="aname">Deposition Analyst</div><div class="adesc">Full cross-examination script — question, expected answer, follow-up if denied.</div></div>
+      <div class="acard reveal"><div class="anum">05 · Strategy</div><div class="aemoji">♟️</div><div class="aname">Case Strategist</div><div class="adesc">Argument tree, closing skeleton, bench question bank, sentiment score with reasoning.</div></div>
+      <div class="acard reveal"><div class="anum">06 · Drafting</div><div class="aemoji">✍️</div><div class="aname">Document Drafter</div><div class="adesc">14 document types. Correct Indian legal language, numbered paragraphs, prayer sections.</div></div>
+      <div class="acard reveal"><div class="anum">07 · Review</div><div class="aemoji">🔍</div><div class="aname">Document Reviewer</div><div class="adesc">Risk score 0–100. Gap analysis, missing elements, procedural compliance flags.</div></div>
+      <div class="acard reveal"><div class="anum">08 · Summary</div><div class="aemoji">✦</div><div class="aname">Legal Summariser</div><div class="adesc">Plain-English summary of any document with action items and key dates.</div></div>
+      <div class="acard dim reveal"><div class="anum">09 · Corporate</div><div class="aemoji">📋</div><div class="aname">Contract Analyser</div><div class="adesc">Unfair terms, one-sided arbitration clauses, limitation period issues.</div><div class="adim">Coming soon</div></div>
+      <div class="acard dim reveal"><div class="anum">10 · Client</div><div class="aemoji">💬</div><div class="aname">Client Communicator</div><div class="adesc">Drafts hearing notices, case updates, and invoice reminders for clients.</div><div class="adim">Coming soon</div></div>
+      <div class="acard dim reveal"><div class="anum">11 · Compliance</div><div class="aemoji">🛡️</div><div class="aname">Compliance Checker</div><div class="adesc">SEBI, RBI, GST, Companies Act compliance for corporate matters.</div><div class="adim">Coming soon</div></div>
+      <div class="acard dim reveal"><div class="anum">12 · Filing</div><div class="aemoji">📁</div><div class="aname">Filing Assistant</div><div class="adesc">eCourts-ready filings with CIS checklists across all court levels.</div><div class="adim">Coming soon</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section india-section">
+  <div class="si" style="position:relative">
+    <svg style="position:absolute;right:-5%;top:50%;transform:translateY(-50%);width:50%;opacity:0.04;pointer-events:none" viewBox="0 0 400 500" fill="none"><path d="M200 20L280 60L320 120L340 200L300 280L280 350L240 420L200 480L160 420L120 350L100 280L60 200L80 120L120 60Z" stroke="white" stroke-width="1.5" fill="none"/><path d="M200 480L220 460L210 440" stroke="white" stroke-width="1" fill="none"/><circle cx="200" cy="260" r="4" fill="white" opacity="0.5"/><circle cx="160" cy="200" r="3" fill="white" opacity="0.3"/><circle cx="240" cy="180" r="3" fill="white" opacity="0.3"/><circle cx="180" cy="320" r="3" fill="white" opacity="0.3"/><circle cx="220" cy="320" r="2" fill="white" opacity="0.2"/></svg>
+    <div class="india-content">
+      <div class="slabel reveal">Built for India</div>
+      <h2 class="sh2 reveal">Not adapted.<br><em>Native.</em></h2>
+      <p class="sbody reveal">Every prompt, template, and form of address designed from the ground up for Indian courts, Indian statutes, and Indian advocates.</p>
+      <div class="india-pills">
+        <div class="ipill reveal"><span class="ipill-icon">🏛️</span>"My Lord" for SC/HC · "Your Honour" for District</div>
+        <div class="ipill reveal"><span class="ipill-icon">📖</span>IPC · CrPC · CPC · Evidence Act · Arbitration Act</div>
+        <div class="ipill reveal"><span class="ipill-icon">🔗</span>Indian Kanoon citation verification</div>
+        <div class="ipill reveal"><span class="ipill-icon">🏢</span>SC · HC · District · NCLT · Consumer Forum hierarchy</div>
+        <div class="ipill reveal"><span class="ipill-icon">💸</span>GST-compliant invoicing · Paise-accurate billing</div>
+        <div class="ipill reveal"><span class="ipill-icon">📝</span>Vakalatnama formatting · CNR number tracking</div>
+        <div class="ipill reveal"><span class="ipill-icon">🗣️</span>Telugu · Hindi · English interface</div>
+        <div class="ipill reveal"><span class="ipill-icon">📅</span>Indian court holiday calendar pre-loaded</div>
+        <div class="ipill reveal"><span class="ipill-icon">⚖️</span>Bail templates under CrPC §437 / §439</div>
+        <div class="ipill reveal"><span class="ipill-icon">🏗️</span>Companies Act 2013 · NCLT procedures · IBC</div>
+        <div class="ipill reveal"><span class="ipill-icon">🛡️</span>Consumer Protection Act 2019 workflows</div>
+        <div class="ipill reveal"><span class="ipill-icon">📊</span>State-specific stamp duty flags</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="portal">
+  <div class="si">
+    <div class="slabel reveal">Client portal</div>
+    <h2 class="sh2 reveal">Your clients,<br><em>always in the know</em></h2>
+    <div class="portal-split">
+      <div>
+        <p class="sbody reveal">A separate, secure portal for clients. They see only what you share — their cases, hearings, invoices, documents. Invite-only. Zero setup for clients.</p>
+        <div class="pf-list">
+          <div class="pf reveal"><div class="pf-icon">🔐</div><div><div class="pf-title">Invite-only secure access</div><div class="pf-desc">Generate a one-click invite link per client. They set their own password and see only their assigned cases.</div></div></div>
+          <div class="pf reveal"><div class="pf-icon">📋</div><div><div class="pf-title">Case & hearing visibility</div><div class="pf-desc">Live case status, upcoming hearing dates, and shared documents. Sensitive advocate tools stay hidden.</div></div></div>
+          <div class="pf reveal"><div class="pf-icon">💳</div><div><div class="pf-title">Invoices & payment history</div><div class="pf-desc">Clients view their GST invoices, paid amounts, and outstanding balance directly in the portal.</div></div></div>
+          <div class="pf reveal"><div class="pf-icon">📄</div><div><div class="pf-title">Secure document sharing</div><div class="pf-desc">Share documents selectively. Clients can upload supporting documents back to you securely.</div></div></div>
+        </div>
+      </div>
+      <div class="revr">
+        <div class="portal-frame">
+          <div class="pbar"><div class="pdot" style="background:#ff5f57"></div><div class="pdot" style="background:#febc2e"></div><div class="pdot" style="background:#28c840"></div><div style="flex:1;text-align:center;font-size:10px;color:rgba(255,255,255,0.3);font-family:'Manrope',sans-serif">Client Portal — Sovereign Counsel</div></div>
+          <div class="pscreen">
+            <div style="margin-bottom:16px"><div class="pgr">Welcome, Aditya Kumar</div><div class="psub">Last login: 2 hours ago · Hyderabad</div></div>
+            <div class="pcards"><div class="pcard"><div class="pcard-lbl">Cases</div><div class="pcard-val">2</div></div><div class="pcard"><div class="pcard-lbl">Next Hearing</div><div class="pcard-val" style="font-size:12px;margin-top:3px">Mon 18 Nov</div></div><div class="pcard"><div class="pcard-lbl">Outstanding</div><div class="pcard-val" style="font-size:12px;margin-top:3px">₹12,400</div></div></div>
+            <div style="font-size:9px;font-weight:800;color:#74777f;letter-spacing:0.08em;margin-bottom:8px;font-family:'Manrope',sans-serif">MY CASES</div>
+            <div class="pcase"><div><div class="pcase-t">vs Bajaj Allianz General Insurance</div><div class="pcase-s">CC No. 95/2023 · Khammam Consumer Forum</div></div><span class="sp spg">Pending</span></div>
+            <div class="pcase"><div><div class="pcase-t">vs State of Telangana</div><div class="pcase-s">Sessions Court HYD · Next: 18 Nov</div></div><span class="sp spb">Filed</span></div>
+            <div style="margin-top:12px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1px solid rgba(196,198,207,0.3)"><div style="font-size:9px;font-weight:800;color:#74777f;letter-spacing:0.06em;font-family:'Manrope',sans-serif">UPCOMING HEARING</div><div style="font-size:13px;font-weight:700;color:#022448;margin-top:4px;font-family:'Manrope',sans-serif">Monday, 18 November 2024</div><div style="font-size:10px;color:#74777f;font-family:'Manrope',sans-serif">Sessions Court, Hyderabad · 10:30 AM</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pricing">
+  <div class="si">
+    <div class="slabel reveal">Pricing</div>
+    <h2 class="sh2 reveal">Simple, transparent,<br><em>practice-sized</em></h2>
+    <p class="sbody reveal">All plans include unlimited cases. Only pay for what your firm actually uses.</p>
+    <div class="pricing-grid">
+      <div class="plan reveal"><div class="plan-badge">Solo</div><div class="plan-name">Starter</div><div class="plan-desc">For individual advocates starting their digital practice.</div><div class="plan-price"><span class="plan-cur">₹</span><span class="plan-amt">2,999</span><span class="plan-per"> / month</span></div><div class="plan-feats"><div class="pf-item"><span class="pcheck">✓</span>2 team members</div><div class="pf-item"><span class="pcheck">✓</span>Unlimited cases & documents</div><div class="pf-item"><span class="pcheck">✓</span>50 AI agent runs / month</div><div class="pf-item"><span class="pcheck">✓</span>All 8 AI agents</div><div class="pf-item"><span class="pcheck">✓</span>Client portal (5 clients)</div><div class="pf-item"><span class="pcheck">✓</span>GST invoicing</div></div><a href="https://lexai-platform-web.vercel.app" class="btn-plan bpo" target="_blank">Get started</a></div>
+      <div class="plan feat reveal"><div class="plan-badge">Most popular</div><div class="plan-name">Professional</div><div class="plan-desc">For growing firms with multiple advocates and regular AI usage.</div><div class="plan-price"><span class="plan-cur">₹</span><span class="plan-amt">7,999</span><span class="plan-per"> / month</span></div><div class="plan-feats"><div class="pf-item"><span class="pcheck">✓</span>10 team members</div><div class="pf-item"><span class="pcheck">✓</span>Unlimited cases & documents</div><div class="pf-item"><span class="pcheck">✓</span>250 AI agent runs / month</div><div class="pf-item"><span class="pcheck">✓</span>All agents + coming soon</div><div class="pf-item"><span class="pcheck">✓</span>Unlimited client portal</div><div class="pf-item"><span class="pcheck">✓</span>Custom permission roles</div><div class="pf-item"><span class="pcheck">✓</span>Audit log & CSV export</div><div class="pf-item"><span class="pcheck">✓</span>Priority support</div></div><a href="https://lexai-platform-web.vercel.app" class="btn-plan bpn" target="_blank">Get started →</a></div>
+      <div class="plan reveal"><div class="plan-badge">Enterprise</div><div class="plan-name">Chambers</div><div class="plan-desc">For large firms, chambers, and legal departments.</div><div class="plan-price"><span class="plan-amt" style="font-size:36px">Custom</span></div><div class="plan-feats"><div class="pf-item"><span class="pcheck">✓</span>Unlimited team members</div><div class="pf-item"><span class="pcheck">✓</span>Unlimited AI agent runs</div><div class="pf-item"><span class="pcheck">✓</span>Dedicated account manager</div><div class="pf-item"><span class="pcheck">✓</span>Custom integrations</div><div class="pf-item"><span class="pcheck">✓</span>SLA & uptime guarantee</div><div class="pf-item"><span class="pcheck">✓</span>On-premise option</div></div><a href="mailto:hello@sovereigncounsel.in" class="btn-plan bpo">Contact us</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="cta-bg"></div><div class="cta-glow"></div>
+  <div class="cta-inner">
+    <h2 class="cta-h2 reveal">Your practice.<br><em>Reimagined.</em></h2>
+    <p class="cta-sub reveal">Join advocates across Telangana, Andhra Pradesh, and Maharashtra already practising smarter.</p>
+    <div style="display:flex;justify-content:center;opacity:0;animation:hfade 0.8s 0.3s ease forwards" class="reveal">
+      <a href="https://lexai-platform-web.vercel.app" class="btn-hm" target="_blank" style="font-size:17px;padding:18px 44px">Start your free trial <div class="arr">→</div></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div style="display:flex;align-items:center;gap:10px"><div class="flogo">SC</div><span class="fname">Sovereign Counsel · LexAI India</span></div>
+  <div class="flinks"><a href="#features">Platform</a><a href="#agents">AI Agents</a><a href="#portal">Client Portal</a><a href="#pricing">Pricing</a><a href="https://lexai-platform-web.vercel.app" target="_blank">Log in →</a></div>
+  <div class="fcopy">© 2025 Sovereign Counsel. Built for Indian advocates.</div>
+</footer>
+
+<script>
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+(function animRing(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing)})();
+document.querySelectorAll('a,button,.ctab,.bento,.acard,.ipill,.pf').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cursor.style.transform='translate(-50%,-50%) scale(2.5)';ring.style.width='56px';ring.style.height='56px';ring.style.opacity='0.5'});
+  el.addEventListener('mouseleave',()=>{cursor.style.transform='translate(-50%,-50%) scale(1)';ring.style.width='36px';ring.style.height='36px';ring.style.opacity='1'});
+});
+const canvas=document.getElementById('heroCanvas'),ctx=canvas.getContext('2d');
+function rsz(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}rsz();window.addEventListener('resize',rsz);
+const N=[];for(let i=0;i<90;i++)N.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,o:Math.random()*.5+.1});
+(function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<N.length;i++){
+    const n=N[i];n.x+=n.vx;n.y+=n.vy;
+    if(n.x<0||n.x>canvas.width)n.vx*=-1;
+    if(n.y<0||n.y>canvas.height)n.vy*=-1;
+    for(let j=i+1;j<N.length;j++){
+      const m=N[j],d=Math.hypot(n.x-m.x,n.y-m.y);
+      if(d<130){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(m.x,m.y);ctx.strokeStyle=`rgba(255,224,136,${(1-d/130)*.07})`;ctx.lineWidth=.5;ctx.stroke()}
+    }
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=`rgba(255,224,136,${n.o*.6})`;ctx.fill();
+  }
+  requestAnimationFrame(draw);
+})();
+window.addEventListener('scroll',()=>document.getElementById('navbar').classList.toggle('scrolled',scrollY>40));
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')})},{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal,.revl,.revr').forEach((el,i)=>{el.style.transitionDelay=(i%8)*.07+'s';obs.observe(el)});
+document.querySelectorAll('.ctab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.ccard').forEach(x=>x.classList.remove('vis'));
+    t.classList.add('active');
+    document.getElementById('case-'+t.dataset.case).classList.add('vis');
+  });
+});
+document.querySelectorAll('.bento').forEach(b=>{
+  b.addEventListener('mousemove',e=>{const r=b.getBoundingClientRect();b.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');b.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%')});
+});
+</script>
+</body>
+</html>
