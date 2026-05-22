@@ -185,7 +185,7 @@ function MarketingSite() {
       <script dangerouslySetInnerHTML={{__html:`
 (function(){
   var cur=document.getElementById('sc-cursor'),ring=document.getElementById('sc-ring');
-  var mx=0,my=0,rx=0,ry=0;
+  var mx=window.innerWidth/2,my=window.innerHeight/2,rx=mx,ry=my;
   // Dot follows mouse instantly
   document.addEventListener('mousemove',function(e){
     mx=e.clientX;my=e.clientY;
@@ -209,10 +209,10 @@ function MarketingSite() {
     });
   });
   // Show cursor once mouse moves (hidden until first move)
-  cur.style.opacity='0';ring.style.opacity='0';
+  
   document.addEventListener('mousemove',function(){
     cur.style.opacity='1';ring.style.opacity='1';
-  },{once:true});
+  
   var c=document.getElementById('sc-canvas'),ctx=c.getContext('2d');
   function rsz(){c.width=window.innerWidth;c.height=window.innerHeight}rsz();window.addEventListener('resize',rsz);
   var N=[];for(var i=0;i<90;i++)N.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,o:Math.random()*.5+.1});
